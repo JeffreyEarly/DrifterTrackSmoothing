@@ -38,7 +38,7 @@
 %	cm	float(M,M)		covariance matrix of spline parameters
 %
 %------------------------------------------------------------------------------
-function [m_x,m_y,Cm_x,Cm_y,X,V,A,J] = drifter_fit(t,x,y,dx,dy,W,M,S,v0,lat0, weight_function)
+function [m_x,m_y,Cm_x,Cm_y,X,V,A,J] = drifter_fit_lagrangian(t,x,y,dx,dy,W,M,S,a0,lat0, weight_function)
 
 if (length(t) ~= length(x) || length(t) ~= length(y) )
    disp('The time series are not consistent lengths');
@@ -129,13 +129,81 @@ for q=1:Q
     end
 end
 
-% check that tq is spaced correctly.
 tq = linspace(t(1),t(end),Q-1)';
 W = zeros(Q,N);
 for i=1:N
    index=find( tq >= t(i),1,'first');
    W(index,i)=1;
 end
+
+% W = zeros(Q,N);
+% for i=1:N
+%     if i==1
+%         indices=find(tq <= t(i+1));
+%         W(indices,i)=-(tq(indices)-t(i+1))/(t(i+1)-t(i));
+%     elseif i==N
+%         indices=find( tq >= t(i-1));
+%         W(indices,i)=(tq(indices)-t(i-1))/(t(i)-t(i-1));
+%     else
+%         indices=find( tq >= t(i-1) & tq < t(i));
+%         W(indices,i)=(tq(indices)-t(i-1))/(t(i)-t(i-1));
+%         indices=find( tq >= t(i) & tq <= t(i+1));
+%         W(indices,i)=-(tq(indices)-t(i+1))/(t(i+1)-t(i));
+%     end
+% end
+
+% W = zeros(Q,N);
+for i=1:N
+    if i==1
+        indices=find(tq <= t(i+1));
+        W(indices,i)=-(tq(indices)-t(i+1))/(t(i+1)-t(i));
+    elseif i==N
+        indices=find( tq >= t(i-1));
+        W(indices,i)=(tq(indices)-t(i-1))/(t(i)-t(i-1));
+    else
+        indices=find( tq >= t(i-1) & tq < t(i));
+        W(indices,i)=(tq(indices)-t(i-1))/(t(i)-t(i-1));
+        indices=find( tq >= t(i) & tq <= t(i+1));
+        W(indices,i)=-(tq(indices)-t(i+1))/(t(i+1)-t(i));
+    end
+end
+
+b=2;
+for i=1:N
+    if i==1
+        indices=find(tq <= t(i+b));
+        W(indices,i)=-(tq(indices)-t(i+b))/(t(i+b)-t(i));
+    elseif i==N
+        indices=find( tq >= t(i-b));
+        W(indices,i)=(tq(indices)-t(i-b))/(t(i)-t(i-b));
+    else
+        indices=find( tq >= t(i-1) & tq < t(i));
+        W(indices,i)=(1/b)*(tq(indices)-t(i-1))/(t(i)-t(i-1));
+        indices=find( tq >= t(i) & tq <= t(i+1));
+        W(indices,i)=-(1/b)*(tq(indices)-t(i+1))/(t(i+1)-t(i));
+    end
+end
+
+% W = zeros(Q,N);
+% for i=1:N
+%     if i==1
+%         indices=find(tq <= t(i+1));
+%         W(indices,i)=1;
+%     elseif i==N
+%         indices=find( tq >= t(i-1));
+%         W(indices,i)=1;
+%     else
+%         indices=find( tq >= t(i-1) & tq < t(i));
+%         W(indices,i)=1;
+%         indices=find( tq >= t(i) & tq <= t(i+1));
+%         W(indices,i)=1;
+%     end
+% end
+
+Wsum = sum(W,1);
+Wsum(1) = Wsum(1)*2;
+Wsum(N) = Wsum(N)*2;
+W = W./repmat(Wsum,[Q 1]);
 
 spline2 = @(t,t1,t2) spline_t(t-t1).*spline_t(t-t2);
 D2 = zeros(M,M);
@@ -148,13 +216,13 @@ for i=1:M
         end
     end
 end
-D2 = D2/(t_knot*DT);
+D2 = D2/(t_knot*a0);
 
 Wx = diag(1./(dx.^2));
 Wy = diag(1./(dy.^2));
 
 
-[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, D2, F, W, Wx, Wy, v0, f0, M, NC, x, y, h );
+[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, D2, F, W, Wx, Wy, a0, f0, M, NC, x, y, h );
 return
 % if nargin == 10
     error_y_previous = dy;
@@ -229,10 +297,11 @@ function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, V2, F, W, Wx, Wy, v0,
     % set up inverse theory matrices
 %     E_x = A'*Wx*A + gamma*(Dq'*Dq); % MxM
 %     E_y = A'*Wy*A + gamma*(Dq'*Dq); % MxM
-%     E_x = X'*Wx*X + gamma*V2; % MxM
-%     E_y = X'*Wy*X + gamma*V2; % MxM
-    E_x = v0*v0*Jx + V2; % MxM
-    E_y = v0*v0*Jy + V2; % MxM
+% gamma = 1/(v0*v0*Q);
+     E_x1 = X'*Wx*X + V2; % MxM
+     E_y1 = X'*Wy*X + V2; % MxM
+    E_x = Jx + V2; % MxM
+    E_y = Jy + V2; % MxM
     C_x = -f0*(Vq'*Xq); % MxM
     C_y = -f0*(Xq'*Vq); % MxM
 
@@ -240,7 +309,7 @@ function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, V2, F, W, Wx, Wy, v0,
           C_y,E_y,zeros(M,NC),F';
           F,zeros(NC,M),zeros(NC,NC),zeros(NC,NC);
           zeros(NC,M),F,zeros(NC,NC),zeros(NC,NC)];
-    G2 = [v0*v0*Xq'*W*Wx*x;v0*v0*Xq'*W*Wy*y;h';h'];
+    G2 = [Xq'*W*Wx*x;Xq'*W*Wy*y;h';h'];
     m = G1\G2;
     m_x = m(1:M);
     m_y = m(M+1:2*M);

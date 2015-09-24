@@ -14,11 +14,11 @@ y=[0;500;0];
 
 dx=10*ones(size(x));
 dy=10*ones(size(y));
-v0=0.1;
+a0=0.1;
 M=30; % Number of interior knot points (need two extras for end points)
 W=eye(N);
 S = 5;
-[m_x,m_y,Cm_x,Cm_y,X,V,A,J] = drifter_fit_lagrangian(t,x,y,dx,dy,W,M,S,v0,lat0,@(z)(z));
+[m_x,m_y,Cm_x,Cm_y,X,V,A,J] = drifter_fit_lagrangian(t,x,y,dx,dy,W,M,S,a0,lat0,@(z)(z));
 
 Nt=51;
 M = M+2*floor(S/2);
