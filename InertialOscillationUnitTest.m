@@ -14,7 +14,7 @@ y=[0;500;0];
 
 dx=10*ones(size(x));
 dy=10*ones(size(y));
-a0=0.1;
+a0=20;
 M=30; % Number of interior knot points (need two extras for end points)
 W=eye(N);
 S = 5;

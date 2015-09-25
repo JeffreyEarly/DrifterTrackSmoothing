@@ -153,36 +153,36 @@ end
 % end
 
 % W = zeros(Q,N);
-for i=1:N
-    if i==1
-        indices=find(tq <= t(i+1));
-        W(indices,i)=-(tq(indices)-t(i+1))/(t(i+1)-t(i));
-    elseif i==N
-        indices=find( tq >= t(i-1));
-        W(indices,i)=(tq(indices)-t(i-1))/(t(i)-t(i-1));
-    else
-        indices=find( tq >= t(i-1) & tq < t(i));
-        W(indices,i)=(tq(indices)-t(i-1))/(t(i)-t(i-1));
-        indices=find( tq >= t(i) & tq <= t(i+1));
-        W(indices,i)=-(tq(indices)-t(i+1))/(t(i+1)-t(i));
-    end
-end
-
-b=2;
-for i=1:N
-    if i==1
-        indices=find(tq <= t(i+b));
-        W(indices,i)=-(tq(indices)-t(i+b))/(t(i+b)-t(i));
-    elseif i==N
-        indices=find( tq >= t(i-b));
-        W(indices,i)=(tq(indices)-t(i-b))/(t(i)-t(i-b));
-    else
-        indices=find( tq >= t(i-1) & tq < t(i));
-        W(indices,i)=(1/b)*(tq(indices)-t(i-1))/(t(i)-t(i-1));
-        indices=find( tq >= t(i) & tq <= t(i+1));
-        W(indices,i)=-(1/b)*(tq(indices)-t(i+1))/(t(i+1)-t(i));
-    end
-end
+% for i=1:N
+%     if i==1
+%         indices=find(tq <= t(i+1));
+%         W(indices,i)=-(tq(indices)-t(i+1))/(t(i+1)-t(i));
+%     elseif i==N
+%         indices=find( tq >= t(i-1));
+%         W(indices,i)=(tq(indices)-t(i-1))/(t(i)-t(i-1));
+%     else
+%         indices=find( tq >= t(i-1) & tq < t(i));
+%         W(indices,i)=(tq(indices)-t(i-1))/(t(i)-t(i-1));
+%         indices=find( tq >= t(i) & tq <= t(i+1));
+%         W(indices,i)=-(tq(indices)-t(i+1))/(t(i+1)-t(i));
+%     end
+% end
+% 
+% b=2;
+% for i=1:N
+%     if i==1
+%         indices=find(tq <= t(i+b));
+%         W(indices,i)=-(tq(indices)-t(i+b))/(t(i+b)-t(i));
+%     elseif i==N
+%         indices=find( tq >= t(i-b));
+%         W(indices,i)=(tq(indices)-t(i-b))/(t(i)-t(i-b));
+%     else
+%         indices=find( tq >= t(i-1) & tq < t(i));
+%         W(indices,i)=(1/b)*(tq(indices)-t(i-1))/(t(i)-t(i-1));
+%         indices=find( tq >= t(i) & tq <= t(i+1));
+%         W(indices,i)=-(1/b)*(tq(indices)-t(i+1))/(t(i+1)-t(i));
+%     end
+% end
 
 % W = zeros(Q,N);
 % for i=1:N
@@ -291,9 +291,9 @@ function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, V2, F, W, Wx, Wy, v0,
     for i=1:N
         for m=1:M
             Wtemp=sum(Wxx,1);
-            Gx(m) = x(i)*X(i,m)*Wtemp(i);
+            Gx(m) = Gx(m) + x(i)*X(i,m)*Wtemp(i);
             Wtemp=sum(Wyy,1);
-            Gy(m) = y(i)*X(i,m)*Wtemp(i);
+            Gy(m) = Gy(m) + y(i)*X(i,m)*Wtemp(i);
             for q=1:Q
                 for j=1:M
                     Jx(m,j) = Jx(m,j) + (X(i,m)*Xq(q,j)+X(i,j)*Xq(q,m))*Wxx(q,i);
