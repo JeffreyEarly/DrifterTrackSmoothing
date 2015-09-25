@@ -281,15 +281,24 @@ function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, V2, F, W, Wx, Wy, v0,
     % H is NCx1
     
     Q = size(Xq,1);
-    Wxx = sum(W*Wx,2); % sum([QxN],2)-[Qx1]
-    Wyy = sum(W*Wy,2); % sum([QxN],2)-[Qx1]
+    N = size(Wx,2);
+    Wxx = W*Wx; % [QxN]
+    Wyy = W*Wy; % [QxN]
     Jx = zeros(M,M);
     Jy = zeros(M,M);
-    for m=1:M
-        for j=1:M
+    Gx = zeros(M,1);
+    Gy = zeros(M,1);
+    for i=1:N
+        for m=1:M
+            Wtemp=sum(Wxx,1);
+            Gx(m) = x(i)*X(i,m)*Wtemp(i);
+            Wtemp=sum(Wyy,1);
+            Gy(m) = y(i)*X(i,m)*Wtemp(i);
             for q=1:Q
-                Jx(m,j) = Jx(m,j) + Xq(q,m)*Xq(q,j)*Wxx(q);
-                Jy(m,j) = Jy(m,j) + Xq(q,m)*Xq(q,j)*Wyy(q);
+                for j=1:M
+                    Jx(m,j) = Jx(m,j) + (X(i,m)*Xq(q,j)+X(i,j)*Xq(q,m))*Wxx(q,i);
+                    Jy(m,j) = Jy(m,j) + (X(i,m)*Xq(q,j)+X(i,j)*Xq(q,m))*Wyy(q,i);
+                end
             end
         end
     end
@@ -309,7 +318,7 @@ function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, V2, F, W, Wx, Wy, v0,
           C_y,E_y,zeros(M,NC),F';
           F,zeros(NC,M),zeros(NC,NC),zeros(NC,NC);
           zeros(NC,M),F,zeros(NC,NC),zeros(NC,NC)];
-    G2 = [Xq'*W*Wx*x;Xq'*W*Wy*y;h';h'];
+    G2 = [Xq'*W*Wx*x + Gx;Xq'*W*Wy*y + Gy;h';h'];
     m = G1\G2;
     m_x = m(1:M);
     m_y = m(M+1:2*M);

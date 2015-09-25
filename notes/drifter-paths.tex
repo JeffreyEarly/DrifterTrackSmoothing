@@ -436,6 +436,31 @@ The difference now is that this looks more like constant forcing because the pot
 \end{equation}
 where $W(t-t_i)$ is the forcing decorrelation function that must integrate to $1$ in order to preserver impulse (change in momentum). Is that right? I need to think about the condition on this.
 
+Either way, here's the discretized version,
+\begin{align}
+\phi = & \sum_q \left[ \frac{1}{\bar{u}^2 T} \left( V\indices{^q_j} \xi^j \right)^2 + \frac{1}{\sigma_i^2} \sum_i \left[ x^i \iota^q - \iota^q \Xi \indices{^i_j} \xi^j \right] \left[ x^i \iota^q - \iota^i X\indices{^q_j} \xi^j \right] W\indices{^q_i}  \right] \Delta t
+\end{align}
+where the only difference from before is that the index $X\indices{^q_j} \xi^j$ is now switched to $\Xi \indices{^i_j}\xi^j$, indicating we only apply this at the points of observation.
+
+Using that repeat indices are summed (in this case $i$ and $q$), we have that
+\begin{align}
+\phi = &  \frac{\Delta t}{\bar{u}^2 T} \left( V\indices{^q_j} \xi^j \right)^2 + \frac{\Delta t}{\sigma_i^2} \left[ x^i \iota^q - \iota^q \Xi\indices{^i_j} \xi^j \right] \left[ x^i \iota^q - \iota^i X\indices{^q_k} \xi^k \right] W\indices{^q_i}  \\
+=&\frac{\Delta t}{\bar{u}^2 T} V\indices{^q_j} \xi^j V\indices{^q_k} \xi^k + \frac{\Delta t}{\sigma_i^2} \left[ x^i x^i \iota^q - x^i X\indices{^q_j} \xi^j - x^i \iota^q \Xi \indices{^i_j} \xi^j + \Xi \indices{^i_j} \xi^j X\indices{^q_k} \xi^k \right] W\indices{^q_i} 
+\end{align}
+
+Minimizing with respect to the parameters,
+\begin{align}
+0 =& \frac{\partial \phi}{\partial \xi^m}  \\
+0=&  \frac{\Delta t}{\bar{u}^2 T} V\indices{_q_m} V\indices{^q_j} \xi^j + \frac{\Delta t}{\sigma_i^2} \left[ - x^i X\indices{^q_m} - x^i \iota^q \Xi \indices{^i_m} +  \Xi \indices{^i_m} X\indices{^q_j} \xi^j +  \Xi \indices{^i_j} X\indices{^q_m} \xi^j \right] W\indices{^q_i} 
+\end{align}
+and then solving for the parameters yields,
+\begin{align}
+\nonumber
+0=&  \left[ \frac{\Delta t}{\bar{u}^2 T} V\indices{_q_m} V\indices{^q_j} + \frac{ \Delta t}{\sigma_i^2} \left(\Xi \indices{^i_m} X\indices{^q_j} +  \Xi \indices{^i_j} X\indices{^q_m} \right) W\indices{^q_i}  \right] \xi^j + \frac{\Delta t}{\sigma_i^2} \left[ - x^i X\indices{^q_m} - x^i \iota^q \Xi \indices{^i_m} \right] W\indices{^q_i} \\
+\xi^j =& \left[ \frac{1}{\bar{u}^2 T} V\indices{_q_m} V\indices{^q_j} +\frac{1}{\sigma_i^2} \left(\Xi \indices{^i_m} X\indices{^q_j} +  \Xi \indices{^i_j} X\indices{^q_m} \right) W\indices{^q_i}  \right]^{-1}  \frac{1}{\sigma_i^2} \left[ x^i X\indices{^q_m} + x^i \iota^q \Xi \indices{^i_m} \right] W\indices{^q_i}
+\end{align}
+
+Quick little primer on the matrices. You can treat the first index as the rows and the second index as the columns. It really doesn't matter if they're upper or lower indices for us in this case. However, if you want to keep track of that, then make the first index upper, and the second index lower.
 
 %We proceed by picking a parametric model for $x(t), y(t)$, then actually go and compute how the coefficients need to be minimized. For example,
 %\begin{equation}
