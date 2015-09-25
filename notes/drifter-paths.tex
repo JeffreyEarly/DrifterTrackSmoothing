@@ -1,0 +1,476 @@
+\documentclass[11pt]{article}
+\usepackage{geometry}                % See geometry.pdf to learn the layout options. There are lots.
+\geometry{letterpaper}                   % ... or a4paper or a5paper or ... 
+%\geometry{landscape}                % Activate for for rotated page geometry
+\usepackage[parfill]{parskip}    % Activate to begin paragraphs with an empty line rather than an indent
+\usepackage{graphicx}
+\usepackage{amssymb}
+\usepackage{amsmath}
+\usepackage{epstopdf}
+\usepackage{tensor}
+\DeclareGraphicsRule{.tif}{png}{.png}{`convert #1 `dirname #1`/`basename #1 .tif`.png}
+
+\title{Notes on modeling a good drifter path from noisy data}
+\author{Jeffrey J. Early}
+\date{August 5th, 2015}                                           % Activate to display a given date or no date
+
+\begin{document}
+\maketitle
+
+\section{Introduction}
+
+The raw global drifter dataset is a set of unevenly sampled position values (latitude and longitude) from Lagrangian floats. From this dataset we may want to extract a few key pieces of information:
+\begin{itemize}
+	\item An estimate of the drifter's path, maybe at regular time intervals.
+	\item An estimate the drifter's velocity at each time point.
+	\item An estimate of the total force vector acting on the drifter at each time point (or just a sum of the work on the drifter between intervals).
+\end{itemize}
+
+The noise in position locations from ARGOS can vary from a few hundred meters to a few kilometers, with sample times typically varying from about half an hour to several hours. One consequence of this is that even a motionless drifter would appear to have a nonzero velocity proportional to position noise ($dx$) and inversely proportional to the sample time interval ($dt$). While the drifters tracked with GPS have smaller errors, they fundamentally suffer from the same problem and should be treated in the same way.
+
+What I'm going to argue is that we can use our knowledge of the underlying physics to improve the quality of fits. In particular, we take ideas from the path integral formulation of quantum and classical mechanics to improve our maximum likelihood estimates. To continue, we first need to review maximum likelihood and path integrals.
+
+Throughout this discussion assume that we have collected bivariate time series data of drifter positions given as either projected coordinates $(x_i, y_i)$ or longitude/latitude $(\phi_i, \theta_i$) at times $t_i$. Our goal is to create a model of position $(x(t),y(t))$ that is continuous in $t$, and perhaps even continuous in the first derivative (velocity) that best matches the data.
+
+\section{Maximum Likelihood}
+
+The following discussion is largely based off of my reading of the Numerical Recipes Chapter 15 on ``Modeling of Data''.
+
+Slightly rewording a quote from Numerical Recipes, the central idea of maximum likelihood is to ask ``Given a particular path $(x(t),y(t))$, what is the probability that this dataset $(t_i,x_i, y_i)$ could have occurred?'' The goal is then to find the path that is most likely to have produced that dataset.
+
+Conceptually we have two major pieces that we need to solve this problem:
+\begin{enumerate}
+\item we need to specify the probability function and
+\item we need to specify the form of the path (model).
+\end{enumerate}
+
+The canonical example in one-dimension is to assume that the error in our position measurements are Gaussian and therefore the probability of the observed data given the model is,
+\begin{equation}
+P \sim \prod \exp \left[ -\frac{1}{2} \left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 \right] \Delta x
+\end{equation}
+where $x_i$ represents the observations at time $t_i$ with estimated error of $\sigma_i$. In general, our data may not be Gaussian, and the observations may not be truly independent (meaning that points nearby in time should be weighted to reflect that the drifter didn't likely move very far).
+
+The form given to the path $x(t)$ shouldn't be too important, as long as it doesn't have too many free parameters. For example, you don't want to be fitting a quadratic polynomial to only two data points because it's under-specified---but it is perfectly fine to fit a quadratic polynomial to, say, ten data points. I would argue that if the answer you get depends strongly on the form of the model, then you're doing something wrong.
+
+\section{Path Integrals}
+
+To determine the path that a particle takes in classical mechanics, one typically applies Newton's second law,
+\begin{equation}
+m\ddot{x} = F(x,t).
+\end{equation}
+Once the forces $F(x,t)$ have been specified, then, in principal, it is possible to find the path $x(t)$ that the particle must have taken. If the forces are conservative, then they can be written as the derivative of potential energy, $F(x,t) = - \frac{\partial V(x,t)}{\partial x}$.
+
+A useful alternative to directly applying Newton's second law, is to instead find the path $x(t)$ that \emph{minimize the action}
+\begin{equation}
+S = \int \mathcal{L} \, dt
+\end{equation}
+where $\mathcal{L}=\frac{1}{2} m \dot{x}^2 - V(x)$. The terminology here is that the difference between the kinetic energy and potential energy, $\mathcal{L}$, is the \emph{Lagrangian} while its time integral, $S$, is the \emph{action}.
+
+To find the path that minimizes the action $S$, one could simply try a number of different paths $x_\alpha(t)$ and use a minimization search algorithm to find the best path. Of course, this can also be done analytically, where the action is minimized by applying the Euler-Lagrange equations,
+\begin{equation}
+\frac{d}{dt} \left( \frac{ \partial \mathcal{L}}{\partial \dot{x}} \right) = \frac{\partial \mathcal{L}}{\partial x}
+\end{equation}
+which can be seen to reproduce Newton's second law. \textbf{This means that we can understand nature as choosing the path that minimizes the time averaged difference between the kinetic and potential energy.} In the absence of potential energy, this results in a path is simply a straight line.
+
+The principal of least-action doesn't deal with non-conservative forces (such as friction), but it does allow one to specify constraints amongst the variables (known holonomic constraints), which allows us to constrain the particle to lie along a particular path. One possible constraint would be to say that the path must cross a particular point at a particular time, that is $x(t_0)=x_0$. This constraint should look a lot like observed data of a particle path. Added to the Lagrangian this takes the form
+\begin{equation}
+\mathcal{L}=\frac{1}{2} m \dot{x}^2 - V(x) + \lambda^{(0)}(x_0-x(t_0))
+\end{equation}
+where $\lambda^{(0)}$ is now treated as a coordinate variable and the constraint is recovered by applying the Euler-Lagrange equations. If one had several such constraints,
+\begin{equation}
+\label{constrained_lagrangian}
+\mathcal{L}=\frac{1}{2} m \dot{x}^2 - V(x) + \sum_{i=0}^N \lambda^{(i)}(x_i-x(t_i)).
+\end{equation}
+At this point, one could simply divide up the action into a series of separate sums,
+\begin{equation}
+S = \sum_{i=0}^{N-1} \int_{t_i}^{t_{i+1}} \frac{1}{2} m \dot{x}^2 - V(x)
+\end{equation}
+where the final and initial conditions of each integral are the observed locations of the particle. In the absence of a potential $V(x)$, this would simply be a series of straight lines between the points. This is a useful result insofar as it tells us that in the absence of additional information, it's reasonable to assume that particles travel in straight lines between observations.
+
+\subsection{Quantum mechanics}
+
+Taking this all one step further, in quantum mechanics one allows \emph{all} possible paths, including the classical, to exist. The probability amplitude of a particle traverse between two points is the sum of all those paths,
+\begin{equation}
+P = \int \exp\left[ \frac{i}{\hbar} S \right] \delta x
+\end{equation}
+where $\hbar$ is simply a normalization with units Joules-seconds. The odd part is perhaps the $i$, which associates a phase with each path---so each path has the same amplitude, but different phase. The integral $\int \delta x$ is a sum over all paths $x$. In a more discrete form this looks like,
+\begin{equation}
+P = \prod \exp\left[ \frac{i}{\hbar} \int \mathcal{L} \right] Dx
+\end{equation}
+The interpretation here is very interesting. The Euler-Lagrange equations give use the \emph{classical} path that minimizes $S$, call it $x_{\textrm{cl}}(t)$. Because $x_{\textrm{cl}}(t)$ is a minimum of $S$, other paths that are nearby will also have nearly the same phase (and therefore add constructively), but as soon as the phase wanders approximately $\pi$ away from the minimum, then other paths start to cancel each other out (and add de-constructively).
+
+\section{Putting this all together}
+
+From the section on maximum likelihood, we know we want to construct a path $x(t)$ that is most likely to exist given the observed data and known error of observations. On the other hand, we know from the section of path integrals, that nature chooses paths that minimize the time averaged difference between kinetic and potential energy. By combining both of these ideas, I think it is possible to construct paths that match the data and are physically realistic.
+
+It's important to note that by adding this constraint on the velocity (and kinetic energy) even if you use some tenth order polynomial to fit the data, you will \emph{not} get spurious paths with huge accelerations. The constraint on velocities will prevent that.
+
+\subsection{Non Gaussian distributions}
+
+First, note that maximum likelihood does \emph{not} require we use Gaussian distributions---when we do, then maximum likelihood reduces to least-squares---but we can use other distributions that may better fit the data.
+
+In the case of noisy measurements it may, in fact, be better to use a two-sided exponential (see section 15.7 in Numerical Recipes for `Robust Modelling'),
+\begin{equation}
+P \sim \exp \left[ -\left\lvert  \frac{x_i - x(t_i)}{\sigma_i} \right\rvert \right]
+\end{equation}
+because this has a much longer tail than a Gaussian.
+
+\subsection{Principal of least action as a probability}
+
+In the case of quantum mechanics the action was treated as a phase parameter where trajectories near the classical minimum contributed more the final probability. Instead of worrying about phase, for our purposes we should just say that paths that minimize the action are more probable than those that don't. In other words, eliminated the $i$ from the quantum mechanics definition so that, 
+\begin{equation}
+P \sim \exp \left[ \frac{S}{E} \right]
+\end{equation}
+where $E$ is some constant similar to $\hbar$ that has units of Joules-seconds.
+
+\subsection{Constraining velocity}
+
+The standard one-dimension action with a potential energy is simply,
+\begin{equation}
+S = \int \frac{1}{2} \dot{x}^2 \, dt.
+\end{equation}
+Let's say that our model for the trajectory of the particle is linear, e.g., $x(t) = u t + b$. In this case then, the principal of least action is equivalent to minimizing the velocity. That is,
+\begin{equation}
+P \sim \exp \left[ -  \frac{u^2}{E} \Delta t \right]
+\end{equation}
+which is equivalent to just saying,
+\begin{equation}
+P \sim \exp \left[ -  \frac{u^2}{\sigma_u^2} \right]
+\end{equation}
+where $\sigma_u$ is some velocity variance.
+
+BUT, now that we've gotten here, it's worth noting that we know something about the velocity PDFs in the ocean, see the two papers of Bracco et al., 2000. In fact, the fit is not really a Gaussian, but is again more like a two-sided exponential.
+
+This is an argument then that the most likely path might take something of the form,
+\begin{equation}
+P \sim \prod \exp \left[ -\frac{1}{2} \left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 -\left\lvert  \frac{\dot{x}}{\sigma_u} \right\rvert \right] \Delta x.
+\end{equation}
+This isn't quite right, and this assumes that we have a linear model. As soon as we have a nonlinear model (e.g., $x(t)=at^2+bt+c$), then we really will need to include the integral over the kinetic energy proper.
+
+\subsection{Including the geopotential}
+
+Up until now we consider the Lagrangian for a free particle in an inertial frame. BUT, if we consider the Lagrangian for a particle constrained to the surface of the earth, then
+\begin{equation}
+\mathcal{L} = \frac{1}{2}R^2 \dot{\theta}^2 + \frac{1}{2} R^2 \left( \dot{\phi}^2 + 2 \omega \dot{\phi} \right) \cos^2 \theta.
+\end{equation}
+Note that $u = R \dot{\phi} \cos \theta$ and $v=R\dot{\theta}$ which means this is just,
+\begin{equation}
+\mathcal{L} =  \frac{1}{2} u^2  + \frac{1}{2} v^2 +  u \omega R \cos \theta.
+\end{equation}
+This extra term on the end is a potential energy term, and is exactly what causes inertial oscillations.
+
+A key point in Early (2012) is that the `straight lines' (geodesics) on the earth are actually inertial oscillations. So, if you think that the idea of minimizing the action has any merit whatsoever, then this modified Lagrangian is the one you should use. In other words don't minimize something that looks like this,
+\begin{equation}
+\phi = \frac{ [x_i - x(t_i) ]^2}{2 \sigma_i^2} + \frac{ [y_i - y(t_i) ]^2}{2 \sigma_i^2} + \frac{1}{2 E_0} \left[ u^2(t_i) + v^2(t_i) \right]
+\end{equation}
+instead minimize something that looks like this,
+\begin{equation}
+\phi = \frac{ [\theta_i -\theta(t_i) ]^2}{2 \sigma_i^2} + \frac{ [\phi_i - \phi(t_i) ]^2}{2 \sigma_i^2} + \frac{1}{ E_0}  \left[ u^2(t_i) + v^2(t_i) +  u \omega R \cos \theta \right]
+\end{equation}
+where $\omega$ is the rotation rate of the Earth.
+
+My biggest objection to what's written above is that we don't want to evaluate the energies (velocities) just at times $t_i$, but instead we want the integral over the path length, as is seen in the action.
+
+\section{Master Equation}
+
+So, given all that we've argued the thing you REALLY want to maximize is $\exp(\phi)$ where,
+\begin{equation}
+\phi = \frac{ [\theta_i -\theta(t_i) ]^2}{2 \sigma_i^2} + \frac{ [\phi_i - \phi(t_i) ]^2}{2 \sigma_i^2} + \frac{S}{S_0} 
+\end{equation}
+and,
+\begin{equation}
+S = \int_{0}^{T} \left[ \frac{1}{2} u^2(t) + \frac{1}{2} v^2(t) +  u(t) \Omega R \cos \theta(t) \right]\, dt
+\end{equation}
+where $S_0$ is some characteristic scale. Compare these two equations to Teanby (2007) equations 27 and 31---they're almost identical and, in fact, in his approximation at equation 34, they are identical.
+
+So first, what is $S_0$? The action $S$ is very nearly a measure of the time averaged kinetic energy of the particles, scaled by T. So this is equivalent to $S_0 = \frac{1}{2} \bar{v}^2 T$ where $\bar{v}$ is a characteristic velocity and $T$ is the total time of the integral.
+
+\subsection{$f$-plane}
+
+Let's simplify this to a Cartesian coordinates for the moment, projected on to some $f$-plane so that latitude appears fixed. Thus,
+\begin{equation}
+\phi = \frac{ [x_i -x(t_i) ]^2}{2 \sigma_i^2} + \frac{ [y_i - y(t_i) ]^2}{2 \sigma_i^2} + \frac{S}{S_0} 
+\end{equation}
+and,
+\begin{equation}
+S = \int_{0}^{T} \left[ \frac{1}{2} \left( \frac{dx}{dt} \right)^2 + \frac{1}{2} \left( \frac{dy}{dt} \right)^2 +  \left( \frac{dx}{dt} \right) f_0 y \right]\, dt.
+\end{equation}
+This approximation comes from equation (22) in Ripa (1997). Following the notation of Teanby (2007), we will write $x(t)$ and $y(t)$ in terms of the basis functions $B_j(t)$ where
+\begin{align}
+x(t) =& \sum_{j=1}^M \xi_j B_j(t) \\
+y(t) =& \sum_{j=1}^M \eta_j B_j(t)
+\end{align}
+There are $M$ basis functions (in this case splines), each identical but centered on (M) different `knot' points. The goal is to determine the coefficients $\xi_j$ and $\eta_j$.
+
+Let's say we have $N$ different observations of $(x_i, y_i)$ at times $t_i$. Then the model fit at these points is,
+\begin{align}
+x(t^i) =& \sum_{j=1}^M \xi_j B_j(t^i) \\
+y(t^i) =& \sum_{j=1}^M \eta_j B_j(t^i)
+\end{align}
+In matrix notation,
+\begin{equation}
+x^i = B\indices{^i_j}\xi^j
+\end{equation}
+where the first index of $B$ references the $N$ observations at times $t^i$, the second index of $B$ references the $M$ knot points. Using this notation, the penalty function $\phi$ becomes,
+\begin{equation}
+\phi = \frac{1}{2} \left[ x^k - B\indices{^k_j} \xi^j \right]^{\textrm{T}} W\indices{^k_i} \left[ x^i - B\indices{^i_l} \xi^l \right] + \frac{1}{2} \left[ y^k - B\indices{^k_j} \eta^j \right]^{\textrm{T}} W\indices{^k_i} \left[ y^i - B\indices{^i_l} \eta^l \right] + S/S_0
+\end{equation}
+where the matrix $W$ is the inverse covariance matrix, e.g., $1/\sigma^2$ or something.
+
+Finding the minimum of $\phi$ is best done by finding where its derivative vanishes. This is standard fare for the least-squares part of the equation. In particular,
+\begin{align}
+\bar{X}^2 \equiv&  \left[ x^k - B\indices{^k_j} \xi^j \right]^{\textrm{T}} W\indices{^k_i} \left[ x^i - B\indices{^i_l} \xi^l \right] \\
+=&  \left[ x_k - B\indices{_k^j} \xi_j \right] W\indices{^k_i} \left[ x^i - B\indices{^i_l} \xi^l \right] \\
+=&  \left[ x_k W\indices{^k_i} - \xi_j B\indices{_k^j} W\indices{^k_i} \right] \left[ x^i - B\indices{^i_l} \xi^l \right] \\
+=& x_k W\indices{^k_i} x^i - \xi_j B\indices{_k^j} W\indices{^k_i} x^i - x_k W\indices{^k_i}  B\indices{^i_l} \xi^l+ \xi_j B\indices{_k^j} W\indices{^k_i}  B\indices{^i_l} \xi^l \\
+=& x_k W\indices{^k_i} x^i - 2 x_k W\indices{^k_i}  B\indices{^i_j} \xi^j+ \xi_j B\indices{_k^j} W\indices{^k_i}  B\indices{^i_l} \xi^l.
+\end{align}
+Using that
+\[
+\frac{\partial{ \xi^m}}{\partial \xi^n} = \delta\indices{^m_n}.
+\]
+we can carefully differentiate the last term,
+\begin{align}
+&  \frac{\partial}{\partial \xi^m} \left[ \xi_j B\indices{_k^j} W\indices{^k_i}  B\indices{^i_l} \xi^l \right] \\
+&=\frac{\partial}{\partial \xi^m} \left[ \xi^n \delta\indices{_j_n}  B\indices{_k^j} W\indices{^k_i}  B\indices{^i_l} \xi^l \right] \\
+&= \delta\indices{^n_m} \delta\indices{_j_n}  B\indices{_k^j} W\indices{^k_i}  B\indices{^i_l} \xi^l + \xi_j B\indices{_k^j} W\indices{^k_i}  B\indices{^i_l} \delta\indices{^l_m} \\
+&=  B\indices{_k_m} W\indices{^k_i}  B\indices{^i_l} \xi^l + \xi_j B\indices{_k^j} W\indices{^k_i}  B\indices{^i_m} \\
+&= B\indices{_k_m} W\indices{^k_i}  B\indices{^i_l} \xi^l +  B\indices{^i_m} W\indices{^k_i}   B\indices{_k^j} \xi_j \\
+&= B\indices{_k_m} W\indices{^k_i}  B\indices{^i_l} \xi^l +  B\indices{^k_m} W\indices{^k_i}   B\indices{_i^j} \xi_j
+\end{align}
+where we used the fact that $W$ is symmetric in the last step. With some simple raising and lowering, these two terms are identical. In total then,
+\begin{align}
+\frac{\partial \bar{X}^2}{\partial \xi^m} = - 2 x_k W\indices{^k_i}  B\indices{^i_m}+2 B\indices{_k_m} W\indices{^k_i}  B\indices{^i_l} \xi^l.
+\end{align}
+
+The action also needs to be computed, but it doesn't need to be on the same grid as the observations. Instead, we will create $Q$ evenly spaced points on our `quadrature grid', following Teanby (2007) where $Q = 5 T/k$ where $k$ is the spacing between the $M$ knots. Thus, in discrete form
+\begin{equation}
+S = \sum_{q=1}^Q \left[ \frac{1}{2} \left( {B^\prime}\indices{^q_j} \xi^j \right)^2 +  \frac{1}{2} \left( {B^\prime}\indices{^q_j} \eta^j \right)^2 -  f_0 {B^\prime}\indices{^q_j} \xi^j B\indices{^q_j}\eta^j \right] \Delta t
+\end{equation}
+Differentiating with respected to the parameters,
+\begin{align}
+\frac{\partial S}{\partial \xi^k} =& \sum_{q=1}^Q \left[ {B^\prime}\indices{^q_k} \left( {B^\prime}\indices{^q_j} \xi^j \right) -  f_0 {B^\prime}\indices{^q_k} B\indices{^q_j}\eta^j \right] \Delta t \\
+\frac{\partial S}{\partial \eta^k} =& \sum_{q=1}^Q \left[ {B^\prime}\indices{^q_k} \left( {B^\prime}\indices{^q_j} \eta^j \right) -  f_0 {B^\prime}\indices{^q_j} \xi^j B\indices{^q_k} \right] \Delta t
+\end{align}
+
+Starting with $y$,
+\begin{align}
+0 =& \frac{\partial \phi}{\partial \eta^m} \\
+=& - 2 y_k W\indices{^k_i}  B\indices{^i_m}+2 B\indices{_k_m} W\indices{^k_i}  B\indices{^i_l} \eta^l + \frac{2 \Delta t}{ \bar{v}^2 Q \Delta t} \left[ {B^\prime}\indices{^q_m}{B^\prime}\indices{^q_j} \eta^j -  f_0 {B^\prime}\indices{^q_j} B\indices{^q_m}  \xi^j \right] \\
+y_k W\indices{^k_i}  B\indices{^i_m} =& \left[B\indices{_k_m} W\indices{^k_i}  B\indices{^i_j} + \frac{1}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m}{B^\prime}\indices{^q_j} \right] \eta^j - \frac{f_0}{ \bar{v}^2 Q} {B^\prime}\indices{^q_j} B\indices{^q_m}  \xi^j.
+\end{align}
+Without the Coriolis portion, this would just be
+\begin{equation}
+\eta^j = \left[B\indices{_k_m} W\indices{^k_i}  B\indices{^i_j} + \frac{1}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m}{B^\prime}\indices{^q_j} \right]^{-1} y_k W\indices{^k_i}  B\indices{^i_m}
+\end{equation}
+but with the Coriolis portion, the solution is now coupled to what is happening along the other axis.
+
+And then with $x$,
+\begin{align}
+0 =& \frac{\partial \phi}{\partial \xi^m} \\
+=&  - 2 x_k W\indices{^k_i}  B\indices{^i_m}+2 B\indices{_k_m} W\indices{^k_i}  B\indices{^i_l} \xi^l + \frac{2 \Delta t}{ \bar{v}^2 Q \Delta t} \left[ {B^\prime}\indices{^q_m}{B^\prime}\indices{^q_j} \xi^j  -  f_0 {B^\prime}\indices{^q_m} B\indices{^q_j}\eta^j \right]
+\end{align}
+which means that,
+\begin{align}
+x_k W\indices{^k_i}  B\indices{^i_m} =& \left[B\indices{_k_m} W\indices{^k_i}  B\indices{^i_j} + \frac{1}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m}{B^\prime}\indices{^q_j} \right] \xi^j - \frac{f_0}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m} B\indices{^q_j}  \eta^j.
+\end{align}
+
+So, we have the following two equations,
+\begin{align}
+x_k W\indices{^k_i}  B\indices{^i_m} =& \left[B\indices{_k_m} W\indices{^k_i}  B\indices{^i_j} + \frac{1}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m}{B^\prime}\indices{^q_j} \right] \xi^j - \frac{f_0}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m} B\indices{^q_j}  \eta^j \\
+y_k W\indices{^k_i}  B\indices{^i_m} =&  - \frac{f_0}{ \bar{v}^2 Q} {B^\prime}\indices{^q_j} B\indices{^q_m}  \xi^j + \left[B\indices{_k_m} W\indices{^k_i}  B\indices{^i_j} + \frac{1}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m}{B^\prime}\indices{^q_j} \right] \eta^j
+\end{align}
+Which are simply solved when written in the form,
+\begin{equation}
+\left[\begin{array}{c} x_k W\indices{^k_i}  B\indices{^i_m} \\ y_k W\indices{^k_i}  B\indices{^i_m} \end{array}\right] = A \cdot \left[\begin{array}{c} \xi^j \\ \eta^j \end{array}\right]
+\end{equation}
+
+Adding in the Lagrange constraints that $F\indices{^i_j}\xi^j = h^i$ where the first index is the number of constraints and the second index is the number of parameters, I get that
+\begin{align}
+x_k W\indices{^k_i}  B\indices{^i_m} =& \underbrace{\left[B\indices{_k_m} W\indices{^k_i}  B\indices{^i_j} + \frac{1}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m}{B^\prime}\indices{^q_j} \right]}_a \xi^j \underbrace{- \frac{f_0}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m} B\indices{^q_j}}_b  \eta^j + F\indices{_j_m} \lambda^j \\
+y_k W\indices{^k_i}  B\indices{^i_m} =& \underbrace{ - \frac{f_0}{ \bar{v}^2 Q} {B^\prime}\indices{^q_j} B\indices{^q_m}}_c  \xi^j + \underbrace{\left[B\indices{_k_m} W\indices{^k_i}  B\indices{^i_j} + \frac{1}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m}{B^\prime}\indices{^q_j} \right]}_d \eta^j + F\indices{_j_m} \mu^j \\
+h^i =& F\indices{^i_j}\xi^j \\
+h^i =& F\indices{^i_j}\eta^j
+\end{align}
+Our vector is now,
+\begin{equation}
+\left[ \begin{array}{cccc}
+a & b & F\indices{_j_m} & 0\\
+c & d & 0 & F\indices{_j_m} \\
+F\indices{^i_j} & 0 & 0 & 0 \\
+0 & F\indices{^i_j} & 0 & 0 \end{array} \right]
+ \cdot \left[\begin{array}{c} \xi^j \\ \eta^j \\ \lambda \\ \mu \end{array}\right] = \left[\begin{array}{c} x_k W\indices{^k_i}  B\indices{^i_m} \\ y_k W\indices{^k_i}  B\indices{^i_m} \\ h \\ h \end{array}\right]
+\end{equation}
+
+
+In the setup in Teanby, there's a knot point one spacing before and one spacing after the curve. So, if you have only two points observed, then you'd need a minimum of 4 knot points.
+
+Using the simple inertial oscillation example is really insightful.
+
+\subsection{e-fold parameters}
+
+We are now trying to weight nearby measurements so that the fits use nearby points with decreased weighting depending on how far apart those points are.
+
+We will use the terminology that the \emph{decorrelation time}, $T_d$, is when the weighting decreases to $0.01$, where we assume that a value of weight $1$ is coincident with the fit. We're going to use two different weighting functions, a Gaussian and an exponential.
+
+The weighting matrix has rows and columns corresponding to each observations.  If we let $\tau=t_k-t_i$, then
+\begin{equation}
+W\indices{_k_i} = e^{ - \frac{(\tau\indices{_k_i})^2}{2 T_g^2} }
+\end{equation}
+where $T_g^2 = - \frac{T_d^2}{2 \ln \gamma}$ where we've set $\gamma = 0.01$.
+
+For an exponential this would be,
+\begin{equation}
+W\indices{_k_i} = e^{ - \frac{\tau\indices{_k_i}}{T_e} }
+\end{equation}
+where $T_e = - \frac{T_d}{\ln \gamma}$.
+
+\subsection{Integration}
+
+Need to increase the resolution of the quadrature grid, or simply compute the integral analytically.
+
+The summations in Teanby don't work at the boundaries because he's explicitly integrating, yet doesn't fully resolve the splines at the edges. Is that true?
+
+An an important step in the method is the integration of several quantities. At the moment we're using a simple rectangle integration, but this appears to be fairly limiting. It's looks like its best to compute these quantities beforehand.
+
+Note that the integration matrix is scaled by $dt \cdot dk$ where $dk$ is knot spacing.
+
+It is possible to set conditions on jerk (derivative of acceleration) using the cubic spline, but one has to be careful. It's is a piecewise discontinuous function, so one needs to be careful to include the knot points in the nonzero part of the function, then things work okay.
+
+\subsection{quintic spline}
+
+A quintic B-spline finite-element method for solving the nonlinear Schršdinger equation
+
+\subsection{smoothing kernel}
+
+At what scale do we smooth the forcing? This depends on both the physics, and the sampling properties of the data. The coolest part is that we can use the velocity spectrum to estimate how often we should sample the data, given the measurement errors. For example, if the particle experiences a velocity of $u \sin(\omega t)$ then we obviously have to sample at the Nyquist frequency with period ($T$), and we'd darn well have measurement errors less than $u/T$.
+
+\subsection{constraints as springs}
+
+Given that the `force' of a Gaussian-error observation increases linearly with distance, the observations can be interpreted as springs (which have a linearly increasing force). The only difference is that these springs are, by default, delta functions in time (I haven't confirmed this). That would mean that we could extend the notation of the springs from being delta functions in time, to having a more broad band signature.
+
+If your penalty function looks like this,
+\begin{equation}
+\phi = \sum_i \frac{ [x_i - x(t_i) ]^2}{2 \sigma_i^2} + \frac{1}{\bar{u}^2 T}  \int \dot{x}^2(t)  \, dt 
+\end{equation}
+then you can rewrite it like this,
+\begin{equation}
+\phi = \frac{1}{\bar{u}^2 T}  \int \left[ \dot{x}^2(t) + \sum_i \frac{\bar{u}^2 T}{2 \sigma_i^2} [x_i - x(t)]^2 \delta(t-t_i)  \right] \, dt
+\end{equation}
+This has a very clear interpretation as a physical system. The observations $(t_i, x_i)$ are simply delta function springs with spring constants $k=\bar{u}^2 T/\sigma_i^2$.
+
+The spring constant is interesting. The dependence on $\sigma$ make sense---the more confident you are about the position of the particle (smaller $\sigma$), the stronger the spring will pull the particle in that direction. On the other hand, the dependence on \emph{action}, $\bar{u}^2 T$, is not so obvious. As the action increases in values, this increases the strength of the spring. Conversely, if the action is viewed as normalizing the kinetic energy, it's effect is to decrease the contribution of large kinetic energies in the integral, and therefore favor larger kinetic energies when minimizing.
+
+After further consideration, I think that the right way to view this is like this,
+\begin{equation}
+\phi =  \int \left[\frac{\dot{x}^2(t)}{\bar{u}^2 T}   + \sum_i \frac{1}{2 \sigma_i^2} [x_i - x(t)]^2 \delta(t-t_i)  \right] \, dt.
+\end{equation}
+The spring therefore increases it's relative strength as the uncertainty in the particle's position decreases, and the kinetic energy is seen to be normalized by an \emph{rms} value, assuming $T$ varies with the length of the time series. If $T$ did not vary with the length of the time series, then kinetic energy would become increasingly penalized as the time series grows in length. This is, apparently, what happens in quantum mechanics because $\hbar$ stays fixed. Although in that case $S$ represents a phase, so maybe its not so straightforward.
+
+Nope, this isn't right. For our purposes $\bar{u}^2 T$ is just the characteristic acceleration. This is easy to see if you write this as a dynamical system because that's what scales acceleration.
+
+At the very least we might suppose that these springs are acting on the time intervals between observations, rather than simple as a delta function in time. This make sense because we have literally no other information about what's happening between observations.
+
+To reproduce the ball rolling on an inclined plane case, we take the opposite extreme and suppose that the in the absence of additional observations, the forcing was constant in time between observations (rather than a delta function). This can be written in terms of Heaviside step functions, $H$.
+\begin{equation}
+\phi = \frac{1}{\bar{u}^2 T}  \int \left[ \dot{x}^2(t) + \sum_i \frac{\bar{u}^2 T}{\sigma_i^2} [x_i - x(t)]^2 \left( H(t-t_{i-1}) - H(t-t_{i+1}) \right) \right] \, dt
+\end{equation}
+Conceptually this lets the spring exist starting at the time of the previous observation and ending and the time of the next observation. That means, at any given time there will be two springs acting on the particle.
+
+Generalizing this, we have some forcing function (perhaps a spring) acting for some finite amount of time,
+\begin{equation}
+\phi = \frac{1}{\bar{u}^2 T}  \int \left[ \dot{x}^2(t) + \sum_i f^i(t,x) W^i(t) \right] \, dt
+\end{equation}
+where $f(t,x)$ is the forcing function and $W$ is the weighting function.
+
+How do we solve this? Here's the delta function case,
+\begin{align}
+\phi = & \sum_q \left[ \left( V\indices{^q_j} \xi^j \right)^2 + \frac{\bar{u}^2 T}{\sigma_i^2 } \sum_i \left[ x^i \iota^q - X\indices{^q_j} \xi^j \right]^2 \delta\indices{^q_{t_i}}  \right] \Delta t
+\end{align}
+where I've used $\iota^q$ to represent a vector of $1$s. Worth remembering here is that $x^i$, in this context, is just a scalar value---and that's why I've used $\iota^q$ to convert it into a vector. The $q$ index is the integration index. The delta function $\delta\indices{^q_{t_i}}$ should be interpreted as producing a $1$ when the index $q$ is equal to $t_i$, and zero otherwise. 
+
+Generalizing this slightly,
+\begin{align}
+\phi = & \sum_q \left[ \left( V\indices{^q_j} \xi^j \right)^2 + \frac{\bar{u}^2 T}{\sigma_i^2} \sum_i \left[ x^i \iota^q - \iota^i X\indices{^q_j} \xi^j \right]^2 W\indices{^q_i}  \right] \Delta t
+\end{align}
+$W\indices{^q_i}$ now allows for different time distributions of the forcing. This is just as before, but now $W\indices{^q_i}$ is a $Q\times N$ matrix. We can reduce the standard least squares method if the columns of $W$ contains $1$s at the time of each observation.
+
+\begin{align}
+\bar{X}^2 \equiv&  \left[ x^i \iota^q - \iota^i X\indices{^q_j} \xi^j \right] \left[ x^i \iota^q - \iota^i X\indices{^q_l} \xi^l \right] \\
+=& x^i x^i \iota^q - 2 x^i  X\indices{^q_j} \xi^j+ \iota^i \xi_j X\indices{_q^j} X\indices{^q_l} \xi^l.
+\end{align}
+
+
+Repeated indices imply summation, so we can write this as,
+\begin{align}
+\phi = & \frac{\Delta t}{\bar{u}^2 T} V\indices{_q^k} \xi_k V\indices{^q_j} \xi^j + \frac{\Delta t}{\sigma_i^2} \left[  x^i x^i \iota^q - 2 x^i  X\indices{^q_j} \xi^j+ \iota^i \xi_j X\indices{_q^j} X\indices{^q_l} \xi^l \right] W\indices{^q_i} 
+\end{align}
+which means that
+\begin{align}
+\frac{\partial \phi}{\partial \xi^m} = & \frac{\Delta t}{\bar{u}^2 T} V\indices{_q_m} V\indices{^q_j} \xi^j +  \frac{\Delta t}{\sigma_i^2}\left[  - 2 x^i  X\indices{^q_m}+ 2 \iota^i X\indices{_q_m} X\indices{^q_l} \xi^l \right] W\indices{^q_i} 
+\end{align}
+
+The minimizing with respect to the parameters,
+\begin{align}
+0 =& \frac{\partial \phi}{\partial \xi^m} \\
+0=&   \frac{1}{\bar{u}^2 T} V\indices{_q_m} V\indices{^q_j} \xi^j + \frac{1}{\sigma_i^2} \left[  - 2 x^i  X\indices{^q_m}+ 2 \iota^i X\indices{_q_m} X\indices{^q_l} \xi^l \right] W\indices{^q_i}   \\
+0=& \left[\frac{1}{\bar{u}^2 T} V\indices{_q_m} V\indices{^q_j} + \frac{2}{\sigma_i^2} \iota^i X\indices{_q_m} X\indices{^q_j} W\indices{^q_i} \right] \xi^j - \frac{2}{\sigma_i^2}  x^i W\indices{^q_i}  X\indices{^q_m} \\
+\xi^j =& \left[\frac{1}{\bar{u}^2 T}V\indices{_q_m} V\indices{^q_j} + \frac{2}{\sigma_i^2}  \iota^i X\indices{_q_m} X\indices{^q_j} W\indices{^q_i} \right]^{-1} \frac{2}{\sigma_i^2}  x^i W\indices{^q_i}  X\indices{^q_m}
+\end{align}
+
+\subsection{Off diagonal terms}
+
+\begin{align}
+& (x_0 - x(t_0))W(x_1 - x(t_1))
+\end{align}
+
+\subsection{Alternative hypothesis}
+
+There's an alternative way to interpret the observations as forcing. Specifically,
+\begin{equation}
+\phi =  \int \left[\frac{\dot{x}^2(t)}{\bar{u}^2 T}   + \sum_i \frac{1}{2 \sigma_i^2} [x_i - x(t_i)] [x_i - x(t)] \delta(t-t_i)  \right] \, dt.
+\end{equation}
+The difference now is that this looks more like constant forcing because the potential is $\sim x$, instead of $\sim x^2$. Of course, we've still applied the force over an infinitesimal impulse. This can then be converted to a more general form,
+\begin{equation}
+\phi =  \int \left[\frac{\dot{x}^2(t)}{\bar{u}^2 T}   + \sum_i \frac{1}{2 \sigma_i^2} [x_i - x(t_i)] [x_i - x(t)] W(t-t_i)  \right] \, dt.
+\end{equation}
+where $W(t-t_i)$ is the forcing decorrelation function that must integrate to $1$ in order to preserver impulse (change in momentum). Is that right? I need to think about the condition on this.
+
+
+%We proceed by picking a parametric model for $x(t), y(t)$, then actually go and compute how the coefficients need to be minimized. For example,
+%\begin{equation}
+%x(t) = at^3 + bt^2 + ct +d
+%\end{equation}
+%so,
+%\begin{equation}
+%u(t) = \frac{a}{3}t^2 + \frac{b}{2}t + c
+%\end{equation}
+%and therefore,
+%\begin{equation}
+%\int_{t_0}^{t_1} u^2(t) = \frac{a}{3}\left(t_1^2 - t_0^2 \right) + \frac{b}{2} \left(t_1 - t_0 \right) + c
+%\end{equation}
+%Proceeding in this way, we can write down what the action, $S$, is for this particular model between the two time points.
+%
+%
+%
+%One other order of business is that we can directly relate the holonomic constraints to the maximum likelihood model. Still need to do that.
+
+%Now consider equation \ref{constrained_lagrangian}, but without the velocity potential. That was, 
+%\begin{equation}
+%\mathcal{L}=\frac{1}{2} m \dot{x}^2 + \sum_{i=0}^N \lambda^{(i)}(x_i-x(t_i)).
+%\end{equation}
+%Inserting this into our exponential,
+%\begin{align}
+%P \sim& \exp \left[ \frac{S}{E} \right] \\
+%\sim& \exp \left[ \int \left( \frac{1}{2} m \dot{x}^2 + \sum_{i=0}^N \lambda^{(i)}(x_i-x(t_i)) \right) \, dt \right]
+%\end{align}
+%
+%The principal of least action does \emph{not} say that we want to minimized velocities, 
+%
+%- One could assume that tangential and normal accelerations are slowly varying.
+%- One could assume 
+
+%Reference on GPS errors,
+%	http://www.leb.esalq.usp.br/disciplinas/Molin/leb447/Arquivos/GNSS/ArtigoAcuraciaGPSsemAutor.pdf
+
+\end{document}  
