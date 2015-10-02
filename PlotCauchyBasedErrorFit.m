@@ -11,15 +11,15 @@ drifters = load('sample_data/projected_ungridded_rho1_drifters.mat');
 % x = x*1000; % convert from km to meters.
 % y = y*1000;
 
-iDrifter = 2;
-SplineFactor = 2.0; % Number of data points for each spline
-sigma_gps = 15; % error in meters
+iDrifter = 1;
+SplineFactor = 2; % Number of data points for each spline
+sigma_gps = 10; % error in meters
 S = 5; % order of the spline
-u_rms = 0.09; % assumed rms velocity of the solution
-T_decorrelation = 5*60*60; % forcing decorrelation time
+u_rms = 0.12; % assumed rms velocity of the solution
+T_decorrelation = 1*60*60; % forcing decorrelation time
 % weighting = 'exponential';
-% weighting = 'gaussian';
-weighting = 'none';
+%  weighting = 'gaussian';
+ weighting = 'none';
 
 lat0 = drifters.lat0;
 x = drifters.x{iDrifter};

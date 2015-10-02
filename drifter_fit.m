@@ -158,16 +158,18 @@ Wy = W*diag(1./(dy.^2));
         dx1 = X*m_x - x;
         dy1 = X*m_y - y;
         
-        dx1 = max(0.00001*ones(size(dx1)),abs(dx1));
-        dy1 = max(0.00001*ones(size(dy1)),abs(dy1));
+%         dx1(find(abs(dx1)<1e-12)) = 1e-12;
+%         dy1(find(abs(dy1)<1e-12)) = 1e-12;
+      dx1 = max(0.00001*ones(size(dx1)),abs(dx1));
+      dy1 = max(0.00001*ones(size(dy1)),abs(dy1));
         
         dx2 = dx1./weight_function(dx1./dx);
         dy2 = dy1./weight_function(dy1./dx);
 
-        Wx = inv(W*diag(dx2.^2));
-        Wy = inv(W*diag(dy2.^2));
+        Wx = W*diag(1./(dx2.^2));
+        Wy = W*diag(1./(dy2.^2));
         
-         dbstop if warning
+%          dbstop if warning
         [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, XV, VV, F, Wx, Wy, gamma, f0, M, NC, x, y, h );
 
         rel_error = max((dx2-error_y_previous)./dx2);
