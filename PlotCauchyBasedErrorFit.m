@@ -1,50 +1,30 @@
 %clear
-load('All2011Drifters.mat')
-addpath('../support/splines/')
+drifters = load('sample_data/projected_ungridded_rho1_drifters.mat');
 
-preferredIndices = rho1DrifterIndices;
-
-% The last drifter has a shorter time series.
-% preferredIndices(end)=[];
-% preferredIndices(1)=[];
-
-lat = {lat{preferredIndices}};
-lon = {lon{preferredIndices}};
-date = {date{preferredIndices}};
-
-numDrifters = length(date);
-
+% These drifters are already projected, so we don't need this.
 %
-%	Determine the first deployment date
-%
-lastDeployment = date{1}(1);
-firstRetrieval = date{1}(end);
-for i=1:numDrifters
-	if ( date{i}(1) > lastDeployment )
-		lastDeployment = date{i}(1);
-	end
-	if ( date{i}(end) < firstRetrieval )
-		firstRetrieval = date{i}(end);
-	end
-end
-
-%
-% Filter the raw data by removing points with spikes in curvature
-%
+% t = date{iDrifter}-date{iDrifter}(1);
+% lat0 = min(lat{iDrifter}) + (max(lat{iDrifter})-min(lat{iDrifter}))/2;
+% lon0 = min(lon{iDrifter}) + (max(lon{iDrifter})-min(lon{iDrifter}))/2;
+% [x,y] = latlon2xy( lat{iDrifter}, lon{iDrifter}, lat0, lon0 );
+% t = t*24*60*60; % convert from days to seconds
+% x = x*1000; % convert from km to meters.
+% y = y*1000;
 
 iDrifter = 2;
-SplineFactor = 1.0;
-gamma = 0.0000; % Tension
+SplineFactor = 2.0; % Number of data points for each spline
 sigma_gps = 15; % error in meters
+S = 5; % order of the spline
+u_rms = 0.09; % assumed rms velocity of the solution
+T_decorrelation = 5*60*60; % forcing decorrelation time
+% weighting = 'exponential';
+% weighting = 'gaussian';
+weighting = 'none';
 
-t = date{iDrifter}-date{iDrifter}(1);
-lat0 = min(lat{iDrifter}) + (max(lat{iDrifter})-min(lat{iDrifter}))/2;
-lon0 = min(lon{iDrifter}) + (max(lon{iDrifter})-min(lon{iDrifter}))/2;
-[x,y] = latlon2xy( lat{iDrifter}, lon{iDrifter}, lat0, lon0 );
-
-t = t*24*60*60; % convert from days to seconds
-x = x*1000; % convert from km to meters.
-y = y*1000;
+lat0 = drifters.lat0;
+x = drifters.x{iDrifter};
+y = drifters.y{iDrifter};
+t = drifters.t{iDrifter};
 
 error_y = ones(size(y))*sigma_gps; % This is the error, in kilometers, of the GPS fits.
 N = length(y);
@@ -53,8 +33,6 @@ M = floor(N/SplineFactor); % Number of splines
 dx = ones(size(x))*sigma_gps;
 dy = ones(size(y))*sigma_gps;
 
-u_rms = 0.09;
-T_decorrelation = 5*60*60;
 % T_decorrelation = 1;
 
 W=zeros(N,N);
@@ -63,18 +41,17 @@ for i=1:N
         W(i,j)=abs(t(i)-t(j));
     end
 end
-% T_g2 = -T_decorrelation*T_decorrelation/log(0.01);
-% W=exp(-W.*W/T_g2);
+if strcmp(weighting,'gaussian') == 1
+    T_g2 = -T_decorrelation*T_decorrelation/log(0.01);
+    W=exp(-W.*W/T_g2);
+elseif strcmp(weighting,'exponential') == 1
+    T_e = -T_decorrelation/log(0.01);
+    W=exp(-W/T_e);
+else
+    W=eye(N);
+end
 
-T_e = -T_decorrelation/log(0.01);
-W=exp(-W/T_e);
-
-% W2 = W;
-% W2(find(W2<0.01))=0.0;
-% return;
-% W=eye(N);
-
-[mx,my,Cmx,Cmy,A,V] = drifter_fit(t,x,y,dx,dy,W,M,u_rms,lat0, @(z)(z./(1+0.5*z.*z)));
+[mx,my,Cmx,Cmy,A,V] = drifter_fit(t,x,y,dx,dy,W,M,S,u_rms,lat0, @(z)(z./(1+0.5*z.*z)));
 % [mx,my,Cmx,Cmy,A,V] = drifter_fit_generalized(t,x,y,dx,dy,M,T_decorrelation,u_rms,lat0, @(z)(z./(1+0.5*z.*z)));
 x3 = A*mx;
 y3 = A*my;
@@ -82,14 +59,14 @@ u3 = V*mx;
 v3 = V*my;
 
 % [mx,my,Cmx,Cmy,A,V] = drifter_fit(t,x,y,dx,dy,W,M,1000,0, @(z)(z./(1+0.5*z.*z)));
-[mx,my,Cmx,Cmy,A,V] = drifter_fit(t,x,y,dx,dy,W,M,1000,0,@(z)(z));
+[mx,my,Cmx,Cmy,A,V] = drifter_fit(t,x,y,dx,dy,W,M,S,1000,0,@(z)(z));
 % [mx,my,Cmx,Cmy,A,V] = drifter_fit_generalized(t,x,y,dx,dy,M,T_decorrelation,1000,lat0, @(z)(z./(1+0.5*z.*z)));
 x1 = A*mx;
 y1 = A*my;
 u1 = V*mx;
 v1 = V*my;
 
-[mx,my,Cmx,Cmy,A,V] = drifter_fit(t,x,y,dx,dy,W,M,u_rms,0, @(z)(z./(1+0.5*z.*z)));
+[mx,my,Cmx,Cmy,A,V] = drifter_fit(t,x,y,dx,dy,W,M,S,u_rms,0, @(z)(z./(1+0.5*z.*z)));
 % [mx,my,Cmx,Cmy,A,V] = drifter_fit_generalized(t,x,y,dx,dy,M,T_decorrelation,u_rms,0, @(z)(z./(1+0.5*z.*z)));
 x2 = A*mx;
 y2 = A*my;

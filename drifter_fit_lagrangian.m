@@ -129,7 +129,7 @@ for q=1:Q
     end
 end
 
-tq = linspace(t(1),t(end),Q-1)';
+tq = linspace(t(1),t(end),Q)';
 W = zeros(Q,N);
 for i=1:N
    index=find( tq >= t(i),1,'first');
@@ -168,14 +168,14 @@ end
 %     end
 % end
 % 
-% b=2;
+% b=3;
 % for i=1:N
 %     if i==1
 %         indices=find(tq <= t(i+b));
-%         W(indices,i)=-(tq(indices)-t(i+b))/(t(i+b)-t(i));
+%         W(indices,i)=-(1/b)*(tq(indices)-t(i+b))/(t(i+b)-t(i));
 %     elseif i==N
 %         indices=find( tq >= t(i-b));
-%         W(indices,i)=(tq(indices)-t(i-b))/(t(i)-t(i-b));
+%         W(indices,i)=(1/b)*(tq(indices)-t(i-b))/(t(i)-t(i-b));
 %     else
 %         indices=find( tq >= t(i-1) & tq < t(i));
 %         W(indices,i)=(1/b)*(tq(indices)-t(i-1))/(t(i)-t(i-1));
@@ -183,6 +183,20 @@ end
 %         W(indices,i)=-(1/b)*(tq(indices)-t(i+1))/(t(i+1)-t(i));
 %     end
 % end
+% 
+% % Triangle
+% b=20;
+% for i=1:Q
+%     for j=1:N
+%         W(i,j)=abs(tq(i)-t(j));
+%     end
+% end
+% W = (b*t_knot - W)/(b*t_knot)^2;
+% W(find(W<0)) = 0;
+% W=W*DT;
+% 
+% % Uniform
+% W = ones(Q,N)/T;
 
 % W = zeros(Q,N);
 % for i=1:N
@@ -199,11 +213,27 @@ end
 %         W(indices,i)=1;
 %     end
 % end
+% 
+% W = zeros(Q,N);
+% for i=1:N
+%     if i==1
+%         indices=find(tq <= t(i+1) - (t(i+1)-t(i))/2 );
+%         W(indices,i)=1;
+%     elseif i==N
+%         indices=find( tq >= t(i-1) + (t(i)-t(i-1))/2);
+%         W(indices,i)=1;
+%     else
+%         indices=find( tq >= t(i-1) + (t(i)-t(i-1))/2 & tq < t(i+1) - (t(i+1)-t(i))/2);
+%         W(indices,i)=1;
+%     end
+% end
 
-Wsum = sum(W,1);
-Wsum(1) = Wsum(1)*2;
-Wsum(N) = Wsum(N)*2;
-W = W./repmat(Wsum,[Q 1]);
+% Wsum = sum(W,1);
+% Wsum(1) = Wsum(1)*2;
+% Wsum(N) = Wsum(N)*2;
+% W = W./repmat(Wsum,[Q 1]);
+
+figure, plot(W)
 
 spline2 = @(t,t1,t2) spline_t(t-t1).*spline_t(t-t2);
 D2 = zeros(M,M);
@@ -216,7 +246,9 @@ for i=1:M
         end
     end
 end
-D2 = D2/(t_knot*a0);
+D2 = D2/(t_knot*a0*DT);
+
+D2 = D2/Q;
 
 Wx = diag(1./(dx.^2));
 Wy = diag(1./(dy.^2));
@@ -280,6 +312,9 @@ function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, V2, F, W, Wx, Wy, v0,
     % F is NCxM
     % H is NCx1
     
+    Wx = Wx;
+    Wy = Wy;
+    
     Q = size(Xq,1);
     N = size(Wx,2);
     Wxx = W*Wx; % [QxN]
@@ -309,8 +344,8 @@ function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, V2, F, W, Wx, Wy, v0,
 % gamma = 1/(v0*v0*Q);
      E_x1 = X'*Wx*X + V2; % MxM
      E_y1 = X'*Wy*X + V2; % MxM
-    E_x = Jx + V2; % MxM
-    E_y = Jy + V2; % MxM
+    E_x = Jx/2 + V2; % MxM
+    E_y = Jy/2 + V2; % MxM
     C_x = -f0*(Vq'*Xq); % MxM
     C_y = -f0*(Xq'*Vq); % MxM
 
@@ -318,7 +353,7 @@ function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, V2, F, W, Wx, Wy, v0,
           C_y,E_y,zeros(M,NC),F';
           F,zeros(NC,M),zeros(NC,NC),zeros(NC,NC);
           zeros(NC,M),F,zeros(NC,NC),zeros(NC,NC)];
-    G2 = [Xq'*W*Wx*x + Gx;Xq'*W*Wy*y + Gy;h';h'];
+    G2 = [ (Xq'*W*Wx*x + Gx)/2;(Xq'*W*Wy*y + Gy)/2;h';h'];
     m = G1\G2;
     m_x = m(1:M);
     m_y = m(M+1:2*M);

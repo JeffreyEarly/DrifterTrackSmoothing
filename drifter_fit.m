@@ -117,44 +117,38 @@ end
 h(1) = 0.;
 h(2) = 0.;
 
-% set up D matrix
-Aq = zeros(Q,M); % Same as the A matrix above, but on the quadrature (q) grid.
-Dq = zeros(Q,M);
-for q=1:Q
-    tq = t(1) + (q-1)*DT;
-    for j=1:M
-        t_norm=(tq-t(1))/t_knot - (j - 1 - floor(S/2));
-        Aq(q,j)=spline(t_norm);
-        Dq(q,j) = spline_t(t_norm)/t_knot;
-    end
-end
-
 spline2 = @(t,t1,t2) spline_t(t-t1).*spline_t(t-t2);
-D2 = zeros(M,M);
+spline_spline_t = @(t,t1,t2) spline(t-t1).*spline_t(t-t2);
+VV = zeros(M,M);
+XV = zeros(M,M);
+Mmax = M-2*floor(S/2)-1;
+k=0;
 for i=1:M
     for j=1:M
         if abs(i-j) <= S
-            t1 = (i - 1 - floor(S/2));
-            t2 = (j - 1 - floor(S/2));
-            D2(i,j) = integral(@(t)spline2(t,t1,t2),0,M-2*floor(S/2)-1);
+            if (i-S>2) && (i+S<Mmax) && (j-S>2) && (j+S<Mmax)
+                VV(i,j) = VV(i-1,j-1);
+                XV(i,j) = VV(i-1,j-1);
+                k=k+1;
+            else
+                t1 = (i - 1 - floor(S/2));
+                t2 = (j - 1 - floor(S/2));
+                VV(i,j) = integral(@(t)spline2(t,t1,t2),0,M-2*floor(S/2)-1);
+                XV(i,j) = integral(@(t)spline_spline_t(t,t1,t2),0,M-2*floor(S/2)-1);
+            end
         end
     end
 end
-D2 = D2/(t_knot*DT);
+VV = VV/(t_knot*DT);
+XV = XV/DT;
+
 
 gamma = 1/(v0*v0*Q);
-% Wx = W*diag(1./(dx.^2));
-% Wy = W*diag(1./(dy.^2));
 
-% Wx = inv(W*diag(dx.^2));
-% Wy = inv(W*diag(dy.^2));
+Wx = W*diag(1./(dx.^2));
+Wy = W*diag(1./(dy.^2));
+[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, XV, VV, F, Wx, Wy, gamma, f0, M, NC, x, y, h );
 
-Wx = diag(1./(dx.^2));
-Wy = diag(1./(dy.^2));
-
-
-[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Aq, Dq, D2, F, Wx, Wy, gamma, f0, M, NC, x, y, h );
-return
 % if nargin == 10
     error_y_previous = dy;
     rel_error = 1.0;
@@ -164,29 +158,17 @@ return
         dx1 = X*m_x - x;
         dy1 = X*m_y - y;
         
-%         dx1(find(abs(dx1)<1e-12)) = 1e-12;
-%         dy1(find(abs(dy1)<1e-12)) = 1e-12;
-        
-%         dx1 = max(0.00001*ones(size(dx1)),abs(dx1));
-%         dy1 = max(0.00001*ones(size(dy1)),abs(dy1));
+        dx1 = max(0.00001*ones(size(dx1)),abs(dx1));
+        dy1 = max(0.00001*ones(size(dy1)),abs(dy1));
         
         dx2 = dx1./weight_function(dx1./dx);
         dy2 = dy1./weight_function(dy1./dx);
 
-%         Wx = W*diag(1./(dx2.^2));
-%         Wy = W*diag(1./(dy2.^2));
+        Wx = inv(W*diag(dx2.^2));
+        Wy = inv(W*diag(dy2.^2));
         
-% a = diag(dx2.^2);
-% b = W*a;
-
-%         Wx = inv(W*diag(dx2.^2));
-%         Wy = inv(W*diag(dy2.^2));
-        
-        Wx = diag(1./(dx2.^2));
-        Wy = diag(1./(dy2.^2));
-        
-%         dbstop if warning
-        [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Aq, Dq, D2, F, Wx, Wy, gamma, f0, M, NC, x, y, h );
+         dbstop if warning
+        [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, XV, VV, F, Wx, Wy, gamma, f0, M, NC, x, y, h );
 
         rel_error = max((dx2-error_y_previous)./dx2);
         error_y_previous=dx2;
@@ -204,7 +186,7 @@ return
 
 end
 
-function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( A, Aq, Dq, D2, F, Wx, Wy, gamma, f0, M, NC, x, y, h )
+function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, XV, D2, F, Wx, Wy, gamma, f0, M, NC, x, y, h )
     % A (and D) matrix:
     % Rows are the N observations
     % Columns are the M splines
@@ -214,16 +196,16 @@ function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( A, Aq, Dq, D2, F, Wx, Wy, gamma,
     % set up inverse theory matrices
 %     E_x = A'*Wx*A + gamma*(Dq'*Dq); % MxM
 %     E_y = A'*Wy*A + gamma*(Dq'*Dq); % MxM
-    E_x = A'*Wx*A + gamma*D2; % MxM
-    E_y = A'*Wy*A + gamma*D2; % MxM
-    C_x = -f0*gamma*(Dq'*Aq); % MxM
-    C_y = -f0*gamma*(Aq'*Dq); % MxM
+    E_x = X'*Wx*X + gamma*D2; % MxM
+    E_y = X'*Wy*X + gamma*D2; % MxM
+    C_x = -f0*gamma*(XV'); % MxM
+    C_y = -f0*gamma*(XV); % MxM
 
     G1 = [E_x,C_x,F',zeros(M,NC);
           C_y,E_y,zeros(M,NC),F';
           F,zeros(NC,M),zeros(NC,NC),zeros(NC,NC);
           zeros(NC,M),F,zeros(NC,NC),zeros(NC,NC)];
-    G2 = [A'*Wx*x;A'*Wy*y;h';h'];
+    G2 = [X'*Wx*x;X'*Wy*y;h';h'];
     m = G1\G2;
     m_x = m(1:M);
     m_y = m(M+1:2*M);
@@ -245,4 +227,16 @@ end
 % m_x=mm_x(1:M);
 % m_y=mm_y(1:M);
 
+
+% set up D matrix
+% Xq = zeros(Q,M); % Same as the A matrix above, but on the quadrature (q) grid.
+% Vq = zeros(Q,M);
+% for q=1:Q
+%     tq = t(1) + (q-1)*DT;
+%     for j=1:M
+%         t_norm=(tq-t(1))/t_knot - (j - 1 - floor(S/2));
+%         Xq(q,j)=spline(t_norm);
+%         Vq(q,j) = spline_t(t_norm)/t_knot;
+%     end
+% end
 

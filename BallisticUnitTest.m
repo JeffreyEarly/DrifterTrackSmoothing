@@ -1,7 +1,8 @@
-g = -9.8;
+g = 0;
 v0 = 500;
 u0 = 500;
 t_max = -2*v0/g;
+t_max = 100;
 
 N = 7; % Number of observations
 t=linspace(0,t_max,N)';
@@ -12,12 +13,13 @@ y=g*t.*t/2 + v0*t;
 dx=10*ones(size(x));
 dy=10*ones(size(y));
 a0=2*abs(g);
-M=30; % Number of interior knot points (need two extras for end points)
+a0 = 1;
+M=N+2*(N-1); % Number of interior knot points (need two extras for end points)
 W=eye(N);
 S = 5;
 [m_x,m_y,Cm_x,Cm_y,X,V,A,J] = drifter_fit_lagrangian(t,x,y,dx,dy,W,M,S,a0,0,@(z)(z));
 
-Nt=51;
+Nt=M;
 M = M+2*floor(S/2);
 tt = linspace(0,t_max,Nt)';
 t_knot = (t(end)-t(1))/(M-S);
@@ -62,6 +64,17 @@ eta = X*m_y;
 % xi = xi(1:M/2);
 % eta = eta(1:M/2);
 
+PEx = zeros(length(tt),N);
+PEy = zeros(length(tt),N);
+for i=1:N
+    PEx(:,i) = (interp1q(tt,xi,t(i))-x(i))*(xi-x(i));
+    PEy(:,i) = (interp1q(tt,eta,t(i))-y(i))*(eta-y(i));
+end
+figure
+plot(tt,PEx)
+figure
+plot(tt,PEy)
+
 figure
 plot(xi,eta)
 hold on
@@ -79,6 +92,8 @@ xlim([min(t) max(t)])
 ylabel('speed (m/s)')
 subplot(4,1,3)
 plot(tt,[A*m_x, A*m_y])
+hold on
+scatter(t,zeros(size(t)))
 xlim([min(t) max(t)])
 ylabel('acceleration (m/s^2)')
 subplot(4,1,4)
