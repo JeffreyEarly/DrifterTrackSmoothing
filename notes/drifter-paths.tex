@@ -287,10 +287,10 @@ Which are simply solved when written in the form,
 
 Adding in the Lagrange constraints that $F\indices{^i_j}\xi^j = h^i$ where the first index is the number of constraints and the second index is the number of parameters, I get that
 \begin{align}
-x_k W\indices{^k_i}  B\indices{^i_m} =& \underbrace{\left[B\indices{_k_m} W\indices{^k_i}  B\indices{^i_j} + \frac{1}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m}{B^\prime}\indices{^q_j} \right]}_a \xi^j \underbrace{- \frac{f_0}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m} B\indices{^q_j}}_b  \eta^j + F\indices{_j_m} \lambda^j \\
-y_k W\indices{^k_i}  B\indices{^i_m} =& \underbrace{ - \frac{f_0}{ \bar{v}^2 Q} {B^\prime}\indices{^q_j} B\indices{^q_m}}_c  \xi^j + \underbrace{\left[B\indices{_k_m} W\indices{^k_i}  B\indices{^i_j} + \frac{1}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m}{B^\prime}\indices{^q_j} \right]}_d \eta^j + F\indices{_j_m} \mu^j \\
-h^i =& F\indices{^i_j}\xi^j \\
-h^i =& F\indices{^i_j}\eta^j
+x_k W\indices{^k_i}  B\indices{^i_m} =& \underbrace{\left[B\indices{_k_m} W\indices{^k_i}  B\indices{^i_j} + \frac{1}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m}{B^\prime}\indices{^q_j} \right]}_a \xi^j \underbrace{- \frac{f_0}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m} B\indices{^q_j}}_b  \eta^j +  A\indices{^j_m} \lambda^j - f_0 X\indices{^j_m} \mu^j \\
+y_k W\indices{^k_i}  B\indices{^i_m} =& \underbrace{ - \frac{f_0}{ \bar{v}^2 Q} {B^\prime}\indices{^q_j} B\indices{^q_m}}_c  \xi^j + \underbrace{\left[B\indices{_k_m} W\indices{^k_i}  B\indices{^i_j} + \frac{1}{ \bar{v}^2 Q} {B^\prime}\indices{^q_m}{B^\prime}\indices{^q_j} \right]}_d \eta^j + f_0 V\indices{^j_m} \lambda^j  + A\indices{^j_m} \mu^j \\
+h^i =& A\indices{^i_j}\xi^j + f_0 V\indices{^i_j}\eta^j \\
+h^i =& - f_0 X\indices{^i_j}\xi^j +A\indices{^i_j}\eta^j
 \end{align}
 Our vector is now,
 \begin{equation}
@@ -302,6 +302,15 @@ F\indices{^i_j} & 0 & 0 & 0 \\
  \cdot \left[\begin{array}{c} \xi^j \\ \eta^j \\ \lambda \\ \mu \end{array}\right] = \left[\begin{array}{c} x_k W\indices{^k_i}  B\indices{^i_m} \\ y_k W\indices{^k_i}  B\indices{^i_m} \\ h \\ h \end{array}\right]
 \end{equation}
 
+Trying to be careful about the endpoint conditions,
+\begin{equation}
+\phi = ...+ \lambda^i \left(  A\indices{^i_j}\xi^j + f_0 V\indices{^i_j}\eta^j - h^i \right)
+\end{equation}
+where $i$ is the index on the condition. So, after differentiating, you're going to have,
+\begin{align}
+=&...\lambda^i \left(  A\indices{^i_j} \right) \\
+=&...\lambda^i f_0 V\indices{^i_j}
+\end{align}
 
 In the setup in Teanby, there's a knot point one spacing before and one spacing after the curve. So, if you have only two points observed, then you'd need a minimum of 4 knot points.
 
@@ -461,6 +470,60 @@ and then solving for the parameters yields,
 \end{align}
 
 Quick little primer on the matrices. You can treat the first index as the rows and the second index as the columns. It really doesn't matter if they're upper or lower indices for us in this case. However, if you want to keep track of that, then make the first index upper, and the second index lower.
+
+\section{True forcing}
+
+The assumed forcing on the particle due to the observations can be deduced from any three neighboring points. This is because you need two points to deduce a velocity, and two velocities to deduce an acceleration and force.
+
+\begin{equation}
+\mathcal{L} = \frac{1}{2} \dot{x}^2 - \Delta v(t_i) \left( x(t) - x_i \right) \delta\left(t - t_i \right)
+\end{equation}
+where the velocity $v(t_i)$ is determined from the the points of observation, e.g.,
+\begin{equation}
+\mathcal{L} = \frac{1}{2} \dot{x}^2 - \left( \frac{x(t_{i+1}) - x(t_{i})}{t_{i+1} - t_{i}} - \frac{x(t_{i}) - x(t_{i-1})}{t_{i} - t_{i-1}} \right) \left( x(t) - x_i \right) \delta\left(t - t_i \right).
+\end{equation}
+
+This simplifies to an interesting, if not obvious, result if you take the time difference to be constant. In that case you get that,
+\begin{equation}
+\mathcal{L} = \frac{1}{2} \dot{x}^2 - \frac{1}{\Delta t} \left( x(t_{i+1}) - 2 x(t_{i}) + x(t_{i-1}) \right) \left( x(t) - x_i \right) \delta\left(t - t_i \right).
+\end{equation}
+In other words, the second derivative of positions gives you the forcing. Duh.
+
+In terms of a weighting matrix, this can all be re-written as,
+\begin{equation}
+\mathcal{L} = \frac{1}{2} \dot{x}^2 - \frac{\Delta t_{+} + \Delta t_-}{\Delta t_+ \Delta t_-} \left[ \frac{\Delta t_-}{\Delta t_+ + \Delta t_-} x(t_{i+1}) - x(t_i) +\frac{\Delta t_+}{\Delta t_+ + \Delta t_-} x(t_{i-1}) \right] \left( x(t) - x_i \right) \delta\left(t - t_i \right)
+\end{equation}
+or 
+\begin{equation}
+\nonumber
+\mathcal{L} = \frac{1}{2} \dot{x}^2 - \frac{\Delta t_{+} + \Delta t_-}{\Delta t_+ \Delta t_-} \left[ \left( 1 - \frac{\Delta t_+}{\Delta t_+ + \Delta t_-} \right) x(t_{i+1}) - x(t_i) + \left( 1 - \frac{\Delta t_-}{\Delta t_+ + \Delta t_-} \right) x(t_{i-1}) \right] \left( x(t) - x_i \right) \delta\left(t - t_i \right)
+\end{equation}
+This is very similar to our usual-off diagonal weighting, with point nearby in time getting higher weights than those further away. However, the sign of those nearby points is different than what we've been using.
+
+Compare this to the least-squares method,
+\begin{equation}
+\mathcal{L} = \frac{\dot{x}^2(t)}{2 S_0}   + \frac{1}{2 \sigma_i^2} [x_i - x(t_i)] [x_i - x(t)] \delta(t-t_i) 
+\end{equation}
+which, even for correlated nearby points doesn't quite look right,
+\begin{equation}
+\mathcal{L} = \frac{\dot{x}^2(t)}{2 S_0}   + \frac{1}{2 \sigma_i^2} \left(w_{i+1} [x_{i+1} - x(t_{i+1})]  + [x_i - x(t_i)]  + w_{i-1} [x_{i-1} - x(t_{i-1})] \right) [x_i - x(t)] \delta(t-t_i) 
+\end{equation}
+This weighting would pull the fit closer to the neighboring points, if the current point is spurious. So the weighting should be positive, this makes sense. We could set the weighting to be the second derivative, but then we end up with something that looks like the second derivative of the fit minus the second derivative of the observations. I don't think that's what we want.
+
+So, our uncertainty is on the positions, that's true. But, the positions are telling us something about the forcing and we know (or think we know) how the the forcing should be correlated in time. We have some function,
+\begin{equation}
+f_i \Sigma_{ij}^{-1} f_j
+\end{equation}
+
+What we want, is to decrease the force at the current point, if the current forcing isn't correlated with past forcing.
+
+So what if you just straight add a least squares method and the known forcing bit,
+
+\begin{equation}
+\mathcal{L} = \frac{\dot{x}^2(t)}{2 S_0}   + \frac{1}{2 \sigma_i^2} \left( - \frac{2 \sigma_i^2}{S_0} \Delta v(t_i) + x_i - x(t_i)\right) [x_i - x(t)] \delta(t-t_i) 
+\end{equation}
+
+Note that this suggests an alternative definition for $S_0$ of $\sigma^2/\Delta t$. This is probably a good choice because it's an assessment of what kind of curvature you'd expect from your noise.
 
 \section{References}
 

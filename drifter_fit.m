@@ -38,7 +38,7 @@
 %	cm	float(M,M)		covariance matrix of spline parameters
 %
 %------------------------------------------------------------------------------
-function [m_x,m_y,Cm_x,Cm_y,X,V,A,J] = drifter_fit(t,x,y,dx,dy,W,M,S,v0,lat0, weight_function)
+function [m_x,m_y,Cm_x,Cm_y,X,V,A,J] = drifter_fit(t,x,y,dx,dy,T_decorrelation,M,S,v0,lat0, weight_function)
 
 if (length(t) ~= length(x) || length(t) ~= length(y) )
    disp('The time series are not consistent lengths');
@@ -75,7 +75,7 @@ f0 = 2*Omega*sin(lat0*pi/180);
 N = length(y);
 
 % Length of series
-T = t(N)-t(1);
+% T = t(N)-t(1);
 
 % knot spacing
 t_knot = (t(N)-t(1))/(M-S);
@@ -83,6 +83,9 @@ t_knot = (t(N)-t(1))/(M-S);
 % spacing and number of points in the quadrature grid
 DT = t_knot/500.;
 Q = ceil( (t(N)-t(1))/DT + 1 );
+
+gamma = 1/(v0*v0*Q);
+% gamma = DT/(dx(1)*dx(1)*(60*30))
 
 % Rows are the N observations
 % Columns are the M splines
@@ -105,17 +108,37 @@ J = J/(t_knot^3);
 
 % set up F matrix and h vector for constraints
 NC = 2;
+Fx_x=zeros(NC,M); % force in x, from x constraint
+Fx_y=zeros(NC,M); % force in x, from y constraint
+Fy_x=zeros(NC,M); % force in y, from x constraint
+Fy_y=zeros(NC,M); % force in y, from y constraint
 F=zeros(NC,M);
 
 % constrain ends of curve to have zero curvature
 for i=1:M
     t_norm=(t(1)-t(1))/t_knot - (i - 1 - floor(S/2));
+    Fx_x(1,i) = spline_ttt(t_norm)/(t_knot^3); % x_ttt
+    Fy_x(1,i) = f0*spline_tt(t_norm)/(t_knot^2); % + f0 y_tt
+    Fx_y(1,i) = -f0*spline_tt(t_norm)/(t_knot^2); % - f0 x_tt
+    Fy_y(1,i) = spline_ttt(t_norm)/(t_knot^3); % + y_ttt
     F(1,i) = spline_ttt(t_norm)/(t_knot^3);
+    
     t_norm=(t(N)-t(1))/t_knot - (i - 1 - floor(S/2));
+    Fx_x(2,i) = spline_ttt(t_norm)/(t_knot^3); % x_ttt
+    Fy_x(2,i) = f0*spline_tt(t_norm)/(t_knot^2); % + f0 y_tt
+    Fx_y(2,i) = -f0*spline_tt(t_norm)/(t_knot^2); % - f0 x_tt
+    Fy_y(2,i) = spline_ttt(t_norm)/(t_knot^3); % + y_ttt
     F(2,i) = spline_ttt(t_norm)/(t_knot^3);
 end
 h(1) = 0.;
 h(2) = 0.;
+
+F_force = 1e9*[Fx_x', Fx_y';Fy_x', Fy_y'];
+F_constraint = 1e9*[Fx_x,Fy_x;Fx_y,Fy_y];
+
+% unit test, these should be equivalent to above when lat=0
+F_force_known = [F',zeros(M,NC); zeros(M,NC),F'];
+F_constraint_known = [F,zeros(NC,M); zeros(NC,M),F];
 
 spline2 = @(t,t1,t2) spline_t(t-t1).*spline_t(t-t2);
 spline_spline_t = @(t,t1,t2) spline(t-t1).*spline_t(t-t2);
@@ -142,12 +165,12 @@ end
 VV = VV/(t_knot*DT);
 XV = XV/DT;
 
-
-gamma = 1/(v0*v0*Q);
-
+W = WeightingFunction(t,T_decorrelation);
 Wx = W*diag(1./(dx.^2));
 Wy = W*diag(1./(dy.^2));
-[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, XV, VV, F, Wx, Wy, gamma, f0, M, NC, x, y, h );
+
+dbstop if warning
+[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, XV, VV, F_force, F_constraint, Wx, Wy, gamma, f0, M, NC, x, y, h );
 
 % if nargin == 10
     error_y_previous = dy;
@@ -170,7 +193,7 @@ Wy = W*diag(1./(dy.^2));
         Wy = W*diag(1./(dy2.^2));
         
 %          dbstop if warning
-        [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, XV, VV, F, Wx, Wy, gamma, f0, M, NC, x, y, h );
+        [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, XV, VV, F_force, F_constraint, Wx, Wy, gamma, f0, M, NC, x, y, h );
 
         rel_error = max((dx2-error_y_previous)./dx2);
         error_y_previous=dx2;
@@ -188,7 +211,7 @@ Wy = W*diag(1./(dy.^2));
 
 end
 
-function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, XV, D2, F, Wx, Wy, gamma, f0, M, NC, x, y, h )
+function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, XV, D2, F_force, F_constraint, Wx, Wy, gamma, f0, M, NC, x, y, h )
     % A (and D) matrix:
     % Rows are the N observations
     % Columns are the M splines
@@ -203,18 +226,53 @@ function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, XV, D2, F, Wx, Wy, gamma, f0,
     C_x = -f0*gamma*(XV'); % MxM
     C_y = -f0*gamma*(XV); % MxM
 
-    G1 = [E_x,C_x,F',zeros(M,NC);
-          C_y,E_y,zeros(M,NC),F';
-          F,zeros(NC,M),zeros(NC,NC),zeros(NC,NC);
-          zeros(NC,M),F,zeros(NC,NC),zeros(NC,NC)];
+    G1 = [[E_x,C_x;C_y,E_y], F_force; F_constraint, zeros(2*NC,2*NC)];
+    
+%     G1 = [E_x,C_x,Fx';
+%           C_y,E_y,Fy';
+%           Fx,zeros(NC,NC),zeros(NC,NC);
+%           Fy,zeros(NC,NC),zeros(NC,NC)];
     G2 = [X'*Wx*x;X'*Wy*y;h';h'];
     m = G1\G2;
     m_x = m(1:M);
     m_y = m(M+1:2*M);
     
     % model parameter covariance matrix
-    Cm_x = inv(E_x) - inv(E_x)*F'*inv(F*inv(E_x)*F')*F*inv(E_x);
-    Cm_y = inv(E_y) - inv(E_y)*F'*inv(F*inv(E_y)*F')*F*inv(E_y);
+%     Cm_x = inv(E_x) - inv(E_x)*F'*inv(F*inv(E_x)*F')*F*inv(E_x);
+%     Cm_y = inv(E_y) - inv(E_y)*F'*inv(F*inv(E_y)*F')*F*inv(E_y);
+Cm_x = zeros(size(E_x));
+Cm_y = zeros(size(E_x));
+end
+
+function [W] = WeightingFunction(t, T_decorrelation)
+    type = 'exponential';
+    
+    N = length(t);
+    
+    if (T_decorrelation == 0)
+        W = eye(N);
+        return;
+    end
+    
+    W=zeros(N,N);
+    T=zeros(N,N);
+    for i=1:N
+        for j=1:N
+            W(i,j)=abs(t(i)-t(j));
+            T(i,j)= min(min( abs(t(min(i,j))-t(1)), abs(t(max(i,j))-t(end))), T_decorrelation);
+        end
+    end
+    if strcmp(type,'gaussian') == 1
+        %T_g2 = -T_decorrelation*T_decorrelation/log(0.01);
+        T_g2 = -T.*T/log(0.01);
+        W=exp(-W.*W./T_g2);
+        W(find(isnan(W)))=1;
+    elseif strcmp(type,'exponential') == 1
+        T_e = -T_decorrelation/log(0.01);
+        W=exp(-W/T_e);
+    else
+        W=eye(N);
+    end
 end
 
 % G1_x = [E_x,F';F,zeros(NC:NC)];
