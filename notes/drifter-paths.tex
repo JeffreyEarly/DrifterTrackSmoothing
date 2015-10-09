@@ -471,6 +471,25 @@ and then solving for the parameters yields,
 
 Quick little primer on the matrices. You can treat the first index as the rows and the second index as the columns. It really doesn't matter if they're upper or lower indices for us in this case. However, if you want to keep track of that, then make the first index upper, and the second index lower.
 
+\section{Rod forcing}
+
+Compare this to the least-squares method,
+\begin{equation}
+\mathcal{L} = \frac{\dot{x}^2(t)}{2 S_0}   + \frac{1}{2 \sigma_i^2} [x_i - x(t_i)] [x_i - x(t)] \delta(t-t_i) 
+\end{equation}
+which when used in the Euler-Lagrange equations gives,
+\begin{equation}
+\ddot{x}(t) = \frac{S_0}{2\sigma_i^2} (x_i - x(t_i)) \delta(t-t_i)
+\end{equation}
+or,
+\begin{equation}
+\dot{x}(t) = v(0) + \frac{S_0}{2 \sigma_i^2} (x_i - x(t_i)) H\left(t - t_i \right).
+\end{equation}
+The recursive nature of this makes no sense at all.
+
+If $S_0=0$, then we just have that there's no acceleration. This is the rigid rod  analogy. We then also have to add that the rod isn't rotating, e.g., there's no torque on it in order to get the second condition.
+
+
 \section{True forcing}
 
 The assumed forcing on the particle due to the observations can be deduced from any three neighboring points. This is because you need two points to deduce a velocity, and two velocities to deduce an acceleration and force.
@@ -482,6 +501,25 @@ where the velocity $v(t_i)$ is determined from the the points of observation, e.
 \begin{equation}
 \mathcal{L} = \frac{1}{2} \dot{x}^2 - \left( \frac{x(t_{i+1}) - x(t_{i})}{t_{i+1} - t_{i}} - \frac{x(t_{i}) - x(t_{i-1})}{t_{i} - t_{i-1}} \right) \left( x(t) - x_i \right) \delta\left(t - t_i \right).
 \end{equation}
+Using the Euler-Lagrange equations, this gives us,
+\begin{equation}
+\ddot{x}(t) = \Delta v(t_i) \delta\left(t - t_i \right)
+\end{equation}
+which when integrated over time is just
+\begin{equation}
+\dot{x}(t) = v(0) + \Delta v(t_i) H\left(t - t_i \right).
+\end{equation}
+This is all fairly tautological in that we're just saying that the velocity is governed how the velocity changes.
+
+Suppose the impulse is spread over some time $\Delta t$. Then
+\begin{equation}
+\ddot{x}(t) = \frac{\Delta v(t_i)}{\Delta t} \left( H(t- t_i + \Delta t/2) - H(t-t_i-\Delta t/2) \right)
+\end{equation}
+which integrates to,
+\begin{equation}
+\dot{x}(t) = v(0) + \frac{\Delta v(t_i)}{\Delta t} (t - t_i + \Delta t/2)  \left( H(t- t_i + \Delta t/2) - H(t-t_i-\Delta t/2) \right).
+\end{equation}
+This is nice because the velocity now changes linearly over the given time period.
 
 This simplifies to an interesting, if not obvious, result if you take the time difference to be constant. In that case you get that,
 \begin{equation}
@@ -524,6 +562,28 @@ So what if you just straight add a least squares method and the known forcing bi
 \end{equation}
 
 Note that this suggests an alternative definition for $S_0$ of $\sigma^2/\Delta t$. This is probably a good choice because it's an assessment of what kind of curvature you'd expect from your noise.
+
+\section{Constant forcing}
+
+\begin{equation}
+\phi = \frac{\Delta t}{S_0} \left[ \frac{1}{2} \left( V\indices{^q_j} \xi^j \right)^2  - \left( \mathcal{D}\indices{^i_j} \Xi\indices{^j_k}\xi^k \right) \left( X\indices{^q_l} \xi^l W\indices{^q_i} \right)   \right] + \frac{1}{2} \left[ x^k - \Xi\indices{^k_j} \xi^j \right]^{\textrm{T}} {\Sigma^{-1}}\indices{^k_i} \left[ x^i - \Xi\indices{^i_l} \xi^l \right] 
+\end{equation}
+
+The expression $ \mathcal{D}\indices{^i_j} \Xi\indices{^j_k}\xi^k$ takes the difference of the first derivative of the path at the observation points. This could be renamed $f^i$, the force at each observation time $i$. The next component is $X\indices{^q_j} \xi^j W\indices{^q_i}$, which is just the path at all points, but weighted differently for each observation $i$. In fact, we're starting with delta function weighting, so that each observed forcing only occurs at that moment.
+
+If I've got this correct,
+\begin{align}
+\nonumber
+\frac{\partial \phi}{\partial \xi^m} =& \frac{\Delta t}{S_0} \left[ V\indices{^q_m} V\indices{^q_j} \xi^j - \left( \mathcal{D}\indices{^i_j} \Xi\indices{^j_m} X\indices{^q_l} \xi^l W\indices{^q_i} +  \mathcal{D}\indices{^i_j} \Xi\indices{^j_k}\xi^k X\indices{^q_m} W\indices{^q_i} \right) \right] \\
+& - 2 x_k {\Sigma^{-1}}\indices{^k_i}  X\indices{^i_m}+2 X\indices{_k_m} {\Sigma^{-1}}\indices{^k_i}  X\indices{^i_l} \xi^l \\ \nonumber
+=&  \frac{\Delta t}{S_0} \left[ V\indices{^q_m} V\indices{^q_n} - \left( \mathcal{D}\indices{^i_j} \Xi\indices{^j_m} X\indices{^q_n} W\indices{^q_i} +  \mathcal{D}\indices{^i_j} \Xi\indices{^j_n} X\indices{^q_m} W\indices{^q_i} \right) + \frac{2S_0}{\Delta t} X\indices{_k_m} {\Sigma^{-1}}\indices{^k_i}  X\indices{^i_n} \right] \xi^n\\
+& - 2 x_k {\Sigma^{-1}}\indices{^k_i}  X\indices{^i_m}
+\end{align}
+which means that we want to find $\xi$ where,
+\begin{align}
+2 x_k {\Sigma^{-1}}\indices{^k_i}  X\indices{^i_m} =& \frac{\Delta t}{S_0} \left[ V\indices{^q_m} V\indices{^q_n} - \left( \mathcal{D}\indices{^i_j} \Xi\indices{^j_m} X\indices{^q_n} W\indices{^q_i} +  \mathcal{D}\indices{^i_j} \Xi\indices{^j_n} X\indices{^q_m} W\indices{^q_i} \right) + \frac{2S_0}{\Delta t} X\indices{_k_m} {\Sigma^{-1}}\indices{^k_i}  X\indices{^i_n} \right] \xi^n
+\end{align}
+
 
 \section{References}
 

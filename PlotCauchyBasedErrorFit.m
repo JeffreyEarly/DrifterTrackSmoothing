@@ -12,7 +12,7 @@ drifters = load('sample_data/projected_ungridded_rho1_drifters.mat');
 % y = y*1000;
 
 iDrifter = 8;
-SplineFactor = 1.5; % Number of data points for each spline
+SplineFactor = 3.0; % Number of data points for each spline
 sigma_gps = 10; % error in meters
 S = 5; % order of the spline
 u_rms = 0.05; % assumed rms velocity of the solution
@@ -43,15 +43,6 @@ u1 = V*mx;
 v1 = V*my;
 
 
-
-[mx,my,Cmx,Cmy,X2,V] = drifter_fit(t,x,y,dx,dy,T_decorrelation,M,S,u_rms,lat0, @(z)(z./(1+0.5*z.*z)));
-% [mx,my,Cmx,Cmy,A,V] = drifter_fit_generalized(t,x,y,dx,dy,M,T_decorrelation,u_rms,lat0, @(z)(z./(1+0.5*z.*z)));
-x3 = X2*mx;
-y3 = X2*my;
-u3 = V*mx;
-v3 = V*my;
-
-
 [mx,my,Cmx,Cmy,X2,V] = drifter_fit(t,x,y,dx,dy,T_decorrelation,M,S,u_rms,0, @(z)(z./(1+0.5*z.*z)));
 % [mx,my,Cmx,Cmy,A,V] = drifter_fit_generalized(t,x,y,dx,dy,M,T_decorrelation,u_rms,0, @(z)(z./(1+0.5*z.*z)));
 x2 = X2*mx;
@@ -59,6 +50,14 @@ y2 = X2*my;
 u2 = V*mx;
 v2 = V*my;
 
+
+
+[mx,my,Cmx,Cmy,X2,V] = drifter_fit(t,x,y,dx,dy,T_decorrelation,M,S,u_rms,lat0, @(z)(z./(1+0.5*z.*z)));
+% [mx,my,Cmx,Cmy,A,V] = drifter_fit_generalized(t,x,y,dx,dy,M,T_decorrelation,u_rms,lat0, @(z)(z./(1+0.5*z.*z)));
+x3 = X2*mx;
+y3 = X2*my;
+u3 = V*mx;
+v3 = V*my;
 
 % Now we create the basis at the desired collocation points.
 t = (0:30*60:drifters.maxExperimentLength)';

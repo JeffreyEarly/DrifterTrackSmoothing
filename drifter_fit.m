@@ -185,15 +185,18 @@ dbstop if warning
 %         dy1(find(abs(dy1)<1e-12)) = 1e-12;
       dx1 = max(0.00001*ones(size(dx1)),abs(dx1));
       dy1 = max(0.00001*ones(size(dy1)),abs(dy1));
+      ds1 = max(abs(dx1),abs(dy1));
         
         dx2 = dx1./weight_function(dx1./dx);
         dy2 = dy1./weight_function(dy1./dx);
+        ds2 = ds1./weight_function(ds1./dx);
 
         Wx = W*diag(1./(dx2.^2));
         Wy = W*diag(1./(dy2.^2));
+        Ws = W*diag(1./(ds2.^2));
         
 %          dbstop if warning
-        [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, XV, VV, F_force, F_constraint, Wx, Wy, gamma, f0, M, NC, x, y, h );
+        [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, XV, VV, F_force, F_constraint, Ws, Ws, gamma, f0, M, NC, x, y, h );
 
         rel_error = max((dx2-error_y_previous)./dx2);
         error_y_previous=dx2;
