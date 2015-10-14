@@ -15,8 +15,8 @@ iDrifter = 8;
 SplineFactor = 3.0; % Number of data points for each spline
 sigma_gps = 10; % error in meters
 S = 5; % order of the spline
-u_rms = 0.05; % assumed rms velocity of the solution
-T_decorrelation = 2.5*60*60; % forcing decorrelation time
+u_rms = 0.15; % assumed rms velocity of the solution
+T_decorrelation = 0; %2.5*60*60; % forcing decorrelation time
 
 % Note that big decorrelation times are causing the the solvability issue.
 % for some reason the the x3 points are not collocating.
@@ -35,7 +35,7 @@ dy = ones(size(y))*sigma_gps;
 
 
 % [mx,my,Cmx,Cmy,A,V] = drifter_fit(t,x,y,dx,dy,W,M,1000,0, @(z)(z./(1+0.5*z.*z)));
-[mx,my,Cmx,Cmy,A,V] = drifter_fit(t,x,y,dx,dy,T_decorrelation,M,S,1000,0,@(z)(z));
+[mx,my,Cmx,Cmy,A,V] = drifter_fit_forced(t,x,y,dx,dy,T_decorrelation,M,S,1000,0,@(z)(z));
 % [mx,my,Cmx,Cmy,A,V] = drifter_fit_generalized(t,x,y,dx,dy,M,T_decorrelation,1000,lat0, @(z)(z./(1+0.5*z.*z)));
 x1 = A*mx;
 y1 = A*my;
@@ -43,7 +43,7 @@ u1 = V*mx;
 v1 = V*my;
 
 
-[mx,my,Cmx,Cmy,X2,V] = drifter_fit(t,x,y,dx,dy,T_decorrelation,M,S,u_rms,0, @(z)(z./(1+0.5*z.*z)));
+[mx,my,Cmx,Cmy,X2,V] = drifter_fit_forced(t,x,y,dx,dy,T_decorrelation,M,S,u_rms,0, @(z)(z./(1+0.5*z.*z)));
 % [mx,my,Cmx,Cmy,A,V] = drifter_fit_generalized(t,x,y,dx,dy,M,T_decorrelation,u_rms,0, @(z)(z./(1+0.5*z.*z)));
 x2 = X2*mx;
 y2 = X2*my;
@@ -52,7 +52,7 @@ v2 = V*my;
 
 
 
-[mx,my,Cmx,Cmy,X2,V] = drifter_fit(t,x,y,dx,dy,T_decorrelation,M,S,u_rms,lat0, @(z)(z./(1+0.5*z.*z)));
+[mx,my,Cmx,Cmy,X2,V] = drifter_fit_forced(t,x,y,dx,dy,T_decorrelation,M,S,u_rms,lat0, @(z)(z./(1+0.5*z.*z)));
 % [mx,my,Cmx,Cmy,A,V] = drifter_fit_generalized(t,x,y,dx,dy,M,T_decorrelation,u_rms,lat0, @(z)(z./(1+0.5*z.*z)));
 x3 = X2*mx;
 y3 = X2*my;

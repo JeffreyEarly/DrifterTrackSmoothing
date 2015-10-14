@@ -584,6 +584,101 @@ which means that we want to find $\xi$ where,
 2 x_k {\Sigma^{-1}}\indices{^k_i}  X\indices{^i_m} =& \frac{\Delta t}{S_0} \left[ V\indices{^q_m} V\indices{^q_n} - \left( \mathcal{D}\indices{^i_j} \Xi\indices{^j_m} X\indices{^q_n} W\indices{^q_i} +  \mathcal{D}\indices{^i_j} \Xi\indices{^j_n} X\indices{^q_m} W\indices{^q_i} \right) + \frac{2S_0}{\Delta t} X\indices{_k_m} {\Sigma^{-1}}\indices{^k_i}  X\indices{^i_n} \right] \xi^n
 \end{align}
 
+\section{Fitting to velocity}
+
+Let's define
+\begin{equation}
+x_i = x(t_i) + \epsilon_i
+\end{equation}
+such that the observed value $x_i$ is the true value $x(t_i)$ plus some noise, $\epsilon_i$. Our noise may be normally distributed such that,
+\begin{equation}
+P(\epsilon_i) = \frac{1}{\sigma_i \sqrt{2 \pi}} e^{- \frac{\epsilon_i^2}{2 \sigma_i^2}}.
+\end{equation}
+Now if we compute the difference,
+\begin{equation}
+x_{i+1}-x_{i} = x(t_{i+1}) - x(t_i) +  \epsilon_{i+1} - \epsilon_i
+\end{equation}
+Then the errors in the difference are just the convolution of the two Gaussians, which is again a Gaussian. Meaning that the errors will look like
+\begin{equation}
+P(\epsilon_{i+1}- \epsilon_i) = \frac{1}{ \sqrt{2 \pi (\sigma_{i+1}^2+\sigma_i^2) }} e^{- \frac{(\epsilon_{i+1} - \epsilon_i)^2}{2 \left(\sigma_{i+1}^2+\sigma_i^2\right)}}.
+\end{equation}
+In terms of velocity, this is
+\[
+v_i = v(t_i) + \delta_i
+\]
+\begin{equation}
+P(\epsilon_{i+1}- \epsilon_i) = \frac{1}{ \sqrt{2 \pi (\sigma_{i+1}^2+\sigma_i^2) }} e^{- \frac{\Delta t^2 \left(v_i - v(t_i)\right)^2}{2 \left(\sigma_{i+1}^2+\sigma_i^2\right)}}.
+\end{equation}
+
+It's easy to find the variance of the error in position difference, 
+\begin{align}
+\textrm{var}(\epsilon_{i+1} - \epsilon_i) =& \int_{-\infty}^{\infty} \frac{ \left(\epsilon_{i+1} - \epsilon_i\right)^2}{ \sqrt{2 \pi (\sigma_{i+1}^2+\sigma_i^2) }} e^{- \frac{(\epsilon_{i+1} - \epsilon_i)^2}{2 \left(\sigma_{i+1}^2+\sigma_i^2\right)}} d \left(\epsilon_{i+1} - \epsilon_i\right) \\
+=& \sigma_{i+1}^2+\sigma_i^2
+\end{align}
+and it's even easier if we note that $\textrm{cov}(\epsilon_{i+1}, \epsilon_{i+1} )=\sigma_{i+1}^2$, while $\textrm{cov}(\epsilon_{i+1}, \epsilon_{i} ) = 0$.
+
+This means that the covariance is,
+\begin{align}
+\textrm{cov}(\epsilon_{i+2} - \epsilon_{i+1},\epsilon_{i+1} - \epsilon_i) =& \textrm{cov}(\epsilon_{i+2},\epsilon_{i+1} - \epsilon_i) - \textrm{cov}( \epsilon_{i+1},\epsilon_{i+1} - \epsilon_i) \\
+=& -\sigma_{i+1}^2
+\end{align}
+for neighboring elements, and zero otherwise. The covariance matrix thus has the form,
+\begin{equation}
+\Sigma = 
+\left[\begin{array}{ccccc}\sigma_2^2+\sigma_1^2 & -\sigma_2^2 & 0 & 0 & 0 \\-\sigma_2^2 & \sigma_3^2 +\sigma_2^2 & -\sigma_3^2 & 0 & 0 \\0 & -\sigma_3^2 &  &  & 0 \\0 & 0 &  & \sigma_{i+1}^2 + \sigma_{i}^2 & -\sigma_{i+1}^2 \\0 & 0 & 0 & -\sigma_{i+1}^2 & \end{array}\right]
+\end{equation}
+Let's fix some notation. What if we define $\epsilon^x_i$ as the random variable describing the error in position ($x$) for the $i$-th observation. We can then let $\epsilon^{dx}_i \equiv \epsilon^x_{i+1} - \epsilon^x_i$ describe the error in the $i$-th observation of velocity.
+
+The covariance in position is simply,
+\begin{align}
+\textrm{cov}(\epsilon^x_i, \epsilon^x_j) = \sigma_i^2 \delta_{ij}
+\end{align}
+but the covariance in position difference is,
+\begin{align}
+\textrm{cov}(\epsilon^{dx}_i, \epsilon^{dx}_i) =& \sigma_{i+1}^2 + \sigma_i^2 \\
+\textrm{cov}(\epsilon^{dx}_{i+1}, \epsilon^{dx}_i) =& -\sigma_{i+1}^2 \\
+\textrm{cov}(\epsilon^{dx}_{i}, \epsilon^{dx}_{i+1}) =& -\sigma_{i+1}^2
+\end{align}
+which can be written in matrix form as,
+\begin{equation}
+\Sigma_{ij} = (\sigma_{i+1}^2 + \sigma_i^2) \delta_{ij} - \sigma_{i}^2 \delta_{i-1,j} - \sigma_{i+1}^2 \delta_{i,j-1}.
+\end{equation}
+Now let's define the random variable describing the error in velocity as $\epsilon^v_i \equiv \frac{\epsilon^{dx}_i}{\Delta t_i}$ where $\Delta t_i = t_{i+1} - t_i$. Using the property that $\textrm{cov}(cX,Y)=c\,\textrm{cov}(X,Y)$, 
+\begin{align}
+\textrm{cov}(\epsilon^{v}_i, \epsilon^{v}_i) =& \frac{1}{\Delta t_i^2} \left( \sigma_{i+1}^2 + \sigma_i^2 \right) \\
+\textrm{cov}(\epsilon^{v}_{i+1}, \epsilon^{v}_i) =& -\frac{1}{\Delta t_{i+1} \Delta t_i}\sigma_{i+1}^2 \\
+\textrm{cov}(\epsilon^{v}_{i}, \epsilon^{v}_{i+1}) =& -\frac{1}{\Delta t_{i+1} \Delta t_i}\sigma_{i+1}^2
+\end{align}
+This is exactly the covariance matrix we need to to solve the linear least squares problem. So far we have not taken into account boundary conditions, or higher order matrices.
+
+\subsection{Second derivative}
+
+What we really want is the forcing... and we want it for unevenly spaced data. 
+
+Starting simple, let's define $\epsilon^{dv}_i \equiv \epsilon^{dx}_{i+1} - \epsilon^{dx}_i$ which means that $\epsilon^{dv}_i = \epsilon_{i+2}  - 2 \epsilon_{i+1} + \epsilon_i$. The covariance matrix can now be constructed from the following,
+\begin{align}
+\textrm{cov}(\epsilon^{dv}_i, \epsilon^{dv}_i) =&\sigma_{i+2}^2 + 4 \sigma_{i+1}^2 + \sigma_i^2 \\
+\textrm{cov}(\epsilon^{dv}_{i+1}, \epsilon^{dv}_i) =& -2 \sigma_{i+2}^2 -2 \sigma_{i+1}^2 \\
+\textrm{cov}(\epsilon^{dv}_{i+2}, \epsilon^{dv}_{i}) =& \sigma_{i+2}^2
+\end{align}
+and their symmetric counterparts.
+
+We're now in a position to define the random variable describing the error in the acceleration as $\epsilon^{a}_i \equiv \frac{2}{ \Delta t_{i+1} + \Delta t_i } \left( \epsilon^{v}_{i+1} - \epsilon^{v}_i\right)$. This definition is valid to second order accuracy for unevenly spaced data. We can rewrite this as,
+\[
+\epsilon^{a}_i \equiv \frac{2 \epsilon_{i+2} }{ (\Delta t_{i+1} + \Delta t_i) \Delta t_{i+1} } - \frac{2 \epsilon_{i+1} }{ \Delta t_{i+1}  \Delta t_i } + \frac{2 \epsilon_{i} }{ (\Delta t_{i+1} + \Delta t_i) \Delta t_{i} }
+\]
+The covariance matrix is constructed as follows,
+\begin{align}
+\textrm{cov}(\epsilon^{a}_i, \epsilon^{a}_i) =&\frac{ 4 \sigma_{i+2}^2}{(\Delta t_{i+1} + \Delta t_i)^2 \Delta t_{i+1}^2} + \frac{4 \sigma_{i+1}^2}{ \Delta t_{i+1}^2  \Delta t_i^2} + \frac{4\sigma_i^2}{(\Delta t_{i+1} + \Delta t_i)^2 \Delta t_{i}^2 } \\
+\textrm{cov}(\epsilon^{a}_{i+1}, \epsilon^{a}_i) =& - \frac{4 \sigma_{i+2}^2}{ (\Delta t_{i+1} + \Delta t_i) \Delta t_{i+2} {\Delta t_{i+1}}^2 } - \frac{4 \sigma_{i+1}^2}{(\Delta t_{i+2} + \Delta t_{i+1}) {\Delta t_{i+1}}^2 \Delta t_i } \\
+\textrm{cov}(\epsilon^{a}_{i+2}, \epsilon^{a}_{i}) =& \frac{ 4 \sigma_{i+2}^2}{(\Delta t_{i+1} + \Delta t_i) \Delta t_{i+1} (\Delta t_{i+2} + \Delta t_{i+1}) \Delta t_{i+2}}
+\end{align}
+
+So we're going to have a penalty function like this,
+\begin{equation}
+\phi =  \frac{1}{2} \left[ \left[\mathcal{D}^2\right]\indices{^j_k} x^k - A\indices{^k_j} \xi^j \right]^{\textrm{T}} {\Sigma^{-1}}\indices{^k_i} \left[ \left[\mathcal{D}^2\right]\indices{^l_i} x^i - A\indices{^i_l} \xi^l \right] 
+\end{equation}
+which is just a best fit line through the forcing. So how to I enforce that we pass through (or near) the endpoints?
 
 \section{References}
 
