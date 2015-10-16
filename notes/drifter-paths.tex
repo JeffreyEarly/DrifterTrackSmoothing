@@ -678,7 +678,26 @@ So we're going to have a penalty function like this,
 \begin{equation}
 \phi =  \frac{1}{2} \left[ \left[\mathcal{D}^2\right]\indices{^j_k} x^k - A\indices{^k_j} \xi^j \right]^{\textrm{T}} {\Sigma^{-1}}\indices{^k_i} \left[ \left[\mathcal{D}^2\right]\indices{^l_i} x^i - A\indices{^i_l} \xi^l \right] 
 \end{equation}
-which is just a best fit line through the forcing. So how to I enforce that we pass through (or near) the endpoints?
+which is just a best fit line through the forcing. So how to I enforce that we pass through (or near) the endpoints? Easy, we need need to also include the locations in the penalty function. So,
+\begin{multline}
+\phi =  \frac{1}{2} \left[ \left[\mathcal{D}^2\right]\indices{^j_k} x^k - A\indices{^k_j} \xi^j \right]^{\textrm{T}} {\Sigma_A^{-1}}\indices{^k_i} \left[ \left[\mathcal{D}^2\right]\indices{^l_i} x^i - A\indices{^i_l} \xi^l \right] \\
++  \left[  x^k - X\indices{^k_j} \xi^j \right]^{\textrm{T}} {\Sigma_{X}^{-1}}\indices{^k_i} \left[  x^i - A\indices{^i_l} \xi^l \right]
+\end{multline}
+Recall that,
+\begin{align}
+\bar{X}^2 \equiv&  \left[ x^k - X\indices{^k_j} \xi^j \right]^{\textrm{T}} {\Sigma_{X}^{-1}}\indices{^k_i} \left[ x^i - X\indices{^i_l} \xi^l \right] \\
+=& x_k {\Sigma_{X}^{-1}}\indices{^k_i} x^i - 2 x_k {\Sigma_{X}^{-1}}\indices{^k_i}  X\indices{^i_j} \xi^j+ \xi_j X\indices{_k^j} {\Sigma_{X}^{-1}}\indices{^k_i}  X\indices{^i_l} \xi^l.
+\end{align}
+Which means that the extremum can be found with,
+\begin{align}
+0 =& \frac{\partial \phi}{\partial \xi^m} \\ \nonumber
+=&  -  x_k {\Sigma_{X}^{-1}}\indices{^k_i}  X\indices{^i_m}+ X\indices{_k_m} {\Sigma_{X}^{-1}}\indices{^k_i}  X\indices{^i_l} \xi^l + \frac{ \Delta t}{ S_0 } \left[ {V^\prime}\indices{^q_m}{V^\prime}\indices{^q_j} \xi^j \right] \\
+& -  \left[\mathcal{D}^2\right]\indices{^j_k} x_j {\Sigma_{A}^{-1}}\indices{^k_i}  A\indices{^i_m}+ A\indices{_k_m} {\Sigma_{A}^{-1}}\indices{^k_i}  A\indices{^i_l} \xi^l.
+\end{align}
+We can solve for $\xi$,
+\begin{equation}
+x_k {\Sigma_{X}^{-1}}\indices{^k_i}  X\indices{^i_m} + \left[\mathcal{D}^2\right]\indices{^j_k} x_j {\Sigma_{A}^{-1}}\indices{^k_i}  A\indices{^i_m} = \left[X\indices{_k_m} {\Sigma_{X}^{-1}}\indices{^k_i}  X\indices{^i_j} + A\indices{_k_m} {\Sigma_{A}^{-1}}\indices{^k_i}  A\indices{^i_j} + \frac{ \Delta t}{ S_0 }  {V^\prime}\indices{^q_m}{V^\prime}\indices{^q_j} \right] \xi^j
+\end{equation}
 
 \section{References}
 

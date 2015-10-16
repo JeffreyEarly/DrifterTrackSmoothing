@@ -4,23 +4,27 @@ u0 = 500;
 t_max = -2*v0/g;
 % t_max = 100;
 
-N = 7; % Number of observations
+N =7; % Number of observations
 t=linspace(0,t_max,N)';
 x=u0*t;
 y=g*t.*t/2 + v0*t;
 
+sigma = 100;
+x = x + randn(size(x))*sigma;
+y = y + randn(size(y))*sigma;
 
-dx=10*ones(size(x));
-dy=10*ones(size(y));
+dx=sigma*ones(size(x));
+dy=sigma*ones(size(y));
 a0=2*abs(g);
-a0 = 10;
+a0 = 1000;
 % a0 = 1;
-M=7; % Number of interior knot points (need two extras for end points)
+M=N+2*(N-1); % Number of interior knot points (need two extras for end points)
+%M = 6;
 W=eye(N);
-S = 5;
+S = 3;
 [m_x,m_y,Cm_x,Cm_y,X,V,A,J] = forcing_fit(t,x,y,dx,dy,0,M,S,a0,0,@(z)(z));
 
-Nt=M;
+Nt=3*M;
 M = M+2*floor(S/2);
 tt = linspace(0,t_max,Nt)';
 t_knot = (t(end)-t(1))/(M-S);
