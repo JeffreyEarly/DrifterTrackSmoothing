@@ -667,13 +667,27 @@ We're now in a position to define the random variable describing the error in th
 \[
 \epsilon^{a}_i \equiv \frac{2 \epsilon_{i+2} }{ (\Delta t_{i+1} + \Delta t_i) \Delta t_{i+1} } - \frac{2 \epsilon_{i+1} }{ \Delta t_{i+1}  \Delta t_i } + \frac{2 \epsilon_{i} }{ (\Delta t_{i+1} + \Delta t_i) \Delta t_{i} }
 \]
-The covariance matrix is constructed as follows,
+The second-order second-derivative at the boundary is somewhat different,
+\begin{multline}
+\epsilon^a_0 = 2 \epsilon_0\frac{ \left( 3\Delta t_0 + 2 \Delta t_1 + \Delta t_2 \right)}{\Delta t_0 (\Delta t_0 + \Delta t_1) (\Delta t_0 + \Delta t_1 + \Delta t_2)} - 2 \epsilon_1 \frac{ (2\Delta t_0+ 2\Delta t_1+\Delta t_2)}{(\Delta t_1+\Delta t_2)\Delta t_0\Delta t_1} \\
+ + 2 \epsilon_2 \frac{ 2 \Delta t_0 + \Delta t_1 + \Delta t_2}{\Delta t_1 \Delta t_2 (\Delta t_0 + \Delta t_1)} - 2 \epsilon_3 \frac{ 2 \Delta t_0 + \Delta t_1}{ \Delta t_2 (\Delta t_1 + \Delta t_2)(\Delta t_0+\Delta t_1+\Delta t_2)}.
+\end{multline}
+
+\subsection{Second derivative covariance matrix}
+We can now construct the covariance matrix using the above two expressions. The interior of the matrix is constructed as follows,
 \begin{align}
 \textrm{cov}(\epsilon^{a}_i, \epsilon^{a}_i) =&\frac{ 4 \sigma_{i+2}^2}{(\Delta t_{i+1} + \Delta t_i)^2 \Delta t_{i+1}^2} + \frac{4 \sigma_{i+1}^2}{ \Delta t_{i+1}^2  \Delta t_i^2} + \frac{4\sigma_i^2}{(\Delta t_{i+1} + \Delta t_i)^2 \Delta t_{i}^2 } \\
 \textrm{cov}(\epsilon^{a}_{i+1}, \epsilon^{a}_i) =& - \frac{4 \sigma_{i+2}^2}{ (\Delta t_{i+1} + \Delta t_i) \Delta t_{i+2} {\Delta t_{i+1}}^2 } - \frac{4 \sigma_{i+1}^2}{(\Delta t_{i+2} + \Delta t_{i+1}) {\Delta t_{i+1}}^2 \Delta t_i } \\
-\textrm{cov}(\epsilon^{a}_{i+2}, \epsilon^{a}_{i}) =& \frac{ 4 \sigma_{i+2}^2}{(\Delta t_{i+1} + \Delta t_i) \Delta t_{i+1} (\Delta t_{i+2} + \Delta t_{i+1}) \Delta t_{i+2}}
+\textrm{cov}(\epsilon^{a}_{i+2}, \epsilon^{a}_{i}) =& \frac{ 4 \sigma_{i+2}^2}{(\Delta t_{i+1} + \Delta t_i) \Delta t_{i+1} (\Delta t_{i+2} + \Delta t_{i+1}) \Delta t_{i+2}}.
 \end{align}
 
+In a practical sense, all we have to do is create the finite difference matrix, then multiply each row by each other row.
+\[
+\Sigma\indices{_i_j} = \left[\mathcal{D}^2\right]\indices{_i_k}\left[\mathcal{D}^2\right]\indices{_j_k} \sigma_k \sigma_k
+\]
+I have no proof for this, but I believe we are stuck with two less data points than the position data. We only have $N-2$ independent observations of forcing. In a practical sense, this means we have no information about what's happening at the boundaries. This is evident in the $\mathcal{D}^2$ matrix which has a vanishing determinant if you include boundary condition terms, even at second order.
+
+\subsection{Penalty function}
 So we're going to have a penalty function like this,
 \begin{equation}
 \phi =  \frac{1}{2} \left[ \left[\mathcal{D}^2\right]\indices{^j_k} x^k - A\indices{^k_j} \xi^j \right]^{\textrm{T}} {\Sigma^{-1}}\indices{^k_i} \left[ \left[\mathcal{D}^2\right]\indices{^l_i} x^i - A\indices{^i_l} \xi^l \right] 
@@ -698,6 +712,13 @@ We can solve for $\xi$,
 \begin{equation}
 x_k {\Sigma_{X}^{-1}}\indices{^k_i}  X\indices{^i_m} + \left[\mathcal{D}^2\right]\indices{^j_k} x_j {\Sigma_{A}^{-1}}\indices{^k_i}  A\indices{^i_m} = \left[X\indices{_k_m} {\Sigma_{X}^{-1}}\indices{^k_i}  X\indices{^i_j} + A\indices{_k_m} {\Sigma_{A}^{-1}}\indices{^k_i}  A\indices{^i_j} + \frac{ \Delta t}{ S_0 }  {V^\prime}\indices{^q_m}{V^\prime}\indices{^q_j} \right] \xi^j
 \end{equation}
+
+\section{Notes}
+\begin{enumerate}
+\item For S=3, my second derivative constraint appears to be cutoff? Or, actually, it's probably just not a valid constraint for S=3. Need S=5.
+\item Setting the jerk=0 at the end points doesn't seem to have the intended effect. Do I need to specify the forcing (as by observation) at the end points? Simply copying the previous forcing point over doesn't work because the covariance matrix is not invertible. Perhaps I need to go to higher order to make that work. Not sure.
+\item Okay, so over constraining the problem does lead to the intended results for acceleration regardless of boundary conditions. That said, setting jerk=0 at the end points does change the endpoint behavior for jerk. However, the is still some squirrelly business near the end points. This means we probably do want a constraint on forcing near the end.
+\end{enumerate}
 
 \section{References}
 

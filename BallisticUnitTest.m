@@ -10,18 +10,18 @@ x=u0*t;
 y=g*t.*t/2 + v0*t;
 
 sigma = 100;
-x = x + randn(size(x))*sigma;
-y = y + randn(size(y))*sigma;
+x = x + randn(size(x))*sigma*0;
+y = y + randn(size(y))*sigma*0;
 
 dx=sigma*ones(size(x));
 dy=sigma*ones(size(y));
 a0=2*abs(g);
 a0 = 1000;
 % a0 = 1;
-M=N+2*(N-1); % Number of interior knot points (need two extras for end points)
+M=N+0*(N-1); % Number of interior knot points (need two extras for end points)
 %M = 6;
 W=eye(N);
-S = 3;
+S = 5;
 [m_x,m_y,Cm_x,Cm_y,X,V,A,J] = forcing_fit(t,x,y,dx,dy,0,M,S,a0,0,@(z)(z));
 
 Nt=3*M;

@@ -135,10 +135,10 @@ for i=1:M
     t_norm=(t(N)-t(1))/t_knot - (i - 1 - floor(S/2));
     F(2,i) = spline_ttt(t_norm)/(t_knot^3);
 end
-hx(1) = x(1);
-hx(2) = x(end);
-hy(1) = y(1);
-hy(2) = y(end);
+hx(1) = 0;
+hx(2) = 0;
+hy(1) = 0;
+hy(2) = 0;
 
 dt = diff(t);
 Diff2 = zeros(N-2,N);
@@ -164,6 +164,17 @@ for i=1:(N-2)
        Sigma_x(i,i+2) = (4*dx(i+2)^2)/((dt(i+1)+dt(i+2))*(dt(i)+dt(i+1))*dt(i+1)*dt(i+2));
        Sigma_x(i+2,i) = Sigma_x(i,i+2);
    end
+end
+
+% 2nd order 2nd derivative matrix, no boundary terms
+D2 = FiniteDifferenceMatrix(2,t,2,2,2);
+D2 = D2(2:(N-1),:);
+
+Sigma=zeros(N-2,N-2);
+for i=1:size(Sigma,1)
+    for j=1:size(Sigma,2)
+        Sigma(i,j) = sum(D2(i,:).*D2(j,:).*dx'.*dx');
+    end
 end
 
 % SigmaX = zeros(N,N);
@@ -214,6 +225,20 @@ G2_y = G2X_y + G2A_y;
 
 m_x = E_x\G2_x;
 m_y = E_y\G2_y;
+
+% C_x = zeros(M,M); % MxM
+% C_y = zeros(M,M); % MxM
+% 
+% G1 = [E_x,C_x,F',zeros(M,NC);
+%       C_y,E_y,zeros(M,NC),F';
+%       F,zeros(NC,M),zeros(NC,NC),zeros(NC,NC);
+%       zeros(NC,M),F,zeros(NC,NC),zeros(NC,NC)];
+% 
+% G2 = [G2_x;G2_y;hx';hy'];
+% m = G1\G2;
+% m_x = m(1:M);
+% m_y = m(M+1:2*M);
+
 
 Cm_x = inv(E_x);
 Cm_y = inv(E_y);
