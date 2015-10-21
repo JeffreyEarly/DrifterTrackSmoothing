@@ -39,21 +39,19 @@ for iDrifter=1:length(drifters.x)
     M = floor(N/SplineFactor); % Number of splines
     dx = ones(size(drifters.x{iDrifter}))*sigma_gps;
     dy = ones(size(drifters.x{iDrifter}))*sigma_gps;
-    [mx,my,Cmx,Cmy,X1,V1] = drifter_fit(drifters.t{iDrifter},drifters.x{iDrifter},drifters.y{iDrifter},dx,dy,T_decorrelation,M,S,u_rms,lat0, @(z)(z./(1+0.5*z.*z)));
+    [mx,my,Cmx,Cmy,X1,V1] = forcing_fit_cauchy(drifters.t{iDrifter},drifters.x{iDrifter},drifters.y{iDrifter},dx,dy,T_decorrelation,M,S,u_rms,lat0, @(z)(z./(1+0.5*z.*z)));
     
     % Now we create the basis at the desired collocation points.
     M_norm = M+2*floor(S/2);
     t_knot = (drifters.t{iDrifter}(end)-drifters.t{iDrifter}(1))/(M_norm-S);
-    X = zeros(Nt,M_norm);
-    V = zeros(Nt,M_norm);
+    t_norm = zeros(Nt,M_norm);
     for i=1:Nt
         for j=1:M_norm
-            t_norm=(t(i)-drifters.t{iDrifter}(1))/t_knot - (j - 1 - floor(S/2));
-            X(i,j)=spline(t_norm);
-            V(i,j)=spline_t(t_norm);
+            t_norm(i,j)=(t(i)-drifters.t{iDrifter}(1))/t_knot - (j - 1 - floor(S/2));
         end
     end
-    V = V/t_knot;
+    X=spline(t_norm);
+    V=spline_t(t_norm)/t_knot;
     
     x(:,iDrifter) = X*mx;
     y(:,iDrifter) = X*my;

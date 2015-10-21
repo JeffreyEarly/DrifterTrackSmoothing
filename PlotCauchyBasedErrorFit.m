@@ -52,7 +52,7 @@ v2 = V*my;
 
 
 
-[mx,my,Cmx,Cmy,X2,V] = drifter_fit_forced(t,x,y,dx,dy,T_decorrelation,M,S,u_rms,lat0, @(z)(z./(1+0.5*z.*z)));
+[mx,my,Cmx,Cmy,X2,V] = forcing_fit_cauchy(t,x,y,dx,dy,T_decorrelation,M,S,u_rms,lat0, @(z)(z./(1+0.5*z.*z)));
 % [mx,my,Cmx,Cmy,A,V] = drifter_fit_generalized(t,x,y,dx,dy,M,T_decorrelation,u_rms,lat0, @(z)(z./(1+0.5*z.*z)));
 x3 = X2*mx;
 y3 = X2*my;
@@ -80,22 +80,16 @@ else
 end
 M_norm = M+2*floor(S/2);
 t_knot = (drifters.t{iDrifter}(end)-drifters.t{iDrifter}(1))/(M_norm-S);
-X = zeros(Nt,M_norm);
-V = zeros(Nt,M_norm);
-A = zeros(Nt,M_norm);
-J = zeros(Nt,M_norm);
+t_norm = zeros(Nt,M_norm);
 for i=1:Nt
     for j=1:M_norm
-        t_norm=(t(i)-drifters.t{iDrifter}(1))/t_knot - (j - 1 - floor(S/2));
-        X(i,j)=spline(t_norm);
-        V(i,j)=spline_t(t_norm);
-        A(i,j)=spline_tt(t_norm);
-        J(i,j)=spline_ttt(t_norm);
+        t_norm(i,j)=(t(i)-drifters.t{iDrifter}(1))/t_knot - (j - 1 - floor(S/2));
     end
 end
-V = V/t_knot;
-A = A/t_knot^2;
-J = J/t_knot^3;
+X=spline(t_norm);
+V=spline_t(t_norm)/t_knot;
+A=spline_tt(t_norm)/t_knot^2;
+J=spline_ttt(t_norm)/t_knot^3;
 
 % Compute the Coriolis parameter
 Omega = 2*pi/86164;

@@ -89,35 +89,27 @@ gamma = 1/(v0*v0*Q);
 
 % Rows are the N observations
 % Columns are the M splines
-X = zeros(N,M);
-V = zeros(N,M);
-A = zeros(N,M);
-J = zeros(N,M);
+t_norm = zeros(N,M);
 for i=1:N
     for j=1:M
-        t_norm=(t(i)-t(1))/t_knot - (j - 1 - floor(S/2));
-        X(i,j)=spline(t_norm);
-        V(i,j)=spline_t(t_norm);
-        A(i,j)=spline_tt(t_norm);
-        J(i,j)=spline_ttt(t_norm);
+        t_norm(i,j)=(t(i)-t(1))/t_knot - (j - 1 - floor(S/2));   
     end
 end
-V = V/t_knot;
-A = A/(t_knot^2);
-J = J/(t_knot^3);
+X=spline(t_norm);
+V=spline_t(t_norm)/t_knot;
+A=spline_tt(t_norm)/(t_knot^2);
+J=spline_ttt(t_norm)/(t_knot^3);
 
 % set up D matrix
-Xq = zeros(Q,M); % Same as the A matrix above, but on the quadrature (q) grid.
-Vq = zeros(Q,M);
+t_norm = zeros(Q,M);
 for q=1:Q
     tq = t(1) + (q-1)*DT;
     for j=1:M
-        t_norm=(tq-t(1))/t_knot - (j - 1 - floor(S/2));
-        Xq(q,j)=spline(t_norm);
-        Vq(q,j)=spline_t(t_norm);
+        t_norm(q,j)=(tq-t(1))/t_knot - (j - 1 - floor(S/2));
     end
 end
-Vq = Vq/t_knot;
+Xq=spline(t_norm);
+Vq=spline_t(t_norm)/t_knot;
 
 % set up F matrix and h vector for constraints
 NC = 2;

@@ -22,7 +22,7 @@ M=N+0*(N-1); % Number of interior knot points (need two extras for end points)
 %M = 6;
 W=eye(N);
 S = 5;
-[m_x,m_y,Cm_x,Cm_y,X,V,A,J] = forcing_fit(t,x,y,dx,dy,0,M,S,a0,0,@(z)(z));
+[m_x,m_y,Cm_x,Cm_y,X,V,A,J] = forcing_fit_cauchy(t,x,y,dx,dy,0,M,S,a0,0,@(z)(z));
 
 Nt=3*M;
 M = M+2*floor(S/2);
