@@ -1,8 +1,9 @@
+clear
 drifters = load('sample_data/projected_ungridded_rho1_drifters.mat');
 
-iDrifter = 8;
-SplineFactor = 1.5; % Number of data points for each spline
-sigma_gps = 10; % error in meters
+iDrifter = 1;
+SplineFactor = 3.0; % Number of data points for each spline
+sigma_gps = 30; % error in meters
 S = 5; % order of the spline
 u_rms = 0.15; % assumed rms velocity of the solution
 T_decorrelation = 0; %2.5*60*60; % forcing decorrelation time
@@ -29,7 +30,7 @@ u1 = V*mx;
 v1 = V*my;
 
 % Now we create the basis at the desired collocation points.
-t = (0:30*60:drifters.maxExperimentLength)';
+t = (0:5*60:drifters.maxExperimentLength)';
 Nt = length(t);
 if S == 3
     addpath('./cubic_splines');
@@ -70,7 +71,7 @@ figure
 subplot(2,2,[1 3])
 s = 1/1000;
 plot(s*x,s*y), hold on
-plot(s*x1,s*y1,'g')
+plot(s*X*mx,s*X*my,'g')
 
 scatter(s*x,s*y,5)
 % xlim([-500 7500])
@@ -81,7 +82,7 @@ title('Fit with Cauchy errors, no tension')
 
 subplot(2,2,2)
 plot(drifters.t{iDrifter}/3600,s*x), hold on
-plot(drifters.t{iDrifter}/3600,s*x1,'g')
+plot(t/3600,s*X*mx,'g')
 scatter(drifters.t{iDrifter}/3600,s*x,5)
 % xlim([8.295e6 1.01e7])
 xlabel('t (hours)')
@@ -89,8 +90,21 @@ ylabel('x (km)')
 
 subplot(2,2,4)
 plot(drifters.t{iDrifter}/3600,s*y), hold on
-plot(drifters.t{iDrifter}/3600,s*y1,'g')
+plot(t/3600,s*X*my,'g')
 scatter(drifters.t{iDrifter}/3600,s*y,5)
 % xlim([8.295e6 1.01e7])
 xlabel('t (hours)')
 ylabel('y (km)')
+
+return
+Diff2 = FiniteDifferenceMatrix(2,drifters.t{iDrifter},2,2,10);
+Diff2 = Diff2(2:(N-1),:);
+t_obs_force = drifters.t{iDrifter}(2:(end-1));
+figure
+subplot(2,1,1)
+scatter(t_obs_force,Diff2*x), hold on
+plot(t,A*mx)
+subplot(2,1,2)
+scatter(t_obs_force,Diff2*y), hold on
+plot(t,A*my)
+

@@ -718,6 +718,10 @@ x_k {\Sigma_{X}^{-1}}\indices{^k_i}  X\indices{^i_m} + \left[\mathcal{D}^2\right
 \item For S=3, my second derivative constraint appears to be cutoff? Or, actually, it's probably just not a valid constraint for S=3. Need S=5.
 \item Setting the jerk=0 at the end points doesn't seem to have the intended effect. Do I need to specify the forcing (as by observation) at the end points? Simply copying the previous forcing point over doesn't work because the covariance matrix is not invertible. Perhaps I need to go to higher order to make that work. Not sure.
 \item Okay, so over constraining the problem does lead to the intended results for acceleration regardless of boundary conditions. That said, setting jerk=0 at the end points does change the endpoint behavior for jerk. However, the is still some squirrelly business near the end points. This means we probably do want a constraint on forcing near the end.
+\item It is best to leave the x and y errors uncorrelated (as in, don't let the iteratively reweighted least-squares method learn about the errors in the orthogonal direction). The reason is that the errors are expected to be anisotropic. Think about dilution of precision.
+\item It's important to choose a good initial value for $\sigma$. For a Gaussian fit this doesn't matter, but when using the IRLS method, this value is what determines whether or not points start to get rejected or not. This may want to be an rms value? I'm not sure. For my GPS data it looks like 10 meters may be too small, and 50 meters may be too big.
+\item A SplineFactor (number of data points for each spline) of 1.5 does not appear to be enough to provide appropriate smoothness. A value of 3 starts to look borderline too smooth, but maybe not. Note that this is evaluated without implemented the ocean Lagrangian.
+
 \end{enumerate}
 
 \section{References}

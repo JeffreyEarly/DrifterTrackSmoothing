@@ -11,7 +11,7 @@ drifters = load('sample_data/projected_ungridded_rho1_drifters.mat');
 % x = x*1000; % convert from km to meters.
 % y = y*1000;
 
-iDrifter = 8;
+iDrifter = 1;
 SplineFactor = 3.0; % Number of data points for each spline
 sigma_gps = 10; % error in meters
 S = 5; % order of the spline
@@ -60,7 +60,7 @@ u3 = V*mx;
 v3 = V*my;
 
 % Now we create the basis at the desired collocation points.
-t = (0:30*60:drifters.maxExperimentLength)';
+t = (0:5*60:drifters.maxExperimentLength)';
 Nt = length(t);
 if S == 3
     addpath('./cubic_splines');

@@ -163,14 +163,14 @@ while (rel_error > 0.01)
     
     dx1 = max(0.00001*ones(size(dx1)),abs(dx1));
     dy1 = max(0.00001*ones(size(dy1)),abs(dy1));
-    ds1 = max(abs(dx1),abs(dy1));
+%     ds1 = max(abs(dx1),abs(dy1));
     
     dx2 = dx1./weight_function(dx1./dx);
     dy2 = dy1./weight_function(dy1./dx);
-    ds2 = ds1./weight_function(ds1./dx);
+%     ds2 = ds1./weight_function(ds1./dx);
     
-    dx2 = ds2;
-    dy2 = dy2;
+%     dx2 = ds2;
+%     dy2 = ds2;
     
     Sigma_x=zeros(N-2,N-2);
     Sigma_y=zeros(N-2,N-2);
