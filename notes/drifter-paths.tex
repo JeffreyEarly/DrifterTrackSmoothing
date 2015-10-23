@@ -789,33 +789,53 @@ Following Press, et al., we start with the maximum likelihood using a Gaussian d
 \label{maxlikelihood}
 P = \prod_{i=1}^N \frac{e^{-\rho} }{\sigma \sqrt{ 2 \pi}} \Delta y
 \end{equation}
-where $\rho = \frac{1}{2} \left( \frac{x_i - x(t_i,\mathbf{a})}{\sigma_i} \right)^2$ where $(t_i,x_i)$ is the data and $x(t,\mathbf{a})$ is the model with parameters $\mathbf{a}$. We then try to find the model parameters which maximize the likelihood, or equivalently we try to minimize,
+where $\rho_g = \frac{1}{2} \left( \frac{x_i - x(t_i,\mathbf{a})}{\sigma_i} \right)^2$ where $(t_i,x_i)$ is the data and $x(t,\mathbf{a})$ is the model with parameters $\mathbf{a}$. We then try to find the model parameters which maximize the likelihood, or equivalently we try to minimize,
 \begin{equation}
 \sum_{i=1}^N \rho \left( x_i - x(t_i,\mathbf{a}) \right).
 \end{equation}
 with respect to $\mathbf{a}$.
 
-Continuing to (mostly) follow Press, et al., now let's define $z_i \equiv  x_i - x(t_i,\mathbf{a})$ and  $\psi \equiv \frac{d \rho}{dz}$. This means that our minimization condition becomes,
+Continuing to (mostly) follow Press, et al., now let's define $\epsilon_i \equiv  x_i - x(t_i,\mathbf{a})$ and  $\psi \equiv \frac{d \rho}{d\epsilon}$. This means that our minimization condition becomes,
 \begin{equation}
-0 = \sum_{i=1}^N \psi(z_i) \frac{\partial x(t_i,\mathbf{a})}{\partial \mathbf{a}}.
+0 = \sum_{i=1}^N \psi(\epsilon_i) \frac{\partial x(t_i,\mathbf{a})}{\partial \mathbf{a}}.
 \end{equation}
-The Gaussian distribution looks like $\rho(z) = \frac{1}{2} \frac{z^2}{\sigma^2}$ and therefore $\psi(z)=\frac{z}{\sigma^2}$.
+The Gaussian distribution looks like $\rho_g(z) = \frac{1}{2} \frac{z^2}{\sigma^2}$ and therefore $\psi_g(z)=\frac{z}{\sigma^2}$.
 
 Using a Gaussian distribution is equivalent to solving the least-squares problem,
 \begin{equation}
-0 = \sum_{i=1}^N \frac{z_i}{\sigma_i^2} \frac{\partial x(t_i,\mathbf{a})}{\partial \mathbf{a}},
+\label{gaussian_likelihood}
+0 = \sum_{i=1}^N \frac{\epsilon_i}{\sigma_i^2} \frac{\partial x(t_i,\mathbf{a})}{\partial \mathbf{a}},
 \end{equation}
 a problem that we can solve linearly.
 
 Using a $t$-distribution is equivalent to maximizing equation \ref{maxlikelihood} where now,
 \[
-\rho = - \log
+\rho_t(\epsilon_i) = - \log \left( \frac{2 \sqrt{2}}{\sqrt{3 \pi}} \left( 1 + \frac{\epsilon_i^2}{2 \sigma_i^2} \right)^{-2} \right)
 \]
+and 
+\[
+\psi_t(\epsilon_i) = \frac{ 4 \epsilon_i}{3 \sigma_i^2} \left( 1 + \frac{\epsilon_i^2}{3 \sigma_i^2} \right)^{-1}.
+\]
+However, the equation 
 \begin{equation}
-0 = \sum_{i=1}^N \frac{z_i}{\sigma_i^2} \frac{\partial x(t_i,\mathbf{a})}{\partial \mathbf{a}},
+0 = \sum_{i=1}^N \psi_t(\epsilon_i) \frac{\partial x(t_i,\mathbf{a})}{\partial \mathbf{a}}
+\end{equation}
+is not linear, so we cannot easily find the coefficients using this method. The trick is to re-weight the $\sigma_i$ in equation \ref{gaussian_likelihood} to make the errors look like $t$-distribution. That is, we want,
+\begin{equation}
+\frac{\epsilon_i}{\sigma_i^2} = \psi_t(\epsilon_i)
+\end{equation}
+or
+\begin{equation}
+\sigma_i^2 = \frac{\epsilon_i}{ \psi_t(\epsilon_i)}.
 \end{equation}
 
-I have a series of errors $\epsilon_i = y_i - y(x_i)$ that are from some distribution, but I only now how to solve my linear problem for a Gaussian distribution. So I actually have $\epsilon_i/\sigma_i$ looking like a Gaussian distribution to start with. How can I re-weight the values of $\sigma_i$ to make that distribution look like my desired distribution? Quite simply, I want $\epsilon_i/\sigma_i = w(z)$, so $\sigma_i = \epsilon_i/w(z)$.
+It's easy to to consider what would happen if you simply used a Gaussian distribution again, but with a different $\sigma$. In that case, $\sigma_i^2 = \sigma_i^2$ where I need to use better notation. But see, it works.
+
+You could avoid the divide by zero issue by precomputing this. So let's define,
+\begin{align}
+w_t(\epsilon_i) \equiv& \frac{\epsilon_i}{ \psi_t(\epsilon_i)}\\
+=& \frac{4}{3} \sigma_i^2  \left( 1 + \frac{\epsilon_i^2}{3 \sigma_i^2} \right)
+\end{align}
 
 \section{References}
 
