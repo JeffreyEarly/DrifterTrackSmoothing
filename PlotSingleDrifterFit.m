@@ -2,8 +2,8 @@ clear
 drifters = load('sample_data/projected_ungridded_rho1_drifters.mat');
 
 iDrifter = 1;
-SplineFactor = 3.0; % Number of data points for each spline
-sigma_gps = 30; % error in meters
+SplineFactor = 1.1; % Number of data points for each spline
+sigma_gps = 10; % error in meters
 S = 5; % order of the spline
 u_rms = 0.15; % assumed rms velocity of the solution
 T_decorrelation = 0; %2.5*60*60; % forcing decorrelation time

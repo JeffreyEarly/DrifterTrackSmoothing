@@ -125,34 +125,48 @@ hx(2) = 0;
 hy(1) = 0;
 hy(2) = 0;
 
+% 2nd order 1st derivative matrix, no boundary terms
+Diff1 = FiniteDifferenceMatrix(1,t,1,1,10);
+Diff1 = Diff1(2:(N-1),:);
+
 % 2nd order 2nd derivative matrix, no boundary terms
 Diff2 = FiniteDifferenceMatrix(2,t,2,2,10);
 Diff2 = Diff2(2:(N-1),:);
 
 Sigma_x=zeros(N-2,N-2);
 Sigma_y=zeros(N-2,N-2);
-for i=1:size(Sigma_x,1)
-    for j=1:size(Sigma_x,2)
-        Sigma_x(i,j) = sum(Diff2(i,:).*Diff2(j,:).*dx'.*dx');
-        Sigma_y(i,j) = sum(Diff2(i,:).*Diff2(j,:).*dy'.*dy');
+Sigma_xx=zeros(N-2,N-2);
+Sigma_yy=zeros(N-2,N-2);
+for i=1:size(Sigma_xx,1)
+    for j=1:size(Sigma_xx,2)
+        Sigma_x(i,j) = sum(Diff1(i,:).*Diff1(j,:).*dx'.*dx');
+        Sigma_y(i,j) = sum(Diff1(i,:).*Diff1(j,:).*dy'.*dy');
+        Sigma_xx(i,j) = sum(Diff2(i,:).*Diff2(j,:).*dx'.*dx');
+        Sigma_yy(i,j) = sum(Diff2(i,:).*Diff2(j,:).*dy'.*dy');
     end
 end
-
-WAx = inv(Sigma_x);
-WAy = inv(Sigma_y);
 
 WXx = diag(1./(dx.^2));
 WXy = diag(1./(dy.^2));
 
+WVx = inv(Sigma_x);
+WVy = inv(Sigma_y);
+
+WAx = inv(Sigma_xx);
+WAy = inv(Sigma_yy);
+
 % Acceleration, but w/o the first and last point
+Vf = V(2:(N-1),:);
 Af = A(2:(N-1),:);
 
 % Tension
 T = gamma*(Vq'*Vq);
-x_t = Diff2*x;
-y_t = Diff2*y;
+x_t = Diff1*x;
+y_t = Diff1*y;
+x_tt = Diff2*x;
+y_tt = Diff2*y;
 
-[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, V, Af, T, WXx, WXy, WAx, WAy, F, hx, hy, f0, M, NC, x, y, x_t, y_t );
+[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Vf, Af, T, WXx, WXy, WVx, WVy, WAx, WAy, F, hx, hy, f0, M, NC, x, y, x_t, y_t, x_tt, y_tt );
 
 error_y_previous = dy;
 rel_error = 1.0;
@@ -163,21 +177,18 @@ while (rel_error > 0.01)
     
     dx1 = max(0.00001*ones(size(dx1)),abs(dx1));
     dy1 = max(0.00001*ones(size(dy1)),abs(dy1));
-%     ds1 = max(abs(dx1),abs(dy1));
     
     dx2 = dx1./weight_function(dx1./dx);
     dy2 = dy1./weight_function(dy1./dx);
-%     ds2 = ds1./weight_function(ds1./dx);
-    
-%     dx2 = ds2;
-%     dy2 = ds2;
-    
-    Sigma_x=zeros(N-2,N-2);
-    Sigma_y=zeros(N-2,N-2);
-    for i=1:size(Sigma_x,1)
-        for j=1:size(Sigma_x,2)
-            Sigma_x(i,j) = sum(Diff2(i,:).*Diff2(j,:).*dx2'.*dx2');
-            Sigma_y(i,j) = sum(Diff2(i,:).*Diff2(j,:).*dy2'.*dy2');
+
+    Sigma_xx=zeros(N-2,N-2);
+    Sigma_yy=zeros(N-2,N-2);
+    for i=1:size(Sigma_xx,1)
+        for j=1:size(Sigma_xx,2)
+            Sigma_x(i,j) = sum(Diff1(i,:).*Diff1(j,:).*dx2'.*dx2');
+            Sigma_y(i,j) = sum(Diff1(i,:).*Diff1(j,:).*dy2'.*dy2');
+            Sigma_xx(i,j) = sum(Diff2(i,:).*Diff2(j,:).*dx2'.*dx2');
+            Sigma_yy(i,j) = sum(Diff2(i,:).*Diff2(j,:).*dy2'.*dy2');
         end
     end
 
@@ -189,7 +200,7 @@ while (rel_error > 0.01)
     
     %         dbstop if warning
 %     [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, V, Af, T, WXx, WXy, WAx, WAy, F, hx, hy, f0, M, NC, x, y, x_t, y_t );
-    [m_x,m_y,Cm_x,Cm_y] = ComputeSolutionWithElim( X, V, Af, T, WXx, WXy, Sigma_x, Sigma_y, F, hx, hy, f0, M, NC, x, y, x_t, y_t );
+    [m_x,m_y,Cm_x,Cm_y] = ComputeSolutionWithElim( X, Vf, Af, T, WXx, WXy, Sigma_x, Sigma_y, Sigma_xx, Sigma_yy, F, hx, hy, f0, M, NC, x, y, x_t, y_t, x_tt, y_tt );
     
     rel_error = max((dx2-error_y_previous)./dx2);
     error_y_previous=dx2;
@@ -205,22 +216,26 @@ end
 end
 
 
-function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, V, A, T, WXx, WXy, WAx, WAy, F, hx, hy, f0, M, NC, x, y, x_t, y_t )
+function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, V, A, T, WXx, WXy, WVx, WVy, WAx, WAy, F, hx, hy, f0, M, NC, x, y, x_t, y_t, x_tt, y_tt )
 
 EX_x = X'*WXx*X;
+EV_x = V'*WVx*V;
 EA_x = A'*WAx*A;
-E_x = EX_x + EA_x + T;
+E_x = EX_x + EV_x + EA_x + T;
 G2X_x = X'*WXx*x;
-G2A_x = A'*WAx*x_t;
-G2_x = G2X_x + G2A_x;
+G2V_x = V'*WVx*x_t;
+G2A_x = A'*WAx*x_tt;
+G2_x = G2X_x + G2V_x + G2A_x;
 
 
 EX_y = X'*WXy*X;
+EV_y = V'*WVy*V;
 EA_y = A'*WAy*A;
-E_y = EX_y + EA_y + T;
+E_y = EX_y + EV_y + EA_y + T;
 G2X_y = X'*WXy*y;
-G2A_y = A'*WAy*y_t;
-G2_y = G2X_y + G2A_y;
+G2V_y = V'*WVy*y_t;
+G2A_y = A'*WAy*y_tt;
+G2_y = G2X_y + G2V_y + G2A_y;
 
 withConstraints = 0;
 
@@ -250,22 +265,26 @@ end
 
 end
 
-function [m_x,m_y,Cm_x,Cm_y] = ComputeSolutionWithElim( X, V, A, T, WXx, WXy, Sigma_x, Sigma_y, F, hx, hy, f0, M, NC, x, y, x_t, y_t )
+function [m_x,m_y,Cm_x,Cm_y] = ComputeSolutionWithElim( X, V, A, T, WXx, WXy, Sigma_x, Sigma_y, Sigma_xx, Sigma_yy, F, hx, hy, f0, M, NC, x, y, x_t,y_t, x_tt, y_tt )
 
 EX_x = X'*WXx*X;
-EA_x = A'*(Sigma_x\A);
-E_x = EX_x + EA_x + T;
+EV_x = V'*(Sigma_x\V);
+EA_x = A'*(Sigma_xx\A);
+E_x = EX_x + EV_x + EA_x + T;
 G2X_x = X'*WXx*x;
-G2A_x = A'*(Sigma_x\x_t);
-G2_x = G2X_x + G2A_x;
+G2V_x = V'*(Sigma_x\x_t);
+G2A_x = A'*(Sigma_xx\x_tt);
+G2_x = G2X_x + G2V_x + G2A_x;
 
 
 EX_y = X'*WXy*X;
-EA_y = A'*(Sigma_y\A);
-E_y = EX_y + EA_y + T;
+EV_y = V'*(Sigma_y\V);
+EA_y = A'*(Sigma_yy\A);
+E_y = EX_y + EV_y + EA_y + T;
 G2X_y = X'*WXy*y;
-G2A_y = A'*(Sigma_y\y_t);
-G2_y = G2X_y + G2A_y;
+G2V_y = V'*(Sigma_y\y_t);
+G2A_y = A'*(Sigma_yy\y_tt);
+G2_y = G2X_y + G2V_y + G2A_y;
 
 withConstraints = 0;
 

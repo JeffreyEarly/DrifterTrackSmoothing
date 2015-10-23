@@ -721,8 +721,101 @@ x_k {\Sigma_{X}^{-1}}\indices{^k_i}  X\indices{^i_m} + \left[\mathcal{D}^2\right
 \item It is best to leave the x and y errors uncorrelated (as in, don't let the iteratively reweighted least-squares method learn about the errors in the orthogonal direction). The reason is that the errors are expected to be anisotropic. Think about dilution of precision.
 \item It's important to choose a good initial value for $\sigma$. For a Gaussian fit this doesn't matter, but when using the IRLS method, this value is what determines whether or not points start to get rejected or not. This may want to be an rms value? I'm not sure. For my GPS data it looks like 10 meters may be too small, and 50 meters may be too big.
 \item A SplineFactor (number of data points for each spline) of 1.5 does not appear to be enough to provide appropriate smoothness. A value of 3 starts to look borderline too smooth, but maybe not. Note that this is evaluated without implemented the ocean Lagrangian.
-
+\item Look at the form that tension takes relative to the other terms creating that matrix. It's clear that the tension can be thought of as a diagonal $\Sigma^{-1}$ matrix with $\Delta t/S_0$ along the diagonal.
 \end{enumerate}
+
+\section{Ocean forcing}
+
+Now we need to return to fixing up our forcing constraint appropriate for ocean physics. This means that the forcing in the $x$-direction is $f_x(t) = \ddot{x} + f_0 \dot{y}$ and the forcing in the $y$ direction is $f_y(t) = \ddot{y} - f_0 \dot{x}$. So the question here is what do the errors of this measurement look like and how to we want to state that? This is probably just as simple as adding them.
+
+\section{Derivative compatibility conditions}
+
+Now I'm questioning which derivatives we attempt to match up and why. I mean, why don't we use the velocity, instead of just the acceleration. How about the jerk? What about even higher derivatives? I think, intuitively, the answer is that those aren't providing more information that will help to constrain our splines. But why?
+
+The answer probably has to do the the data density relative to the data error. I think this is a one-dimension continuum where at one end, you have sparse observations, with relatively good positioning and at the other end you have dense observations with big errors. Specifically, this means that maybe the expected distance traversed ($u_{\textrm{rms}}\Delta t$) between observation times ($\Delta t$) is greater than the expected error $\sigma_x$. This means that you may want to interpolate between observations. At the other extreme, the expected distance traverse between observations is much smaller than the error.
+
+Let's define the interpolation condition as,
+\begin{equation}
+\Gamma_x = \frac{\sigma_x}{u_{\textrm{rms}}\Delta t}
+\end{equation}
+So that if $\Gamma<1$ then we are in the interpolation regime, and if $\Gamma >1$ we are in the high data density regime where I don't suppose we'll need to interpolate. A value of $\Gamma = 5$ means that we have roughly $5$ observations within the region of each `point'. 
+
+The variance for the first derivative is approximately $\sqrt{2}\sigma_x/\Delta t$ and we can therefore define a new $\Gamma$,
+\begin{equation}
+\Gamma_u = \frac{\sqrt{2} \sigma_x}{a_{\textrm{rms}}{\Delta t}^2}
+\end{equation}
+which reflects how much the velocity typical changes between observations.
+
+We can keep going to higher and higher derivatives, and what should happen, is that we get,
+\begin{equation}
+\Gamma_{x^{(n-1)}} = \frac{ \sqrt{n!} \sigma_x}{x^{(n)}_{\textrm{rms}} (\Delta t)^n }
+\end{equation}
+where $x^{(n)}$ is the $n$-th derivative of $x$. Eventually $\Gamma$ will increase above 1?
+
+I think we can also look at this just by saying that if we keep taking derivatives of the data, eventually it'll look like white noise.
+
+\section{Spline types}
+
+There are apparently smoothing splines and interpolating splines. Interpolating splines you start matching the multiple derivatives of the function in question, as I have done. Smoothing splines you start by adding a tension parameter. Actually, it's an acceleration parameter that you limit.
+
+In the smoothing spline the add a tension as a way to control the derivatives of the spline. With our approach, we may not need this. We will try to control the derivatives of the spline simply be taking derivatives of the data. The point at which the derivatives become pure noise, is the point at which the derivatives of the splines are set to zero. This should all be the same in the end.
+
+\section{t-distribution}
+
+The pdf of the $t$-distribution is
+\begin{equation}
+p\left(x|\nu,\sigma^2\right) = \frac{\Gamma\left( \frac{\nu + 1}{2} \right)}{\sigma \sqrt{\nu \pi} \Gamma\left(\frac{\nu}{2}\right)} \left( 1 + \frac{x^2}{\sigma^2 \nu} \right)^{-\frac{\nu+1}{2}}
+\end{equation}
+where the $\sigma$ parameter scales the distribution width and the $\nu$ parameter sets the number of degrees of freedom. The variance is $\textrm{var}(X)=\sigma^2 \frac{\nu}{\nu-2}$ and only exists for $\nu\geq 2$.
+
+For $\nu=3$ this becomes,
+\begin{equation}
+p_l\left(x|\sigma^2\right) = \frac{2}{\pi \sigma \sqrt{3} } \left( 1 + \frac{x^2}{3 \sigma^2} \right)^{-2}
+\end{equation}
+with variance $3 \sigma^2$.
+
+Compare this to a Gaussian distribution,
+\begin{equation}
+p_g\left(x|\sigma^2\right) = \frac{1}{ \sigma \sqrt{2 \pi}} e^{-\frac{x^2}{2 \sigma^2}}
+\end{equation}
+with variance $\sigma^2$.
+
+\section{Iteratively Reweighted Least Squares}
+
+Apparently I independently discovered iteratively re-weighted least squares. The idea is this.
+
+Following Press, et al., we start with the maximum likelihood using a Gaussian distribution,
+\begin{equation}
+\label{maxlikelihood}
+P = \prod_{i=1}^N \frac{e^{-\rho} }{\sigma \sqrt{ 2 \pi}} \Delta y
+\end{equation}
+where $\rho = \frac{1}{2} \left( \frac{x_i - x(t_i,\mathbf{a})}{\sigma_i} \right)^2$ where $(t_i,x_i)$ is the data and $x(t,\mathbf{a})$ is the model with parameters $\mathbf{a}$. We then try to find the model parameters which maximize the likelihood, or equivalently we try to minimize,
+\begin{equation}
+\sum_{i=1}^N \rho \left( x_i - x(t_i,\mathbf{a}) \right).
+\end{equation}
+with respect to $\mathbf{a}$.
+
+Continuing to (mostly) follow Press, et al., now let's define $z_i \equiv  x_i - x(t_i,\mathbf{a})$ and  $\psi \equiv \frac{d \rho}{dz}$. This means that our minimization condition becomes,
+\begin{equation}
+0 = \sum_{i=1}^N \psi(z_i) \frac{\partial x(t_i,\mathbf{a})}{\partial \mathbf{a}}.
+\end{equation}
+The Gaussian distribution looks like $\rho(z) = \frac{1}{2} \frac{z^2}{\sigma^2}$ and therefore $\psi(z)=\frac{z}{\sigma^2}$.
+
+Using a Gaussian distribution is equivalent to solving the least-squares problem,
+\begin{equation}
+0 = \sum_{i=1}^N \frac{z_i}{\sigma_i^2} \frac{\partial x(t_i,\mathbf{a})}{\partial \mathbf{a}},
+\end{equation}
+a problem that we can solve linearly.
+
+Using a $t$-distribution is equivalent to maximizing equation \ref{maxlikelihood} where now,
+\[
+\rho = - \log
+\]
+\begin{equation}
+0 = \sum_{i=1}^N \frac{z_i}{\sigma_i^2} \frac{\partial x(t_i,\mathbf{a})}{\partial \mathbf{a}},
+\end{equation}
+
+I have a series of errors $\epsilon_i = y_i - y(x_i)$ that are from some distribution, but I only now how to solve my linear problem for a Gaussian distribution. So I actually have $\epsilon_i/\sigma_i$ looking like a Gaussian distribution to start with. How can I re-weight the values of $\sigma_i$ to make that distribution look like my desired distribution? Quite simply, I want $\epsilon_i/\sigma_i = w(z)$, so $\sigma_i = \epsilon_i/w(z)$.
 
 \section{References}
 
