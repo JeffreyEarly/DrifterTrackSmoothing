@@ -722,6 +722,7 @@ x_k {\Sigma_{X}^{-1}}\indices{^k_i}  X\indices{^i_m} + \left[\mathcal{D}^2\right
 \item It's important to choose a good initial value for $\sigma$. For a Gaussian fit this doesn't matter, but when using the IRLS method, this value is what determines whether or not points start to get rejected or not. This may want to be an rms value? I'm not sure. For my GPS data it looks like 10 meters may be too small, and 50 meters may be too big.
 \item A SplineFactor (number of data points for each spline) of 1.5 does not appear to be enough to provide appropriate smoothness. A value of 3 starts to look borderline too smooth, but maybe not. Note that this is evaluated without implemented the ocean Lagrangian.
 \item Look at the form that tension takes relative to the other terms creating that matrix. It's clear that the tension can be thought of as a diagonal $\Sigma^{-1}$ matrix with $\Delta t/S_0$ along the diagonal.
+\item Setting my spline factor (e.g., number of observation points per spline node) has an interesting effect on the errors. You start to see stuff pulled away from the mean and create what looks like a mini-gaussian. Doesn't seem right.
 \end{enumerate}
 
 \section{Ocean forcing}
@@ -764,13 +765,13 @@ In the smoothing spline the add a tension as a way to control the derivatives of
 
 The pdf of the $t$-distribution is
 \begin{equation}
-p\left(x|\nu,\sigma^2\right) = \frac{\Gamma\left( \frac{\nu + 1}{2} \right)}{\sigma \sqrt{\nu \pi} \Gamma\left(\frac{\nu}{2}\right)} \left( 1 + \frac{x^2}{\sigma^2 \nu} \right)^{-\frac{\nu+1}{2}}
+p_t\left(x|\nu,\sigma^2\right) = \frac{\Gamma\left( \frac{\nu + 1}{2} \right)}{\sigma \sqrt{\nu \pi} \Gamma\left(\frac{\nu}{2}\right)} \left( 1 + \frac{x^2}{\sigma^2 \nu} \right)^{-\frac{\nu+1}{2}}
 \end{equation}
-where the $\sigma$ parameter scales the distribution width and the $\nu$ parameter sets the number of degrees of freedom. The variance is $\textrm{var}(X)=\sigma^2 \frac{\nu}{\nu-2}$ and only exists for $\nu\geq 2$.
+where the $\sigma$ parameter scales the distribution width and the $\nu$ parameter sets the number of degrees of freedom. The variance is $\textrm{var}(X)=\sigma^2 \frac{\nu}{\nu-2}$ and only exists for $\nu > 2$.
 
 For $\nu=3$ this becomes,
 \begin{equation}
-p_l\left(x|\sigma^2\right) = \frac{2}{\pi \sigma \sqrt{3} } \left( 1 + \frac{x^2}{3 \sigma^2} \right)^{-2}
+p_t\left(x|3,\sigma^2\right) = \frac{2}{\pi \sigma \sqrt{3} } \left( 1 + \frac{x^2}{3 \sigma^2} \right)^{-2}
 \end{equation}
 with variance $3 \sigma^2$.
 
@@ -809,12 +810,18 @@ Using a Gaussian distribution is equivalent to solving the least-squares problem
 a problem that we can solve linearly.
 
 Using a $t$-distribution is equivalent to maximizing equation \ref{maxlikelihood} where now,
-\[
-\rho_t(\epsilon_i) = - \log \left( \frac{2 \sqrt{2}}{\sqrt{3 \pi}} \left( 1 + \frac{\epsilon_i^2}{2 \sigma_i^2} \right)^{-2} \right)
-\]
+\begin{equation}
+\rho_t(\epsilon_i|\nu) = - \log \left( \frac{\sigma_g \sqrt{2} \Gamma\left( \frac{\nu + 1}{2} \right)}{\sigma \sqrt{\nu} \Gamma\left(\frac{\nu}{2}\right)} \left( 1 + \frac{\epsilon_i^2}{ \nu \sigma^2} \right)^{-\frac{\nu+1}{2}} \right)
+\end{equation}
+\begin{equation}
+\rho_t(\epsilon_i|3) = - \log \left( \frac{2 \sqrt{2}}{\sqrt{3 \pi}} \left( 1 + \frac{\epsilon_i^2}{3 \sigma_i^2} \right)^{-2} \right)
+\end{equation}
 and 
+\begin{equation}
+\psi_t(\epsilon_i) = \frac{\epsilon_i}{\sigma^2} \frac{\nu+1}{\nu} \left( 1 + \frac{\epsilon_i^2}{\nu \sigma^2} \right)^{-1}
+\end{equation}
 \[
-\psi_t(\epsilon_i) = \frac{ 4 \epsilon_i}{3 \sigma_i^2} \left( 1 + \frac{\epsilon_i^2}{3 \sigma_i^2} \right)^{-1}.
+\psi_t(\epsilon_i|3) = \frac{ 4 \epsilon_i}{3 \sigma_i^2} \left( 1 + \frac{\epsilon_i^2}{3 \sigma_i^2} \right)^{-1}.
 \]
 However, the equation 
 \begin{equation}
@@ -834,8 +841,31 @@ It's easy to to consider what would happen if you simply used a Gaussian distrib
 You could avoid the divide by zero issue by precomputing this. So let's define,
 \begin{align}
 w_t(\epsilon_i) \equiv& \frac{\epsilon_i}{ \psi_t(\epsilon_i)}\\
-=& \frac{4}{3} \sigma_i^2  \left( 1 + \frac{\epsilon_i^2}{3 \sigma_i^2} \right)
+=& \frac{3}{4} \sigma_i^2  \left( 1 + \frac{\epsilon_i^2}{3 \sigma_i^2} \right)
 \end{align}
+
+Or in general
+\begin{equation}
+w(\epsilon_i) = \sigma^2 \frac{\nu}{\nu+1} \left( 1 + \frac{\epsilon_i^2}{\nu \sigma^2} \right)
+\end{equation}
+
+\section{Refined penalty function}
+The previous penalty function wasn't quite right. In fact, we should have
+So we're going to have a penalty function like this,
+\begin{equation}
+\phi =  \frac{1}{2} \left[ \left[\mathcal{D}^2\right]\indices{^j_k} x^k - I\indices{^k_q}A\indices{^q_j} \xi^j \right]^{\textrm{T}} {\Sigma^{-1}}\indices{^k_i} \left[ \left[\mathcal{D}^2\right]\indices{^l_i} x^i - I\indices{^k_q}A\indices{^q_j} \xi^l \right] 
+\end{equation}
+where $I\indices{^k_q}$ is the integration function and the index $q$ is the integration grid. The point here being that instead of requiring the velocity or acceleration to agree at a particular point, we are requiring the average velocity or acceleration to agree over the interval between appropriate observations.
+
+What are the consequences of this change? For one, this would allow delta-function forcing because the integral would provide the same change in momentum. This take me back to square one. It's not helpful at all and proves that everything I did was wrong.
+
+In my previous iteration I was adding information. I was assuming the velocity (or acceleration) reached a particular value at a particular point---this was a new assumption. The previous information was only about averages.
+
+\section{Statistical test for slope significance}
+
+The most robust way I can think is to compute a linear fit to the data (or its higher derivatives) starting at an initial point, then keep including more and more points, while keeping a running student $t$-test of the significance of the slope. If the slope reaches a significant value then either stop at that point, or continue until its significance starts to decrease. Now either continue from the next point, or start at the end point. This way you create a piece-wise derivative
+
+Wait. Why do a linear fit? Just do a mean at an initial point and see if its different from zero.
 
 \section{References}
 
