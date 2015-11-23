@@ -867,6 +867,16 @@ The most robust way I can think is to compute a linear fit to the data (or its h
 
 Wait. Why do a linear fit? Just do a mean at an initial point and see if its different from zero.
 
+\section{Knot placement in B-splines}
+
+A couple of different strategies.
+
+The first is to place a knot at each observation point, and then use tension to adjust the fit. This is different from what I've done because knot placement would be variable.
+
+Another technique is to use the NEWNOT function in Practical Guide to Splines to choose knot locations based on a high order derivative. In this case the free parameter would be the number of knots.
+
+The final technique to try is that by Jerome Blair
+
 \section{References}
 
 Check out `The Rod-Spring approximation: An intuitive approach to the best-fit least-squares linear approximation'.
