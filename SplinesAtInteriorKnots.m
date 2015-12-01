@@ -27,10 +27,12 @@ t = linspace(0,10,101)';
 % M is given as the number of splines on the interval [t(1), t(end)]. We
 % need to add extra splines before an after this, depending on order of the
 % spline.
-pre_knots = t_knot(1) + (t_knot(2)-t_knot(1))*(-floor(S/2):-1)';
-post_knots = t_knot(end) + (t_knot(end)-t_knot(end-1))*(1:floor(S/2))';
-t_knot = [pre_knots; t_knot; post_knots];
+% pre_knots = t_knot(1) + (t_knot(2)-t_knot(1))*(-floor(S/2):-1)';
+% post_knots = t_knot(end) + (t_knot(end)-t_knot(end-1))*(1:floor(S/2))';
+%t_knot = [pre_knots; t_knot; post_knots];
+t_knot = [repmat(t_knot(1),S,1); t_knot; repmat(t_knot(end),S,1)];
 dt_knot = diff(t_knot);
+t_knot2 = t_knot + [dt_knot; dt_knot(end)];
 
 % numer of knots
 M = length(t_knot);
@@ -42,9 +44,13 @@ N = length(t);
 % Columns are the M splines
 X = zeros(N,M);
 for t_i=1:N % loop through all N collocation points
-    i = find(t(t_i)<t_knot,1,'first')-1;
-    if isempty(i)
-        i = M;
+    %i = find(t(t_i)<t_knot,1,'first')-1;
+    results = find( t(t_i) >= t_knot & t(t_i) < t_knot2,1,'last' );
+    
+    if isempty(results)
+    	i = M;
+    else
+        i = results;
     end
     
     delta_r = zeros(S,1);
@@ -72,7 +78,7 @@ for t_i=1:N % loop through all N collocation points
     
 end
 
-k=1;
+k=3;
 figure, plot(t,X(:,k)),ylim([min(X(:,k))*1.05 max(X(:,k))*1.05]),vlines(t_knot,'g--')
 
 figure
