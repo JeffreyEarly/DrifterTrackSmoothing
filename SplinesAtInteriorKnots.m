@@ -1,9 +1,11 @@
-S = 3;
+K = 6;
+S = K-1;
 t_knot = linspace(0,10,11)';
 t_knot(3) = [];
 t_knot(5) = [];
 
 t = linspace(0,10,101)';
+% t = 10;
 
 % if S == 3
 %     addpath('./cubic_splines');
@@ -45,19 +47,23 @@ N = length(t);
 X = zeros(N,M);
 for t_i=1:N % loop through all N collocation points
     %i = find(t(t_i)<t_knot,1,'first')-1;
-    results = find( t(t_i) >= t_knot & t(t_i) < t_knot2,1,'last' );
+    results = find( t_knot <= t(t_i) & t(t_i) < t_knot2, 1, 'last' );
     
     if isempty(results)
-    	i = M;
+        if t(t_i) == t_knot(end)
+            i = find( t_knot < t(t_i), 1, 'last'); 
+        else
+            i = M;
+        end
     else
         i = results;
     end
     
-    delta_r = zeros(S,1);
-    delta_l = zeros(S,1);
-    b = zeros(S,1); b(1) = 1;
+    delta_r = zeros(K,1);
+    delta_l = zeros(K,1);
+    b = zeros(K,1); b(1) = 1;
     
-    for j=1:(S-1) % loop through splines of increasing order
+    for j=1:(K-1) % loop through splines of increasing order
         if (i+1-j) < 1 || i+j > M
             continue;
         end
@@ -73,7 +79,7 @@ for t_i=1:N % loop through all N collocation points
        b(j+1) = saved;
     end
     
-    indices = max(1,i-S+1):i;
+    indices = max(1,i-K+1):i;
     X(t_i,indices) = b(1:length(indices));
     
 end
