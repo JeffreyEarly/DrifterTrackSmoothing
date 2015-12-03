@@ -1,10 +1,10 @@
-K = 6;
+K = 4;
 S = K-1;
 t_knot = linspace(0,10,11)';
 t_knot(3) = [];
 t_knot(5) = [];
 
-t = linspace(0,10,101)';
+t = linspace(-1,11,121)';
 % t = 10;
 
 % if S == 3
@@ -39,34 +39,39 @@ t_knot2 = t_knot + [dt_knot; dt_knot(end)];
 % numer of knots
 M = length(t_knot);
 
+% This is true assuming the original t_knot was strictly monotonically
+% increasing (no repeat knots) and we added repeat knots at the beginning
+% and end of the sequences.
+N_splines = M - 2*S + 2*floor(S/2);
+
 % number of collocation points
 N = length(t);
 
 % Rows are the N collocation points
 % Columns are the M splines
-X = zeros(N,M);
+X = zeros(N,N_splines);
+XB = zeros(N,N_splines,K);
 for t_i=1:N % loop through all N collocation points
-    %i = find(t(t_i)<t_knot,1,'first')-1;
-    results = find( t_knot <= t(t_i) & t(t_i) < t_knot2, 1, 'last' );
-    
-    if isempty(results)
-        if t(t_i) == t_knot(end)
+    i = find( t_knot <= t(t_i) & t(t_i) < t_knot2, 1, 'last' );
+    if isempty(i)
+        if t(t_i) < t_knot(1)
+            i = find( t_knot == t_knot(1), 1, 'last');
+            continue; %This continue means we don't need to set b(1) = 0; or check indices on the delta_r line
+        elseif t(t_i) == t_knot(end)
             i = find( t_knot < t(t_i), 1, 'last'); 
         else
-            i = M;
+            i = find( t_knot < t_knot(end), 1, 'last');
+            continue; %b(1) = 0;
         end
-    else
-        i = results;
     end
     
     delta_r = zeros(K,1);
     delta_l = zeros(K,1);
-    b = zeros(K,1); b(1) = 1;
     
+    XB(t_i,i,1) = 1;
+    
+    b = zeros(K,1); b(1) = 1;
     for j=1:(K-1) % loop through splines of increasing order
-        if (i+1-j) < 1 || i+j > M
-            continue;
-        end
        delta_r(j) = t_knot(i+j) - t(t_i);
        delta_l(j) = t(t_i) - t_knot(i+1-j);
        
@@ -77,6 +82,9 @@ for t_i=1:N % loop through all N collocation points
            saved = delta_l(j+1-r)*term;
        end
        b(j+1) = saved;
+       
+       indices = max(1,i-j):i;
+       XB(t_i,indices,j+1) = b(1:length(indices));
     end
     
     indices = max(1,i-K+1):i;
@@ -84,8 +92,30 @@ for t_i=1:N % loop through all N collocation points
     
 end
 
-k=3;
-figure, plot(t,X(:,k)),ylim([min(X(:,k))*1.05 max(X(:,k))*1.05]),vlines(t_knot,'g--')
+DB = zeros(N,N_splines,K);
+for i=1:N_splines
+    for m=1:S
+        delta_l = t_knot(i+K-m) - t_knot(i);
+        delta_r = t_knot(i+K-m+1) - t_knot(i+1);
+        if i+1>N_splines
+            Br = zeros(N,1);
+        else
+            Br = XB(:,i+1,K-m);
+        end
+        DB(:,i,K-m) = (K-m)*(XB(:,i,K-m)/delta_l - Br/delta_r);
+    end
+end
+
+k=4;
+figure, plot(t,X(:,k)), hold on
+plot(t,DB(:,k,K-1))
+plot(t,DB(:,k,K-2))
+% plot(t,DB(:,k,K-3))
+
+plot(t,vdiff(t(2)-t(1),X(:,k),1))
+% plot(t,vdiff(t(2)-t(1),vdiff(t(2)-t(1),X(:,k),1),1))
+% ylim([min(X(:,k))*1.05 max(X(:,k))*1.05])
+vlines(t_knot,'g--')
 
 figure
 plot(t,X)
