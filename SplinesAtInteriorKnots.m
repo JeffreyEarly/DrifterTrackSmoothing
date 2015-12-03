@@ -104,7 +104,7 @@ for r=1:N_splines
         for i=1:(m+1)
             a = alpha(:,m);
             alpha(i+1,m+1) = diff_coeff(a(i:end),r+i-1,m);
-            if isinf(alpha(i+1,m+1))
+            if isinf(alpha(i+1,m+1)) || isnan(alpha(i+1,m+1))
                 alpha(i+1,m+1) = 0;
             end
             if r+i-1>N_splines
@@ -131,16 +131,17 @@ end
 %     end
 % end
 
-k=4;
+k=1;
 figure, plot(t,X(:,k,1),'LineWidth', 2), hold on
 plot(t,X(:,k,2),'LineWidth', 2)
 plot(t,X(:,k,3),'LineWidth', 2)
+plot(t,X(:,k,4),'LineWidth', 2)
 % plot(t,DB(:,k,K-3))
 
 plot(t,vdiff(t(2)-t(1),X(:,k,1),1))
 plot(t,vdiff(t(2)-t(1),vdiff(t(2)-t(1),X(:,k),1),1))
 % ylim([min(X(:,k))*1.05 max(X(:,k))*1.05])
-legend('X', 'X_t', 'X_{tt}', 'diff(X)', 'diff(diff(X))')
+legend('X', 'X_t', 'X_{tt}', 'X_{ttt}', 'diff(X)', 'diff(diff(X))')
 vlines(t_knot,'g--')
 
 figure
