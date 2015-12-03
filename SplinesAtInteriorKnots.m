@@ -49,8 +49,8 @@ N = length(t);
 
 % Rows are the N collocation points
 % Columns are the M splines
-X = zeros(N,N_splines);
-XB = zeros(N,N_splines,K);
+X = zeros(N,N_splines,K); % This will contain all splines and their derivatives
+XB = zeros(N,N_splines,K); % This will contain all splines through order K
 for t_i=1:N % loop through all N collocation points
     i = find( t_knot <= t(t_i) & t(t_i) < t_knot2, 1, 'last' );
     if isempty(i)
@@ -88,11 +88,10 @@ for t_i=1:N % loop through all N collocation points
     end
     
     indices = max(1,i-K+1):i;
-    X(t_i,indices) = b(1:length(indices));
+    X(t_i,indices,1) = b(1:length(indices));
     
 end
 
-DB = zeros(N,N_splines,K);
 for i=1:N_splines
     for m=1:S
         delta_l = t_knot(i+K-m) - t_knot(i);
@@ -102,22 +101,22 @@ for i=1:N_splines
         else
             Br = XB(:,i+1,K-m);
         end
-        DB(:,i,K-m) = (K-m)*(XB(:,i,K-m)/delta_l - Br/delta_r);
+        X(:,i,m) = (K-m)*(XB(:,i,K-m)/delta_l - Br/delta_r);
     end
 end
 
 k=4;
-figure, plot(t,X(:,k)), hold on
-plot(t,DB(:,k,K-1))
-plot(t,DB(:,k,K-2))
+figure, plot(t,X(:,k,1)), hold on
+plot(t,X(:,k,2))
+plot(t,X(:,k,3))
 % plot(t,DB(:,k,K-3))
 
-plot(t,vdiff(t(2)-t(1),X(:,k),1))
+plot(t,vdiff(t(2)-t(1),X(:,k,1),1))
 % plot(t,vdiff(t(2)-t(1),vdiff(t(2)-t(1),X(:,k),1),1))
 % ylim([min(X(:,k))*1.05 max(X(:,k))*1.05])
 vlines(t_knot,'g--')
 
 figure
-plot(t,X)
-ylim([min(min(X))*1.05 max(max(X))*1.05])
+plot(t,X(:,:,1))
+ylim([min(min(X(:,:,1)))*1.05 max(max(X(:,:,1)))*1.05])
 vlines(t_knot,'g--')
