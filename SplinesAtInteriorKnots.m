@@ -92,28 +92,55 @@ for t_i=1:N % loop through all N collocation points
     
 end
 
-for i=1:N_splines
+% diff_coeff = @(a,r,m) (K-m)*(a(r)-a(r-1))/(t_knot(r+K-m) - t_knot(r));
+diff_coeff = @(a,r,m) (K-m)*(a(2)-a(1))/(t_knot(r+K-m) - t_knot(r));
+
+for r=1:N_splines
+    % alpha mimics equation X.16 in deBoor's PGS, but localized to avoid
+    % the zero elements.
+    alpha = zeros(S+2,S+2); % row is the coefficient, column is the derivative (1=0 derivatives)
+    alpha(2,1) = 1;
     for m=1:S
-        delta_l = t_knot(i+K-m) - t_knot(i);
-        delta_r = t_knot(i+K-m+1) - t_knot(i+1);
-        if i+1>N_splines
-            Br = zeros(N,1);
-        else
-            Br = XB(:,i+1,K-m);
+        for i=1:(m+1)
+            a = alpha(:,m);
+            alpha(i+1,m+1) = diff_coeff(a(i:end),r+i-1,m);
+            if isinf(alpha(i+1,m+1))
+                alpha(i+1,m+1) = 0;
+            end
+            if r+i-1>N_splines
+                B = zeros(N,1);
+            else
+                B = XB(:,r+i-1,K-m);
+            end
+            X(:,r,m+1) = X(:,r,m+1) + alpha(i+1,m+1)*B;
         end
-        X(:,i,m) = (K-m)*(XB(:,i,K-m)/delta_l - Br/delta_r);
     end
 end
 
+% for i=1:N_splines
+%     alpha = zeros(m+1,m);
+%     for m=1:S
+%         delta_l = t_knot(i+K-m) - t_knot(i);
+%         delta_r = t_knot(i+K-m+1) - t_knot(i+1);
+%         if i+1>N_splines
+%             Br = zeros(N,1);
+%         else
+%             Br = XB(:,i+1,K-m);
+%         end
+%         X(:,i,m+1) = (K-m)*(XB(:,i,K-m)/delta_l - Br/delta_r);
+%     end
+% end
+
 k=4;
-figure, plot(t,X(:,k,1)), hold on
-plot(t,X(:,k,2))
-plot(t,X(:,k,3))
+figure, plot(t,X(:,k,1),'LineWidth', 2), hold on
+plot(t,X(:,k,2),'LineWidth', 2)
+plot(t,X(:,k,3),'LineWidth', 2)
 % plot(t,DB(:,k,K-3))
 
 plot(t,vdiff(t(2)-t(1),X(:,k,1),1))
-% plot(t,vdiff(t(2)-t(1),vdiff(t(2)-t(1),X(:,k),1),1))
+plot(t,vdiff(t(2)-t(1),vdiff(t(2)-t(1),X(:,k),1),1))
 % ylim([min(X(:,k))*1.05 max(X(:,k))*1.05])
+legend('X', 'X_t', 'X_{tt}', 'diff(X)', 'diff(diff(X))')
 vlines(t_knot,'g--')
 
 figure
