@@ -38,14 +38,14 @@
 %	cm	float(M,M)		covariance matrix of spline parameters
 %
 %------------------------------------------------------------------------------
-function [m_x,m_y,Cm_x,Cm_y,X,V,A,J,Xq,Vq] = drifter_fit_bspline(t,x,y,dx,dy,S,v0, weight_function)
+function [m_x,m_y,Cm_x,Cm_y,X,V,A,J,Xq,Vq,Aq,Jq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,v0, weight_function)
 
 if (length(t) ~= length(x) || length(t) ~= length(y) )
    disp('The time series are not consistent lengths');
    return;
 end
 
-B = bspline(t,t,S+1);
+B = bspline(t,t_knot,S+1);
 X = squeeze(B(:,:,1));
 V = squeeze(B(:,:,2));
 A = squeeze(B(:,:,3));
@@ -56,9 +56,11 @@ M = size(X,2); % number of splines
 % Now we need a quadrature (integration) grid that is finer
 Q = 10*N; % number of points on the quadrature grid
 tq = linspace(t(1),t(end),Q)';
-Bq = bspline(tq,t,S+1);
+Bq = bspline(tq,t_knot,S+1);
 Xq = squeeze(Bq(:,:,1));
 Vq = squeeze(Bq(:,:,2));
+Aq = squeeze(Bq(:,:,3));
+Jq = squeeze(Bq(:,:,4));
 
 gamma = 1/(v0*v0*Q);
 
@@ -74,35 +76,24 @@ Wx = diag(1./(dx.^2));
 Wy = diag(1./(dy.^2));
 
 dbstop if warning
-[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, F, F, Wx, Wy, gamma, M, NC, x, y, h );
+[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, Aq, F, F, Wx, Wy, gamma, M, NC, x, y, h );
 
+error_x_previous = dx;
 error_y_previous = dy;
 rel_error = 1.0;
 repeats = 1;
 while (rel_error > 0.01)
-    % These are the deviations of the model from the data
-    dx1 = X*m_x - x;
-    dy1 = X*m_y - y;
-    
-    %         dx1(find(abs(dx1)<1e-12)) = 1e-12;
-    %         dy1(find(abs(dy1)<1e-12)) = 1e-12;
-    dx1 = max(0.00001*ones(size(dx1)),abs(dx1));
-    dy1 = max(0.00001*ones(size(dy1)),abs(dy1));
-    ds1 = max(abs(dx1),abs(dy1));
-    
-    dx2 = dx1./weight_function(dx1./dx);
-    dy2 = dy1./weight_function(dy1./dx);
-    ds2 = ds1./weight_function(ds1./dx);
+    dx2 = weight_function(X*m_x - x);
+    dy2 = weight_function(X*m_y - y);
     
     Wx = diag(1./(dx2.^2));
     Wy = diag(1./(dy2.^2));
-    Ws = diag(1./(ds2.^2));
     
-    %          dbstop if warning
-    [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, F, F, Wx, Wy, gamma, M, NC, x, y, h );
+    [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, Aq, F, F, Wx, Wy, gamma, M, NC, x, y, h );
     
-    rel_error = max((dx2-error_y_previous)./dx2);
-    error_y_previous=dx2;
+    rel_error = max(max( (dx2-error_x_previous)./dx2 ),max( (dy2-error_y_previous)./dy2 ));
+    error_x_previous=dx2;
+    error_y_previous=dy2;
     repeats = repeats+1;
     
     if (repeats == 100)
@@ -117,16 +108,26 @@ end
 end
 
 
-function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, F, Fy, Wx, Wy, gamma, M, NC, x, y, h )
+function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, Aq, F, Fy, Wx, Wy, gamma, M, NC, x, y, h )
 % A (and D) matrix:
 % Rows are the N observations
 % Columns are the M splines
 % F is NCxM
 % H is NCx1
+
+
 f0=0;
 % set up inverse theory matrices
-E_x = X'*Wx*X + gamma*(Vq'*Vq); % MxM
-E_y = X'*Wy*X + gamma*(Vq'*Vq); % MxM
+E_x = X'*Wx*X + gamma*(Aq'*Aq); % MxM
+E_y = X'*Wy*X + gamma*(Aq'*Aq); % MxM
+
+    m_x = E_x\(X'*Wx*x);
+    m_y = E_y\(X'*Wy*y);
+
+    Cm_x = inv(E_x);
+    Cm_y = inv(E_y);
+return
+
 C_x = -f0*gamma*(Vq'*Xq); % MxM
 C_y = -f0*gamma*(Xq'*Vq); % MxM
 

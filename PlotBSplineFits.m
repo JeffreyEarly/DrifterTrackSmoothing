@@ -12,8 +12,9 @@ drifters = load('sample_data/projected_ungridded_rho1_drifters.mat');
 % y = y*1000;
 
 iDrifter = 1;
-sigma_gps = 5; % error in meters
-S = 5; % order of the spline
+sigma_gps = 9; % error in meters
+nu = 2.015;
+S = 3; % order of the spline
 u_rms = 0.15; % assumed rms velocity of the solution
 
 % Note that big decorrelation times are causing the the solvability issue.
@@ -27,20 +28,61 @@ t = drifters.t{iDrifter};
 dx = ones(size(x))*sigma_gps;
 dy = ones(size(y))*sigma_gps;
 
+% t_knot = t(1:3:end);
+% t_knot = [t(1); t(4:3:end-4); t(end)];
+t_knot = t;
+
+% Gaussian and t-distribution
+p_g = @(z,sigma) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
+p_t = @(z,sigma) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
+
+% Gaussian and t-distribution weighting functions.
+w_g = @(z)(sigma_gps*sigma_gps);
+w_t = @(z)((nu/(nu+1))*sigma_gps^2*(1+z.^2/(nu*sigma_gps^2)));
 
 % [mx,my,Cmx,Cmy,A,V] = drifter_fit(t,x,y,dx,dy,W,M,1000,0, @(z)(z./(1+0.5*z.*z)));
-[m_x,m_y,Cm_x,Cm_y,X,V,A,J,Xq,Vq] = drifter_fit_bspline(t,x,y,dx,dy,S,2e-3,@(z)(z));
+[m_x,m_y,Cm_x,Cm_y,X,V,A,J,Xq,Vq,Aq,Jq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,8e-7,w_g);
 x1 = Xq*m_x;
 y1 = Xq*m_y;
 u1 = Vq*m_x;
 v1 = Vq*m_y;
 tq = linspace(drifters.t{iDrifter}(1), drifters.t{iDrifter}(end),size(Xq,1));
 
-[m_x,m_y] = drifter_fit_bspline(t,x,y,dx,dy,S,2e-3,@(z)(z./(1+0.5*z.*z)));
+[m_x,m_y,Cm_x,Cm_y,X,V,A,J,Xq,Vq,Aq,Jq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,4e-6,w_t);
 x2 = Xq*m_x;
 y2 = Xq*m_y;
 u2 = Vq*m_x;
 v2 = Vq*m_y;
+jx2 = Jq*m_x;
+jy2 = Jq*m_y;
+
+M = floor(length(t)/4);
+j2 = sqrt(jx2.*jx2+jy2.*jy2);
+xi = cumsum(abs(j2).^(1/(S+1)))*(tq(2)-tq(1));
+xi_interp = linspace(xi(1),xi(end),M);
+t_knot = interp1(xi,tq,xi_interp,'linear')';
+
+[m_x,m_y,Cm_x,Cm_y,X,V,A,J,Xq,Vq,Aq,Jq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,10,w_t);
+x3 = Xq*m_x;
+y3 = Xq*m_y;
+u3 = Vq*m_x;
+v3 = Vq*m_y;
+jx3 = Jq*m_x;
+jy3 = Jq*m_y;
+
+M = floor(length(t)/4);
+j3 = sqrt(jx3.*jx3+jy3.*jy3);
+xi = cumsum(abs(j3).^(1/(S+1)))*(tq(2)-tq(1));
+xi_interp = linspace(xi(1),xi(end),M);
+t_knot3 = interp1(xi,tq,xi_interp,'linear')';
+
+[m_x,m_y,Cm_x,Cm_y,X,V,A,J,Xq,Vq,Aq,Jq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot3,10,w_t);
+x3 = Xq*m_x;
+y3 = Xq*m_y;
+u3 = Vq*m_x;
+v3 = Vq*m_y;
+jx3 = Jq*m_x;
+jy3 = Jq*m_y;
 
 figure
 subplot(2,2,[1 3])
@@ -48,9 +90,10 @@ s = 1/1000;
 plot(s*x,s*y), hold on
 plot(s*x1,s*y1,'g')
 plot(s*x2,s*y2,'r')
-% plot(s*x3,s*y3,'k')
+plot(s*x3,s*y3,'k')
 % plot(s*x4,s*y4,'c')
 scatter(s*x,s*y,5)
+% scatter(s*interp1(tq,x3,t_knot),s*interp1(tq,y3,t_knot),5)
 % xlim([-500 7500])
 % ylim([2000 10000])
 xlabel('x (km)')
@@ -61,9 +104,10 @@ subplot(2,2,2)
 plot(drifters.t{iDrifter}/3600,s*x), hold on
 plot(tq/3600,s*x1,'g')
 plot(tq/3600,s*x2,'r')
-% plot(drifters.t{iDrifter}/3600,s*x3,'k')
+plot(tq/3600,s*x3,'k')
 % plot(t/3600,s*x4,'c')
 scatter(drifters.t{iDrifter}/3600,s*x,5)
+% scatter(t_knot/3600,s*interp1(tq,x3,t_knot),5)
 % xlim([8.295e6 1.01e7])
 xlabel('t (hours)')
 ylabel('x (km)')
@@ -72,9 +116,10 @@ subplot(2,2,4)
 plot(drifters.t{iDrifter}/3600,s*y), hold on
 plot(tq/3600,s*y1,'g')
 plot(tq/3600,s*y2,'r')
-% plot(drifters.t{iDrifter}/3600,s*y3,'k')
+plot(tq/3600,s*y3,'k')
 % plot(t/3600,s*y4,'c')
 scatter(drifters.t{iDrifter}/3600,s*y,5)
+% scatter(t_knot/3600,s*interp1(tq,y3,t_knot),5)
 % xlim([8.295e6 1.01e7])
 xlabel('t (hours)')
 ylabel('y (km)')
@@ -112,8 +157,6 @@ xlabel('model y-error (meters)')
 subplot(1,3,3)
 denhist(ds,500);
 xlabel('model distance error (meters)')
-
-return;
 
 figure
 subplot(4,2,1)
