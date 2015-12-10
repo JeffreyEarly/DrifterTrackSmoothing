@@ -18,7 +18,7 @@ iDrifter = 1;
 SplineFactor = 5; % Number of data points for each spline
 sigma_gps = 9; % error in meters
 nu = 2.015;
-S = 3; % order of the spline
+S = 4; % order of the spline
 u_rms = 1e-13; % assumed rms velocity of the solution
 T_decorrelation = 0; %2.5*60*60; % forcing decorrelation time
 
@@ -38,12 +38,17 @@ dy = ones(size(y))*sigma_gps;
 
 p_g = @(z,sigma) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
 p_t = @(z,sigma) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
-w = @(z)((nu/(nu+1))*sigma_gps^2*(1+z.^2/(nu*sigma_gps^2)));
+
+% Gaussian and t-distribution weighting functions.
+w_g = @(z)(sigma_gps*sigma_gps);
+w_t = @(z)((nu/(nu+1))*sigma_gps^2*(1+z.^2/(nu*sigma_gps^2)));
 
 
 t_knot = t(1:1:end);
-[m_x,m_y,Cm_x,Cm_y,X,V,A,J,Xq,Vq,Aq,Jq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,8e-6,w);
-tq = linspace(drifters.t{iDrifter}(1), drifters.t{iDrifter}(end),size(Xq,1));
+[m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,[0,0,0],w_g);
+X = squeeze(B(:,:,1));
+V = squeeze(B(:,:,2));
+A = squeeze(B(:,:,3));
 x1 = X*m_x;
 y1 = X*m_y;
 u1 = V*m_x;
@@ -93,7 +98,39 @@ vlines([-sigma_v_out sigma_v_out],'r--')
 xlim([-0.2 0.2])
 xlabel('model error (meters/second)')
 title(sprintf('\\sigma_{out}=%1.2f, \\nu_{out}=%1.4g', sigma_v_out, nu_v_out))
-return
+
+
+
+
+Xq = squeeze(Bq(:,:,1));
+x_fit = Xq*m_x;
+y_fit = Xq*m_y;
+
+figure
+subplot(2,2,[1 3])
+s = 1/1000;
+plot(s*x,s*y), hold on
+plot(s*x_fit,s*y_fit,'g')
+scatter(s*x,s*y,5)
+xlabel('x (km)')
+ylabel('y (km)')
+
+subplot(2,2,2)
+plot(drifters.t{iDrifter}/3600,s*x), hold on
+plot(tq/3600,s*x_fit,'g')
+scatter(drifters.t{iDrifter}/3600,s*x,5)
+xlabel('t (hours)')
+ylabel('x (km)')
+
+subplot(2,2,4)
+plot(drifters.t{iDrifter}/3600,s*y), hold on
+plot(tq/3600,s*y_fit,'g')
+scatter(drifters.t{iDrifter}/3600,s*y,5)
+xlabel('t (hours)')
+ylabel('y (km)')
+
+return;
+
 % acceleration error
 [Diff2,t_a] = FiniteDifferenceMatrixNoBoundary(2, t, 1);
 

@@ -41,7 +41,7 @@ w_g = @(z)(sigma_gps*sigma_gps);
 w_t = @(z)((nu/(nu+1))*sigma_gps^2*(1+z.^2/(nu*sigma_gps^2)));
 
 % [mx,my,Cmx,Cmy,A,V] = drifter_fit(t,x,y,dx,dy,W,M,1000,0, @(z)(z./(1+0.5*z.*z)));
-[m_x,m_y,Cm_x,Cm_y,B,Bq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,[0,1.5e12],w_g);
+[m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,[0,1.5e12],w_g);
 X = squeeze(B(:,:,1));
 Xq = squeeze(Bq(:,:,1));
 Vq = squeeze(Bq(:,:,2));
@@ -50,9 +50,8 @@ x1 = Xq*m_x;
 y1 = Xq*m_y;
 u1 = Vq*m_x;
 v1 = Vq*m_y;
-tq = linspace(drifters.t{iDrifter}(1), drifters.t{iDrifter}(end),size(Xq,1));
 
-[m_x,m_y,Cm_x,Cm_y,B,Bq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,[0,6.25e10],w_t);
+[m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,[0,6.25e10],w_t);
 X = squeeze(B(:,:,1));
 Xq = squeeze(Bq(:,:,1));
 Vq = squeeze(Bq(:,:,2));
@@ -65,7 +64,7 @@ v2 = Vq*m_y;
 jx2 = Jq*m_x;
 jy2 = Jq*m_y;
 
-Smoothness = 2.5;
+Smoothness = 4;
 
 M = floor(length(t)/Smoothness);
 j2 = sqrt(jx2.*jx2+jy2.*jy2);
@@ -73,7 +72,11 @@ xi = cumsum(abs(j2).^(1/(S+1)))*(tq(2)-tq(1));
 xi_interp = linspace(xi(1),xi(end),M);
 t_knot = interp1(xi,tq,xi_interp,'linear')';
 
-[m_x,m_y,Cm_x,Cm_y,B,Bq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,10,w_t);
+[m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,[0,0],w_t);
+Xq = squeeze(Bq(:,:,1));
+Vq = squeeze(Bq(:,:,2));
+Aq = squeeze(Bq(:,:,3));
+Jq = squeeze(Bq(:,:,4));
 x3 = Xq*m_x;
 y3 = Xq*m_y;
 u3 = Vq*m_x;
@@ -87,7 +90,11 @@ xi = cumsum(abs(j3).^(1/(S+1)))*(tq(2)-tq(1));
 xi_interp = linspace(xi(1),xi(end),M);
 t_knot3 = interp1(xi,tq,xi_interp,'linear')';
 
-[m_x,m_y,Cm_x,Cm_y,B,Bq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot3,10,w_t);
+[m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot3,[0,0],w_t);
+Xq = squeeze(Bq(:,:,1));
+Vq = squeeze(Bq(:,:,2));
+Aq = squeeze(Bq(:,:,3));
+Jq = squeeze(Bq(:,:,4));
 x3 = Xq*m_x;
 y3 = Xq*m_y;
 u3 = Vq*m_x;
@@ -101,7 +108,11 @@ xi = cumsum(abs(j3).^(1/(S+1)))*(tq(2)-tq(1));
 xi_interp = linspace(xi(1),xi(end),M);
 t_knot3 = interp1(xi,tq,xi_interp,'linear')';
 
-[m_x,m_y,Cm_x,Cm_y,X,V,A,J,Xq,Vq,Aq,Jq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot3,10,w_t);
+[m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot3,[0,0],w_t);
+Xq = squeeze(Bq(:,:,1));
+Vq = squeeze(Bq(:,:,2));
+Aq = squeeze(Bq(:,:,3));
+Jq = squeeze(Bq(:,:,4));
 x3 = Xq*m_x;
 y3 = Xq*m_y;
 u3 = Vq*m_x;
@@ -151,6 +162,7 @@ ylabel('y (km)')
 
 xi = (-0500:0.01:0500)';
 
+X = squeeze(B(:,:,1));
 dx = X*m_x - x;
 dy = X*m_y - y;
 ds = sqrt(dx.*dx+dy.*dy);
