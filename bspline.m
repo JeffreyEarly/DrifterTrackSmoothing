@@ -24,7 +24,7 @@ M = length(t_knot);
 % This is true assuming the original t_knot was strictly monotonically
 % increasing (no repeat knots) and we added repeat knots at the beginning
 % and end of the sequences.
-N_splines = M - 2*S + 2*floor(S/2);
+N_splines = M - K;
 
 % number of collocation points
 N = length(t);
