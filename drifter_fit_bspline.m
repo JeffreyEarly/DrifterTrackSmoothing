@@ -38,11 +38,16 @@
 %	cm	float(M,M)		covariance matrix of spline parameters
 %
 %------------------------------------------------------------------------------
-function [m_x,m_y,Cm_x,Cm_y,X,V,A,J,Xq,Vq,Aq,Jq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,v0, weight_function)
+function [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,p, weight_function)
 
 if (length(t) ~= length(x) || length(t) ~= length(y) )
    disp('The time series are not consistent lengths');
    return;
+end
+
+if (length(p) ~= S-1)
+    disp('The vector p must be of length S-1. You must sent a tension for 1st, 2nd, 3rd...S-1 derivatives.');
+    return;
 end
 
 B = bspline(t,t_knot,S+1);
@@ -62,7 +67,7 @@ Vq = squeeze(Bq(:,:,2));
 Aq = squeeze(Bq(:,:,3));
 Jq = squeeze(Bq(:,:,4));
 
-gamma = 1/(v0*v0*Q);
+gamma = p/Q;
 
 % set up F matrix and h vector for constraints
 NC = 2;
@@ -76,7 +81,7 @@ Wx = diag(1./(dx.^2));
 Wy = diag(1./(dy.^2));
 
 dbstop if warning
-[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, Aq, F, F, Wx, Wy, gamma, M, NC, x, y, h );
+[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Bq, F, F, Wx, Wy, gamma, M, NC, x, y, h );
 
 error_x_previous = dx;
 error_y_previous = dy;
@@ -89,7 +94,7 @@ while (rel_error > 0.01)
     Wx = diag(1./(dx2.^2));
     Wy = diag(1./(dy2.^2));
     
-    [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, Aq, F, F, Wx, Wy, gamma, M, NC, x, y, h );
+    [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Bq, F, F, Wx, Wy, gamma, M, NC, x, y, h );
     
     rel_error = max(max( (dx2-error_x_previous)./dx2 ),max( (dy2-error_y_previous)./dy2 ));
     error_x_previous=dx2;
@@ -108,7 +113,7 @@ end
 end
 
 
-function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, Aq, F, Fy, Wx, Wy, gamma, M, NC, x, y, h )
+function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Bq, F, Fy, Wx, Wy, gamma, M, NC, x, y, h )
 % A (and D) matrix:
 % Rows are the N observations
 % Columns are the M splines
@@ -118,8 +123,18 @@ function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Xq, Vq, Aq, F, Fy, Wx, Wy, ga
 
 f0=0;
 % set up inverse theory matrices
-E_x = X'*Wx*X + gamma*(Aq'*Aq); % MxM
-E_y = X'*Wy*X + gamma*(Aq'*Aq); % MxM
+E_x = X'*Wx*X; % MxM
+E_y = X'*Wy*X; % MxM
+
+for i=1:length(gamma)
+    if (gamma(i) ~= 0.0)
+        Xq = squeeze(Bq(:,:,i+1));
+        T = gamma(i)*(Xq'*Xq);
+        E_x = E_x + T;
+        E_y = E_y + T;
+    end
+end
+
 
     m_x = E_x\(X'*Wx*x);
     m_y = E_y\(X'*Wy*y);
