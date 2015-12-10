@@ -1,4 +1,4 @@
-K = 5;
+K = 6;
 S = K-1;
 t_knot = linspace(0,10,11)';
 t_knot(3) = [];

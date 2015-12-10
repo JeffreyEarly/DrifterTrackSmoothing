@@ -18,7 +18,7 @@ iDrifter = 1;
 SplineFactor = 5; % Number of data points for each spline
 sigma_gps = 9; % error in meters
 nu = 2.015;
-S = 4; % order of the spline
+S = 5; % order of the spline
 u_rms = 1e-13; % assumed rms velocity of the solution
 T_decorrelation = 0; %2.5*60*60; % forcing decorrelation time
 
@@ -45,7 +45,7 @@ w_t = @(z)((nu/(nu+1))*sigma_gps^2*(1+z.^2/(nu*sigma_gps^2)));
 
 
 t_knot = t(1:1:end);
-[m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,[0,0,0],w_g);
+[m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,[0,0,1e18,0*1e26],w_t);
 X = squeeze(B(:,:,1));
 V = squeeze(B(:,:,2));
 A = squeeze(B(:,:,3));
