@@ -1,29 +1,35 @@
 clear
 drifters = load('sample_data/projected_ungridded_rho1_drifters.mat');
+lat0 = drifters.lat0;
+Omega = 2*pi/86164;
+f0 = 2*Omega*sin(lat0*pi/180);
 
  distribution = 'student-t';
-%distribution = 'gaussian';
+ distribution = 'gaussian';
 
 iDrifter = 1;
-sigma_gps = 9; % error in meters
+sigma = 9; % error in meters
 
 S = 3; % order of the spline
 
 if strcmp(distribution,'gaussian')
-    p = @(z,sigma) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
-    w = @(z)(sigma_gps*sigma_gps);
-    gamma2 = 1e9*2.^(0:16)'; % range of tensions we want to explore
+    p = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
+    w = @(z)(sigma*sigma);
+    gamma2 = 1e9*2.^(0:15)'; % range of tensions we want to explore
 elseif strcmp(distribution,'student-t')
-    sigma_gps = 9;
-    nu = 2.015;
-    gamma2 = linspace(2e8,8e11,15)';
+%     sigma_gps = 9;
+%     nu = 2.015;
+%     gamma2 = linspace(2e8,8e11,15)';
     
+
     nu = 2.033;
-    sigma_gps = 14.5;
-    gamma2 = linspace(2e9,8e10,16)';
+    sigma = 14.5;
+    gamma2 = linspace(2e9,8e10,16)'; % A good range for S=3
+%     gamma2 = linspace(2e15,8e18,16)'; % A good range for S=4
+%      gamma2 = linspace(2e20,8e24,16)'; % A good range for S=5
     
-    p = @(z,sigma) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
-    w = @(z)((nu/(nu+1))*sigma_gps^2*(1+z.^2/(nu*sigma_gps^2)));
+    p = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
+    w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
 %     gamma2 = 1e8*2.^(1:16)'; % range of tensions we want to explore
 %     gamma2 = linspace(2e8,8e11,15)';
 % gamma2 = [121333333333.333];
@@ -38,8 +44,8 @@ x = drifters.x{iDrifter};
 y = drifters.y{iDrifter};
 t = drifters.t{iDrifter};
 
-dx = ones(size(x))*sigma_gps;
-dy = ones(size(y))*sigma_gps;
+dx = ones(size(x))*sigma;
+dy = ones(size(y))*sigma;
 
 t_knot = t;
 
@@ -69,6 +75,17 @@ Xq = squeeze(Bq(:,:,1));
 x_fit = Xq*m_x;
 y_fit = Xq*m_y;
 
+Vq = squeeze(Bq(:,:,2));
+Aq = squeeze(Bq(:,:,3));
+ax = Aq*m_x;
+fx_fit = Aq*m_x - f0*Vq*m_y;
+fy_fit = Aq*m_y + f0*Vq*m_x;
+a_rms = sqrt(sum(ax.*ax)*(tq(2)-tq(1))/(tq(end)-tq(1)));
+gammaEstimate = length(t)/(a_rms*a_rms*(t(end)-t(1)));
+figure, plot(tq/3600,[fx_fit,fy_fit])
+figure, plot(tq/3600,[Aq*m_x,Aq*m_y])
+figure, plot(tq/3600,[fx_fit,Aq*m_x])
+
 figure
 subplot(2,2,[1 3])
 s = 1/1000;
@@ -92,19 +109,40 @@ scatter(drifters.t{iDrifter}/3600,s*y,5)
 xlabel('t (hours)')
 ylabel('y (km)')
 
+if strcmp(distribution,'student-t')
+    var_x = mean((epsilon).^2,2);
+    sigma_out = sqrt(var_x*(nu-2)/nu );
+    nu_x_out = 2*var_x./(var_x - sigma*sigma);
+end
 
-var_x = mean((epsilon).^2,2);
-sigma_out = sqrt(var_x*(nu-2)/nu );
-nu_x_out = 2*var_x./(var_x - sigma_gps*sigma_gps);
+
+histwidth = 100;
+nbins = 50;
+binwidth = histwidth/nbins;
+edges = [-1000;((-histwidth/2+binwidth):binwidth:(histwidth/2-binwidth))';1000];
+binleft = linspace((-histwidth/2),(histwidth/2-binwidth),nbins)';
+
+edgedensity = integral(p,(histwidth/2-binwidth),2*histwidth)/binwidth;
 
 figure
-xi = (-0500:0.01:0500)';
+xi_left = linspace(-histwidth/2,-histwidth/2+binwidth,10)';
+xi_mid = linspace(-histwidth/2+binwidth,histwidth/2-binwidth,100)';
+xi_right = linspace(histwidth/2-binwidth,histwidth/2,10)';
+xi = [xi_left;xi_mid;xi_right];
+denfunc = edgedensity*ones(size(xi));
+denfunc(11:110) = p(xi_mid);
 for i=1:length(gamma2)
     subplot(4,4,i)
-    denhist(epsilon(i,:), 500,'b'); hold on
-    plot(xi,p(xi,sigma_gps),'LineWidth',2)
+    %     denhist(epsilon(i,:), 500,'b'); hold on
+    
+    count = histcounts(epsilon(i,:),edges)';
+    bar(binleft, count/(length(epsilon(i,:))*binwidth), 'histc'); hold on;
+    
+    plot(xi,denfunc,'LineWidth',2,'Color','magenta')
     xlim([-50 50])
 end
+
+chicheck = sum((epsilon/sigma).^2,2)/length(t);
 
 P = [1	1e-7 1e-5	0.001	0.004	0.016	2.706	3.841	5.024	6.635	7.879
 2	0.010	0.020	0.051	0.103	0.211	4.605	5.991	7.378	9.210	10.597
@@ -140,9 +178,12 @@ p = [1.0 0.995	0.99	0.975	0.95	0.90	0.10	0.05	0.025	0.01	0.005];
 df = P(:,1);
 chi2 = [zeros(30,1),P(:,2:end)];
 
+figure, plot(Q')
+hold on, plot(P(:,6)','LineWidth',2)
+
+
 % Compute the probability at each degree of freedom
 pQ = zeros(size(Q));
 for i=1:size(Q,2)
     pQ(:,i) = interp1(chi2(i,:),p,(Q(:,i)),'linear',0);
 end
-

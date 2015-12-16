@@ -727,7 +727,7 @@ x_k {\Sigma_{X}^{-1}}\indices{^k_i}  X\indices{^i_m} + \left[\mathcal{D}^2\right
 
 \section{Ocean forcing}
 
-Now we need to return to fixing up our forcing constraint appropriate for ocean physics. This means that the forcing in the $x$-direction is $f_x(t) = \ddot{x} + f_0 \dot{y}$ and the forcing in the $y$ direction is $f_y(t) = \ddot{y} - f_0 \dot{x}$. So the question here is what do the errors of this measurement look like and how to we want to state that? This is probably just as simple as adding them.
+Now we need to return to fixing up our forcing constraint appropriate for ocean physics. This means that the forcing in the $x$-direction is $f_x(t) = \ddot{x} - f_0 \dot{y}$ and the forcing in the $y$ direction is $f_y(t) = \ddot{y} + f_0 \dot{x}$. So the question here is what do the errors of this measurement look like and how to we want to state that? This is probably just as simple as adding them.
 
 \section{Derivative compatibility conditions}
 
@@ -876,6 +876,21 @@ The first is to place a knot at each observation point, and then use tension to 
 Another technique is to use the NEWNOT function in Practical Guide to Splines to choose knot locations based on a high order derivative. In this case the free parameter would be the number of knots.
 
 The final technique to try is that by Jerome Blair
+
+\section{Assessing a good fit}
+
+Using autocorrelation and a the Box-Ljung test to assess whether or not the errors appear uncorrelated. This works well, until our periodic signal fouls things up. In particular, we have a signal with a period of 7 hours, which corresponds to 14 data points. In the autocorrelation sequence for the noise, we start to see strong correlation at 7 and again at 14 data points. This makes sense because the tension will always work to reign in oscillations (deviations from some straight line).
+
+\section{Proper normalization}
+
+I've always struggled to get the proper normalization for the tension term, but I figured out the issue. We normally have that,
+\begin{equation}
+\phi =  \sum_{i=1}^{N} \frac{1}{2} \left( \frac{x_i - x(t)}{\sigma_i} \right) ^2 +  \frac{1}{\bar{u}^2 T} \int \dot{x}^2(t) \, dt.
+\end{equation}
+but what I missed before was that the first term scales like $N$, the number of data points. So what you really want is,
+\begin{equation}
+\phi =  \sum_{i=1}^{N} \frac{1}{2} \left( \frac{x_i - x(t)}{\sigma_i} \right) ^2 +  \frac{N}{\bar{u}^2 T} \int \dot{x}^2(t) \, dt.
+\end{equation}
 
 \section{References}
 
