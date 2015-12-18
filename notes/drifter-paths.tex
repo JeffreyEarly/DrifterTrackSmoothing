@@ -943,10 +943,11 @@ M & 1
 \end{tabular}
 
 
-
 So, the best way to think of this is the number of intervals that are supported by each spline.
 
 But maybe we need to flip this around. The first knot is fixed at the end point. The second knot provides non-zero support for three splines. This is always true. 
+
+We can think of knot points as being created by a filter that takes the data positions as input. The center of the $i$-th filter is denoted $\tau^c_i$ and has width $w$. I suppose that $\tau^c_i= \frac{N}{M} i$ where $N$ is the number of data points and $M$ is the number of knot points. This is fractional. The width of the filter would probably be $w=\frac{N}{M}(K-2)$, where the width of the filter decreases (symmetrically) as the filter approaches the boundary.
 
 \section{References}
 
