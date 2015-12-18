@@ -949,6 +949,8 @@ But maybe we need to flip this around. The first knot is fixed at the end point.
 
 We can think of knot points as being created by a filter that takes the data positions as input. The center of the $i$-th filter is denoted $\tau^c_i$ and has width $w$. I suppose that $\tau^c_i= \frac{N}{M} i$ where $N$ is the number of data points and $M$ is the number of knot points. This is fractional. The width of the filter would probably be $w=\frac{N}{M}(K-2)$, where the width of the filter decreases (symmetrically) as the filter approaches the boundary.
 
+So how do you deal with fractional indices? I think the answer is that you weight the values by that fraction. So if we're including indices $1:3.25$, then we include index 4 as well, 
+
 \section{References}
 
 Check out `The Rod-Spring approximation: An intuitive approach to the best-fit least-squares linear approximation'.
