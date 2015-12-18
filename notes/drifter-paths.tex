@@ -892,6 +892,62 @@ but what I missed before was that the first term scales like $N$, the number of 
 \phi =  \sum_{i=1}^{N} \frac{1}{2} \left( \frac{x_i - x(t)}{\sigma_i} \right) ^2 +  \frac{N}{\bar{u}^2 T} \int \dot{x}^2(t) \, dt.
 \end{equation}
 
+\section{Knot selection}
+
+We want more knots in regions of lots of variation, and we need at least one datapoint in for each spline.
+
+In PGS Chapter 12, de Boor argues that equal partitioning of the function,
+\[
+j(t) = \int_a^b |D^k g(t) |^{1/k} dt
+\]
+makes for good knot placement. I have found that this does not converge to a fixed set of knot points after repeated application using the same function. Furthermore, it can cause a spline to be defined between data points.
+
+So we'd need a way of choosing knot points such that we can guarantee that no spline will be created without support from data. Given data sites $\tau_i$, you could choose knot points at
+\[
+t_{k+i} = \frac{\tau_{i+1} + ... + \tau_{i+k-1}}{k-1},\,i=1,...n-k
+\]
+just as in A Practical Guide to Splines, Chapter 13, equation 28. This is a nice data-centric way of choosing points.
+
+So let's combine these two ideas and do a weighted selection of spline points, such as
+\[
+t_{k+i} = \frac{j(\tau_{i+1}) \tau_{i+1} + ... + j(\tau_{i+k-1}) \tau_{i+k-1}}{j(\tau_{i+1}) + ... + j(\tau_{i+k-1})},\,i=1,...n-k
+\]
+I think we can easily show that you can't create a spline without any data support.
+
+We could take two different philosophies when deciding the knot points. Either we want each spline to have the same amount of data support, on average, or we want each datum to have the same number of nonzero splines. The latter is the default philosophy of the usual construction. So let's assume that.
+
+There's a natural weighting here too. The splines sum to 1 at each point. That's the opposite feature that we want. We 
+
+You could also weight by the integrated value of $j(t)$ around the data point.
+
+Using our technique of increasing the multiplicity of the end point knots, if we start with $N$ observations and use each observation as a knot point, we will have $M=N+2(K-1)$ knots, which will produce $M=N+K-2$ splines. This makes for $N-2$ interior knots, which I suppose is super obvious.
+
+
+$M$ knot points, with a spline of order $K$, produce $M-K$ splines. The $K$-th spline is the has the first knot at its left-most boundary and the $K+K+1$ knot as it's right-most boundary, where the spline is zero. It therefore provides non-zero support at $S=K-1$ knot points. The first spline only provides support for the initial knot point. The second splines only provides support for the second knot point. However, these maybe best thought of as providing support for the first interval, first and second interval, etc.
+
+$M$ knot points for $M$ data points with splines of order $K=4$ should provide support for,
+
+\begin{tabular}{cc}
+spline & \# of data \\
+1 & 1 \\
+2 & 1 \\
+3 & 2 \\
+4 & 3 \\
+5 & 3 \\
+\vdots & \vdots \\
+M-4 & 3 \\
+M-3 & 3 \\
+M-2 & 2 \\
+M-1 & 1 \\
+M & 1
+\end{tabular}
+
+
+
+So, the best way to think of this is the number of intervals that are supported by each spline.
+
+But maybe we need to flip this around. The first knot is fixed at the end point. The second knot provides non-zero support for three splines. This is always true. 
+
 \section{References}
 
 Check out `The Rod-Spring approximation: An intuitive approach to the best-fit least-squares linear approximation'.

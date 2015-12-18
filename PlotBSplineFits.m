@@ -88,9 +88,9 @@ M = floor(length(t)/Smoothness);
 j3 = sqrt(jx3.*jx3+jy3.*jy3);
 xi = cumsum(abs(j3).^(1/(S+1)))*(tq(2)-tq(1));
 xi_interp = linspace(xi(1),xi(end),M);
-t_knot3 = interp1(xi,tq,xi_interp,'linear')';
+t_knot2 = interp1(xi,tq,xi_interp,'linear')';
 
-[m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot3,[0,0],w_t);
+[m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot2,[0,0],w_t);
 Xq = squeeze(Bq(:,:,1));
 Vq = squeeze(Bq(:,:,2));
 Aq = squeeze(Bq(:,:,3));
