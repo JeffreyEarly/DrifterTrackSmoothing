@@ -951,6 +951,9 @@ We can think of knot points as being created by a filter that takes the data pos
 
 So how do you deal with fractional indices? I think the answer is that you weight the values by that fraction. So if we're including indices $1:3.25$, then we include index 4 as well, 
 
+
+I'm now weighting by data density, so that we don't get knot points in regions of no data. One could also weight by data quality, as determined by the error in the previous iteration. I think this is necessary because the spline technique needs a way of `rejecting' bad data points.
+
 \section{References}
 
 Check out `The Rod-Spring approximation: An intuitive approach to the best-fit least-squares linear approximation'.

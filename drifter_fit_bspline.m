@@ -114,11 +114,11 @@ while (rel_error > 0.01)
     end
 end
 
-dx=X*m_x - x;
-dy=X*m_y - y;
-a=dx'*Wx*dx;
-b=dy'*Wy*dy;
-fprintf('sum(dx/sigma)^2=%f, sum(dy/sigma)^2=%f\n',a,b);
+% dx=X*m_x - x;
+% dy=X*m_y - y;
+% a=dx'*Wx*dx;
+% b=dy'*Wy*dy;
+% fprintf('sum(dx/sigma)^2=%f, sum(dy/sigma)^2=%f\n',a,b);
 
 
 end

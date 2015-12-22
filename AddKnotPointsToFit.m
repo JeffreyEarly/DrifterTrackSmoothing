@@ -10,18 +10,19 @@ f0 = 2*Omega*sin(lat0*pi/180);
 iDrifter = 3;
 sigma = 9; % error in meters
 
-S = 5; % order of the spline
+S = 3; % order of the spline
 
 if strcmp(distribution,'gaussian')
     p = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
     w = @(z)(sigma*sigma);
     gamma2 = 1e9*2.^(0:15)'; % range of tensions we want to explore
 elseif strcmp(distribution,'student-t')
-    nu = 2.033;
-    sigma = 14.5;
-    gamma2 = 2e10; % A good range for S=3
-%     gamma2 = linspace(2e15,8e18,16)'; % A good range for S=4
-%      gamma2 = linspace(2e20,8e24,16)'; % A good range for S=5
+    nu = 2.0;
+    sigma = 15.0;
+    
+    a_rms = 1.4e-5;
+    twiddle_factor = 1/320;
+
     
     p = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
     w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
@@ -41,13 +42,16 @@ dy = ones(size(y))*sigma;
 t_knot = t;
 
 % Here's our initial estimate at a fit
-[m_x0,m_y0,Cm_x,Cm_y,B_x,Bq0,tq0] = drifter_fit_bspline(t,x,y,dx,dy,3,t_knot,[0;gamma2(1)],w);
+N = length(x);
+gamma2 = (twiddle_factor*N)./(a_rms.*a_rms*(t(end)-t(1)));
+[m_x0,m_y0,Cm_x,Cm_y,B_x,Bq0,tq0] = drifter_fit_bspline(t,x,y,dx,dy,3,t_knot,gamma2,w);
 m_x=m_x0; m_y=m_y0; Bq_x=Bq0; Bq_y=Bq0; tq=tq0;
 
 % New set of knot points
 numcases = 16;
 M_knots = floor(linspace(length(t)/5,length(t)/3,numcases))';
 M_knots = 16 + 2*(1:26)';
+M_knots = 66 + 8*(1:16)';
 numcases = length(M_knots);
 knot_diff_x =1 ;
 knot_diff_y =1 ;
@@ -66,8 +70,8 @@ epsilon = zeros(numcases,2*n);
 for i=1:length(M_knots)
     M = M_knots(i);
 %     [t_knot,t_knot_x,t_knot_y] = NewKnots( M, m_x0, m_y0, tq0, Bq0, Bq_y );
-     [t_knot,t_knot_x,t_knot_y] = NewKnotsJJ( M, t, m_x, m_y, tq, Bq_x, Bq_y );
-    %[t_knot,t_knot_x,t_knot_y] = NewKnotsJJ( M, t, m_x0, m_y0, tq0, Bq0, Bq0 );
+    % [t_knot,t_knot_x,t_knot_y] = NewKnotsJJ( M, t, m_x, m_y, tq, Bq_x, Bq_y );
+    [t_knot,t_knot_x,t_knot_y] = NewKnotsJJ( M, t, m_x0, m_y0, tq0, Bq0, Bq0 );
     
     knot_diff_x =1 ;
     knot_diff_y =1 ;

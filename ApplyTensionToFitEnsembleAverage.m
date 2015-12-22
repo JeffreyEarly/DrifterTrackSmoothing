@@ -7,10 +7,10 @@ f0 = 2*Omega*sin(lat0*pi/180);
  distribution = 'student-t';
  %distribution = 'gaussian';
 
-iDrifter = 6;
+iDrifter = 8;
 sigma = 9; % error in meters
 
-S = 3; % order of the spline
+S = 5; % order of the spline
 K = S+1;
 
 if strcmp(distribution,'gaussian')
@@ -24,11 +24,11 @@ elseif strcmp(distribution,'student-t')
     a_rms =  10.^(linspace(log10(2e-6),log10(1e-4),16)'); % optimal is 1.4e-5 m/s^2
     twiddle_factor = 1/320;
     
-%     a_rms =  10.^(linspace(log10(5e-10),log10(1e-7),16)'); % optimal is 7e-9 m/s^3
-%     twiddle_factor = 1/600;
+    a_rms =  10.^(linspace(log10(5e-10),log10(1e-7),16)'); % optimal is 7e-9 m/s^3
+    twiddle_factor = 1/600;
     
-%     a_rms =  10.^(linspace(log10(5e-14),log10(1e-10),16)'); % optimal is 3.8e-12 m/s^4
-%     twiddle_factor = 1/800;
+    a_rms =  10.^(linspace(log10(5e-14),log10(1e-10),16)'); % optimal is 3.8e-12 m/s^4
+    twiddle_factor = 1/800;
     
     p = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
     w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
@@ -38,104 +38,48 @@ else
     return;
 end
 
-lat0 = drifters.lat0;
-x = drifters.x{iDrifter};
-y = drifters.y{iDrifter};
-t = drifters.t{iDrifter};
+Nall = 0;
+for iDrifter = 1:9
+    Nall = Nall + length(drifters.x{iDrifter});
+end
 
-dx = ones(size(x))*sigma;
-dy = ones(size(y))*sigma;
-
-t_knot = t;
-N = length(t);
-
-gamma2 = (twiddle_factor*N)./(a_rms.*a_rms*(t(end)-t(1)));
 
 maxlag = 30;
-n = length(x);
-coeff=n*(n+2)./(n-(1:maxlag));
-variance = zeros(size(gamma2));
-ACx = zeros(length(gamma2),maxlag+1);
-ACy = zeros(length(gamma2),maxlag+1);
-AC = zeros(length(gamma2),maxlag+1);
-epsilon = zeros(length(gamma2),2*n);
-gamma_out = zeros(length(gamma2),1);
-a2_bar = zeros(length(gamma2),1);
-for i=6:8 %1:length(gamma2)
-    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,gamma2(i),w);
-    X = squeeze(B(:,:,1));
-    error_x = X*m_x - x;
-    error_y = X*m_y - y;
-    epsilon(i,:) = [error_x;error_y];
-    variance(i) = mean((epsilon(i,:)).^2);
-    ACx(i,:) = Autocorrelation(error_x,maxlag);
-    ACy(i,:) = Autocorrelation(error_y,maxlag);
-    AC(i,:) = (ACx(i,:)+ACy(i,:))/2;
-    
-%     if (ACx(i,2)<0 || ACy(i,2) < 0)
-%         break;
-%     end
-    
-    jx = squeeze(Bq(:,:,S))*m_x;
-    jy = squeeze(Bq(:,:,S))*m_y;
-    j = jx.*jx+jy.*jy;
-    gamma_out(i) = N/(sum(j)*(tq(2)-tq(1)));
-    a2_bar(i) = sqrt((sum(j)*(tq(2)-tq(1)))/(t(end)-t(1)));
+
+
+ACx = zeros(length(a_rms),maxlag+1);
+ACy = zeros(length(a_rms),maxlag+1);
+epsilon = zeros(length(a_rms),2*Nall);
+Ndrifters = length(drifters.x);
+twiddle_factors = zeros(size(length(a_rms),Ndrifters));
+for i=1:length(a_rms)
+    iEpsilon = 1;
+    for iDrifter = 1:Ndrifters
+        x = drifters.x{iDrifter};
+        y = drifters.y{iDrifter};
+        t = drifters.t{iDrifter};
+        N = length(t);
+        t_knot = t;
+        gamma_in = (twiddle_factor*N)./(a_rms(i).*a_rms(i)*(t(end)-t(1)));
+        [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,ones(size(x))*sigma,ones(size(y))*sigma,S,t_knot,gamma_in,w);
+        X = squeeze(B(:,:,1));
+        error_x = X*m_x - x;
+        error_y = X*m_y - y;
+        epsilon(i,iEpsilon:(iEpsilon+2*N-1)) = [error_x;error_y];
+        iEpsilon = iEpsilon + 2*N + 1;
+        ACx(i,:) = ACx(i,:) + Autocorrelation(error_x,maxlag)';
+        ACy(i,:) = ACy(i,:) + Autocorrelation(error_y,maxlag)';
+        
+        jx = squeeze(Bq(:,:,S))*m_x;
+        jy = squeeze(Bq(:,:,S))*m_y;
+        j = jx.*jx+jy.*jy;
+        twiddle_factors(i,iDrifter) = (gamma_in/twiddle_factor)/(N/(sum(j)*(tq(2)-tq(1))));
+    end
 end
 
-% https://en.wikipedia.org/wiki/Ljung?Box_test
-% rows test, columns are degrees of freedom
+ACx = ACx/Ndrifters;
+ACy = ACy/Ndrifters;
 AC = (ACx+ACy)/2;
-Qx = cumsum(ACx(:,2:end).*ACx(:,2:end).*repmat(coeff,length(gamma2),1),2);
-Qy = cumsum(ACy(:,2:end).*ACy(:,2:end).*repmat(coeff,length(gamma2),1),2);
-Q = cumsum(AC(:,2:end).*AC(:,2:end).*repmat(coeff,length(gamma2),1),2);
-
-Xq = squeeze(Bq(:,:,1));
-x_fit = Xq*m_x;
-y_fit = Xq*m_y;
-
-Vq = squeeze(Bq(:,:,2));
-Aq = squeeze(Bq(:,:,3));
-ax = Aq*m_x;
-fx_fit = Aq*m_x - f0*Vq*m_y;
-fy_fit = Aq*m_y + f0*Vq*m_x;
-a_rms = sqrt(sum(ax.*ax)*(tq(2)-tq(1))/(tq(end)-tq(1)));
-gammaEstimate = length(t)/(a_rms*a_rms*(t(end)-t(1)));
-figure, plot(tq/3600,[fx_fit,fy_fit])
-figure, plot(tq/3600,[Aq*m_x,Aq*m_y])
-figure, plot(tq/3600,[fx_fit,Aq*m_x])
-
-
-
-figure
-subplot(2,2,[1 3])
-s = 1/1000;
-plot(s*x,s*y), hold on
-plot(s*x_fit,s*y_fit,'g')
-scatter(s*x,s*y,5)
-xlabel('x (km)')
-ylabel('y (km)')
-
-subplot(2,2,2)
-plot(drifters.t{iDrifter}/3600,s*x), hold on
-plot(tq/3600,s*x_fit,'g')
-scatter(drifters.t{iDrifter}/3600,s*x,5)
-xlabel('t (hours)')
-ylabel('x (km)')
-
-subplot(2,2,4)
-plot(drifters.t{iDrifter}/3600,s*y), hold on
-plot(tq/3600,s*y_fit,'g')
-scatter(drifters.t{iDrifter}/3600,s*y,5)
-xlabel('t (hours)')
-ylabel('y (km)')
-
-if strcmp(distribution,'student-t')
-    var_x = mean((epsilon).^2,2);
-    sigma_out = sqrt(var_x*(nu-2)/nu );
-    nu_x_out = 2*var_x./(var_x - sigma*sigma);
-end
-
 
 histwidth = 100;
 nbins = 50;
@@ -152,7 +96,7 @@ xi_right = linspace(histwidth/2-binwidth,histwidth/2,10)';
 xi = [xi_left;xi_mid;xi_right];
 denfunc = edgedensity*ones(size(xi));
 denfunc(11:110) = p(xi_mid);
-for i=1:length(gamma2)
+for i=1:length(a_rms)
     subplot(4,4,i)
     %     denhist(epsilon(i,:), 500,'b'); hold on
     
@@ -162,6 +106,17 @@ for i=1:length(gamma2)
     plot(xi,denfunc,'LineWidth',2,'Color','magenta')
     xlim([-50 50])
 end
+
+return
+
+% https://en.wikipedia.org/wiki/Ljung?Box_test
+% rows test, columns are degrees of freedom
+n = length(x);
+coeff=n*(n+2)./(n-(1:maxlag));
+AC = (ACx+ACy)/2;
+Qx = cumsum(ACx(:,2:end).*ACx(:,2:end).*repmat(coeff,length(gamma2),1),2);
+Qy = cumsum(ACy(:,2:end).*ACy(:,2:end).*repmat(coeff,length(gamma2),1),2);
+Q = cumsum(AC(:,2:end).*AC(:,2:end).*repmat(coeff,length(gamma2),1),2);
 
 chicheck = sum((epsilon/sigma).^2,2)/length(t);
 
