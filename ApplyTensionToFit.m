@@ -5,31 +5,40 @@ Omega = 2*pi/86164;
 f0 = 2*Omega*sin(lat0*pi/180);
 
  distribution = 'student-t';
- distribution = 'gaussian';
+ %distribution = 'gaussian';
 
 iDrifter = 1;
 sigma = 9; % error in meters
 
 S = 3; % order of the spline
+K = S+1;
 
 if strcmp(distribution,'gaussian')
     p = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
     w = @(z)(sigma*sigma);
     gamma2 = 1e9*2.^(0:15)'; % range of tensions we want to explore
+    gamma2 = 10.^(linspace(log10(2.5e2),log10(2.5e8),16)');
 elseif strcmp(distribution,'student-t')
 %     sigma_gps = 9;
 %     nu = 2.015;
 %     gamma2 = linspace(2e8,8e11,15)';
     
 
-    nu = 2.033;
+    nu = 2.04;
     sigma = 14.5;
-    gamma2 = linspace(2e9,8e10,16)'; % A good range for S=3
+%     gamma2 = linspace(2e9,8e10,16)'; % A good range for S=3
+    a_rms =  10.^(linspace(log10(2e-6),log10(1e-4),16)');
+    
+%     gamma2 = 10.^(linspace(log10(2.5e2),log10(2.5e5),16)');
+    
+    
+    
 %     gamma2 = linspace(2e15,8e18,16)'; % A good range for S=4
 %      gamma2 = linspace(2e20,8e24,16)'; % A good range for S=5
     
     p = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
     w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
+    rho = @(z) -log(sqrt(2)*gamma((nu+1)/2)./(sqrt(nu)*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2)));
 %     gamma2 = 1e8*2.^(1:16)'; % range of tensions we want to explore
 %     gamma2 = linspace(2e8,8e11,15)';
 % gamma2 = [121333333333.333];
@@ -48,6 +57,9 @@ dx = ones(size(x))*sigma;
 dy = ones(size(y))*sigma;
 
 t_knot = t;
+N = length(t);
+
+gamma2 = (N/150)./(a_rms.*a_rms*(t(end)-t(1)));
 
 maxlag = 30;
 n = length(x);
@@ -55,7 +67,10 @@ coeff=n*(n+2)./(n-(1:maxlag));
 variance = zeros(size(gamma2));
 ACx = zeros(length(gamma2),maxlag+1);
 ACy = zeros(length(gamma2),maxlag+1);
+AC = zeros(length(gamma2),maxlag+1);
 epsilon = zeros(length(gamma2),2*n);
+gamma_out = zeros(length(gamma2),1);
+a2_bar = zeros(length(gamma2),1);
 for i=1:length(gamma2)
     [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,[0;gamma2(i)],w);
     X = squeeze(B(:,:,1));
@@ -65,11 +80,25 @@ for i=1:length(gamma2)
     variance(i) = mean((epsilon(i,:)).^2);
     ACx(i,:) = Autocorrelation(error_x,maxlag);
     ACy(i,:) = Autocorrelation(error_y,maxlag);
+    AC(i,:) = (ACx(i,:)+ACy(i,:))/2;
+    
+    if (AC(i,2))<0
+        break;
+    end
+    
+    jx = squeeze(Bq(:,:,S))*m_x;
+    jy = squeeze(Bq(:,:,S))*m_y;
+    j = jx.*jx+jy.*jy;
+    gamma_out(i) = N/(sum(j)*(tq(2)-tq(1)));
+    a2_bar(i) = sqrt((sum(j)*(tq(2)-tq(1)))/(t(end)-t(1)));
 end
 
 % https://en.wikipedia.org/wiki/Ljung?Box_test
 % rows test, columns are degrees of freedom
-Q = cumsum(ACx(:,2:end).*ACx(:,2:end).*repmat(coeff,length(gamma2),1),2);
+AC = (ACx+ACy)/2;
+Qx = cumsum(ACx(:,2:end).*ACx(:,2:end).*repmat(coeff,length(gamma2),1),2);
+Qy = cumsum(ACy(:,2:end).*ACy(:,2:end).*repmat(coeff,length(gamma2),1),2);
+Q = cumsum(AC(:,2:end).*AC(:,2:end).*repmat(coeff,length(gamma2),1),2);
 
 Xq = squeeze(Bq(:,:,1));
 x_fit = Xq*m_x;
@@ -85,6 +114,8 @@ gammaEstimate = length(t)/(a_rms*a_rms*(t(end)-t(1)));
 figure, plot(tq/3600,[fx_fit,fy_fit])
 figure, plot(tq/3600,[Aq*m_x,Aq*m_y])
 figure, plot(tq/3600,[fx_fit,Aq*m_x])
+
+
 
 figure
 subplot(2,2,[1 3])
@@ -174,16 +205,25 @@ P = [1	1e-7 1e-5	0.001	0.004	0.016	2.706	3.841	5.024	6.635	7.879
 28	12.461	13.565	15.308	16.928	18.939	37.916	41.337	44.461	48.278	50.993
 29	13.121	14.256	16.047	17.708	19.768	39.087	42.557	45.722	49.588	52.336
 30	13.787	14.953	16.791	18.493	20.599	40.256	43.773	46.979	50.892	53.672];
-p = [1.0 0.995	0.99	0.975	0.95	0.90	0.10	0.05	0.025	0.01	0.005];
+prob = [1.0 0.995	0.99	0.975	0.95	0.90	0.10	0.05	0.025	0.01	0.005];
 df = P(:,1);
 chi2 = [zeros(30,1),P(:,2:end)];
 
-figure, plot(Q')
+figure
+plot(Q')
 hold on, plot(P(:,6)','LineWidth',2)
+
+% subplot(1,2,1)
+% plot(Qx')
+% hold on, plot(P(:,6)','LineWidth',2)
+% 
+% subplot(1,2,2)
+% plot(Qy')
+% hold on, plot(P(:,6)','LineWidth',2)
 
 
 % Compute the probability at each degree of freedom
 pQ = zeros(size(Q));
 for i=1:size(Q,2)
-    pQ(:,i) = interp1(chi2(i,:),p,(Q(:,i)),'linear',0);
+    pQ(:,i) = interp1(chi2(i,:),prob,(Q(:,i)),'linear',0);
 end

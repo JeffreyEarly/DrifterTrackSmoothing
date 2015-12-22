@@ -45,6 +45,13 @@ if (length(t) ~= length(x) || length(t) ~= length(y) )
    return;
 end
 
+% If we were only given one tension value, assume it's for the end.
+if length(p) == 1
+   pin = p;
+   p = zeros(S-1,1);
+   p(end) = pin;
+end
+
 if (length(p) ~= S-1)
     disp('The vector p must be of length S-1. You must sent a tension for 1st, 2nd, 3rd...S-1 derivatives.');
     return;
@@ -67,7 +74,7 @@ Vq = squeeze(Bq(:,:,2));
 Aq = squeeze(Bq(:,:,3));
 Jq = squeeze(Bq(:,:,4));
 
-gamma = p/Q;
+gamma = p*(tq(2)-tq(1));
 
 % set up F matrix and h vector for constraints
 NC = 2;
@@ -107,7 +114,11 @@ while (rel_error > 0.01)
     end
 end
 
-
+dx=X*m_x - x;
+dy=X*m_y - y;
+a=dx'*Wx*dx;
+b=dy'*Wy*dy;
+fprintf('sum(dx/sigma)^2=%f, sum(dy/sigma)^2=%f\n',a,b);
 
 
 end

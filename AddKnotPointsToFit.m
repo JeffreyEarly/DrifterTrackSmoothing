@@ -7,7 +7,7 @@ f0 = 2*Omega*sin(lat0*pi/180);
  distribution = 'student-t';
  %distribution = 'gaussian';
 
-iDrifter = 1;
+iDrifter = 3;
 sigma = 9; % error in meters
 
 S = 5; % order of the spline
