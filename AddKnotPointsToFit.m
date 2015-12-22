@@ -10,7 +10,7 @@ f0 = 2*Omega*sin(lat0*pi/180);
 iDrifter = 1;
 sigma = 9; % error in meters
 
-S = 3; % order of the spline
+S = 5; % order of the spline
 
 if strcmp(distribution,'gaussian')
     p = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
@@ -47,7 +47,7 @@ m_x=m_x0; m_y=m_y0; Bq_x=Bq0; Bq_y=Bq0; tq=tq0;
 % New set of knot points
 numcases = 16;
 M_knots = floor(linspace(length(t)/5,length(t)/3,numcases))';
-M_knots = 16 + 2*(1:24)';
+M_knots = 16 + 2*(1:26)';
 numcases = length(M_knots);
 knot_diff_x =1 ;
 knot_diff_y =1 ;
@@ -66,11 +66,16 @@ epsilon = zeros(numcases,2*n);
 for i=1:length(M_knots)
     M = M_knots(i);
 %     [t_knot,t_knot_x,t_knot_y] = NewKnots( M, m_x0, m_y0, tq0, Bq0, Bq_y );
-    [t_knot,t_knot_x,t_knot_y] = NewKnotsJJ( M, t, m_x, m_y, tq, Bq_x, Bq_y );
+     [t_knot,t_knot_x,t_knot_y] = NewKnotsJJ( M, t, m_x, m_y, tq, Bq_x, Bq_y );
+    %[t_knot,t_knot_x,t_knot_y] = NewKnotsJJ( M, t, m_x0, m_y0, tq0, Bq0, Bq0 );
     
-    while (knot_diff_x > 1e-4 || knot_diff_y > 1e-4)      
+    knot_diff_x =1 ;
+    knot_diff_y =1 ;
+    total_iterations = 0;
+    while ((knot_diff_x > 1e-4 || knot_diff_y > 1e-4) && total_iterations < 100)
+%         fprintf('Number of knots %d, iteration %d', M, total_iterations);
         [m_x,m_y,Cm_x,Cm_y,B_x,B_y,Bq_x,Bq_y,tq] = drifter_fit_bspline_indep_knots(t,x,y,dx,dy,S,t_knot_x,t_knot_y,zeros(S-1,1),w);
-        [t_knot2,t_knot_x2,t_knot_y2] = NewKnotsJJ( M, t, m_x, m_y, tq, Bq );
+        [t_knot2,t_knot_x2,t_knot_y2] = NewKnotsJJ( M, t, m_x, m_y, tq, Bq_x, Bq_y );
         avg_knot = (t(end)-t(1))/M;
         dt_knot_x = t_knot_x-t_knot_x2;
         dt_knot_y = t_knot_y-t_knot_y2;
@@ -78,6 +83,10 @@ for i=1:length(M_knots)
         knot_diff_y = max(dt_knot_y/avg_knot);
         t_knot_x=t_knot_x2;
         t_knot_y=t_knot_y2;
+        total_iterations = total_iterations + 1;
+    end
+    if total_iterations == 100
+       fprintf('Knot placement for M=%d loop failed to converage after 100 iterations. (x,y) = (%f,%f)\n',M,knot_diff_x, knot_diff_y);
     end
     
 %     [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,[0;0],w);
@@ -103,10 +112,14 @@ Q = cumsum(ACx(:,2:end).*ACx(:,2:end).*repmat(coeff,numcases,1),2);
 x_fit = squeeze(Bq_x(:,:,1))*m_x;
 y_fit = squeeze(Bq_y(:,:,1))*m_y;
 
+K = S+1;
 Uq = squeeze(Bq_x(:,:,2));
 Vq = squeeze(Bq_y(:,:,2));
 Aq_x = squeeze(Bq_x(:,:,3));
 Aq_y = squeeze(Bq_y(:,:,3));
+jx = squeeze(Bq_x(:,:,S+1))*m_x;
+jy = squeeze(Bq_y(:,:,S+1))*m_y;
+figure, plot(tq/3600,[abs(jx).^(1/K),abs(jy).^(1/K)])
 
 ax = Aq_x*m_x;
 fx_fit = Aq_x*m_x - f0*Vq*m_y;

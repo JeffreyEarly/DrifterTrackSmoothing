@@ -1,39 +1,60 @@
-K = 6;
+K = 4;
 S = K-1;
 t_data = linspace(0,10,11)';
+t_data(4) = [];
 
 N = length(t_data);
-M = 11;
+M = N-5;
+
+DataDensityL = 1./diff(t_data);
+DataDensityR = DataDensityL;
+DataDensityL = [DataDensityL(1); DataDensityL];
+DataDensityR = [DataDensityR; DataDensityR(end)];
+DataDensity = min(DataDensityL,DataDensityR);
+%DataDensity = (DataDensityL+DataDensityR)/2;
+
+% DataDensity = ones(size(t_data));
+% DataDensity(6) = 10;
 
 t_knot = zeros(M,1);
-for i=1:M
-    tau_center = (N/M)*i;
-    half_width = (N/M)*(K-2)/2;
-    if (tau_center-half_width < 1)
-        half_width = tau_center-1;
-    elseif (tau_center+half_width>N)
-        half_width = N-tau_center;
+for i=0:(M-1)
+    tau_center = ((N-1)/(M-1))*i;
+    half_width = ((N-1)/(M-1))*(K-2)/2;
+    
+    % shorten to the left boundary
+    if (tau_center-half_width < 0)
+        half_width = tau_center;
+    end
+    
+    % shorten to the right boundary
+    if (tau_center+half_width > (N-1))
+        half_width = (N-1)-tau_center;
     end
     
     index_start = tau_center-half_width;
-    if (mod(index_start) ~= 0 )
-       frac_start =  1-mod(index_end);
-       index_start = floor(index_end);
-    end
-    
     index_end = tau_center+half_width;
-    if (mod(index_end) ~= 0 )
-       frac_end =  mod(index_end);
-       index_end = ceil(index_end);
+    
+    range = (floor(index_start):1:ceil(index_end))';
+    weight = ones(size(range));
+    
+    if (mod(index_start,1) ~= 0 )
+       weight(1) =  1-mod(index_start,1);
+    end
+        
+    if (mod(index_end,1) ~= 0 )
+       weight(end) =  mod(index_end,1);
     end
     
-    range = (tau_center-half_width):1:(tau_center+half_width);
+    weight = weight .* DataDensity(range+1);
     
-    ceil(range(end))
-    
-    t_knot(i) = mean( t_data(range) );
+    t_knot(i+1) = sum( t_data(range+1) .* weight ) / sum(weight);
 end
 
+figure
+scatter(t_data,ones(size(t_data)))
+xlim([-1 11])
+ylim([0 2])
+vlines(t_knot,'g--')
 
 return
 
