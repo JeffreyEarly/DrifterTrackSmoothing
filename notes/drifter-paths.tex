@@ -952,7 +952,17 @@ We can think of knot points as being created by a filter that takes the data pos
 So how do you deal with fractional indices? I think the answer is that you weight the values by that fraction. So if we're including indices $1:3.25$, then we include index 4 as well, 
 
 
-I'm now weighting by data density, so that we don't get knot points in regions of no data. One could also weight by data quality, as determined by the error in the previous iteration. I think this is necessary because the spline technique needs a way of `rejecting' bad data points.
+I'm now weighting by data density, so that we don't get knot points in regions of no data. One could also weight by data quality, as determined by the error in the previous iteration. I think this is necessary because the spline technique needs a way of `rejecting' bad data points. In other words, the method of adding knot points without tension doesn't work well for non-Gaussian data.
+
+So how do we set the tension? First, looking at the variance of the errors coming out, they are very robustly $160^2$ meters squared. For a student t-distribution, this suggests $\nu=2.018$ if we take $\sigma=15$, or $\nu=2.008$ if we take $\sigma=10$.
+
+The quantity,
+\[
+\phi = \frac{1}{2} \epsilon_k  W\indices{^k_i} \epsilon^i 
+\]
+is the tricky quantity to determine. If the errors are Gaussian, then it scales like $N$. However, in our case we've re-weighted the $\sigma$ associated with each data point so that it resembles a t-distribution. 
+
+In my tests, for a spline $S=5$, I find that $2\phi/N \sim 1/2400$, while for a spline $S=4$ I find that $2\phi/N \sim 1/1200$ and  $S=3$ I find that $2\phi/N \sim 1/950$. It's hard to know what's going on here. Assuming the errors themselves remain the same (they might not!), then this is suggesting that the weights $\sigma_i^2$ for each error are growing larger. Conversely, this suggest that the errors are getting smaller if the weights remain the same.
 
 \section{References}
 

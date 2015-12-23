@@ -10,7 +10,7 @@ f0 = 2*Omega*sin(lat0*pi/180);
 iDrifter = 8;
 sigma = 9; % error in meters
 
-S = 5; % order of the spline
+S = 3; % order of the spline
 K = S+1;
 
 if strcmp(distribution,'gaussian')
@@ -24,12 +24,12 @@ elseif strcmp(distribution,'student-t')
     a_rms =  10.^(linspace(log10(2e-6),log10(1e-4),16)'); % optimal is 1.4e-5 m/s^2
     twiddle_factor = 1/320;
     
-    a_rms =  10.^(linspace(log10(5e-10),log10(1e-7),16)'); % optimal is 7e-9 m/s^3
-    twiddle_factor = 1/600;
-    
-    a_rms =  10.^(linspace(log10(5e-14),log10(1e-10),16)'); % optimal is 3.8e-12 m/s^4
-    twiddle_factor = 1/800;
-    
+%     a_rms =  10.^(linspace(log10(5e-10),log10(1e-7),16)'); % optimal is 7e-9 m/s^3
+%     twiddle_factor = 1/600;
+%     
+%     a_rms =  10.^(linspace(log10(5e-14),log10(1e-10),16)'); % optimal is 3.8e-12 m/s^4
+%     twiddle_factor = 1/800;
+%     
     p = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
     w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
     rho = @(z) -log(sqrt(2)*gamma((nu+1)/2)./(sqrt(nu)*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2)));
@@ -53,6 +53,7 @@ epsilon = zeros(length(a_rms),2*Nall);
 Ndrifters = length(drifters.x);
 twiddle_factors = zeros(size(length(a_rms),Ndrifters));
 for i=1:length(a_rms)
+    fprintf('tension %d (of %d)\n',i,length(a_rms));
     iEpsilon = 1;
     for iDrifter = 1:Ndrifters
         x = drifters.x{iDrifter};
