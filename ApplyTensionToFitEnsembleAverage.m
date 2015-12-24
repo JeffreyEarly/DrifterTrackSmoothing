@@ -10,7 +10,7 @@ f0 = 2*Omega*sin(lat0*pi/180);
 iDrifter = 8;
 sigma = 9; % error in meters
 
-S = 3; % order of the spline
+S = 4; % order of the spline
 K = S+1;
 
 if strcmp(distribution,'gaussian')
@@ -19,16 +19,16 @@ if strcmp(distribution,'gaussian')
     gamma2 = 1e9*2.^(0:15)'; % range of tensions we want to explore
     gamma2 = 10.^(linspace(log10(2.5e2),log10(2.5e8),16)');
 elseif strcmp(distribution,'student-t')
-    nu = 2.0;
-    sigma = 15;
+     nu = 2.005; sigma = 8;
+%    nu = 2.019; sigma = 15;
+    var = 158.^2;
+    sigma = 20;
+    nu = 2*var/(var-sigma*sigma)
     a_rms =  10.^(linspace(log10(2e-6),log10(1e-4),16)'); % optimal is 1.4e-5 m/s^2
-    twiddle_factor = 1/1;
     
-%     a_rms =  10.^(linspace(log10(5e-10),log10(1e-7),16)'); % optimal is 7e-9 m/s^3
-%     twiddle_factor = 1/600;
-%     
+      a_rms =  10.^(linspace(log10(5e-10),log10(1e-7),16)'); % optimal is 7e-9 m/s^3
+     
 %     a_rms =  10.^(linspace(log10(5e-14),log10(1e-10),16)'); % optimal is 3.8e-12 m/s^4
-%     twiddle_factor = 1/800;
 %     
     p = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
     w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
@@ -52,6 +52,7 @@ ACy = zeros(length(a_rms),maxlag+1);
 epsilon = zeros(length(a_rms),2*Nall);
 Ndrifters = length(drifters.x);
 twiddle_factors = zeros(size(length(a_rms),Ndrifters));
+a_rms_out = zeros(size(length(a_rms),Ndrifters));
 for i=1:length(a_rms)
     fprintf('tension %d (of %d)\n',i,length(a_rms));
     iEpsilon = 1;
@@ -61,7 +62,7 @@ for i=1:length(a_rms)
         t = drifters.t{iDrifter};
         N = length(t);
         t_knot = t;
-        gamma_in = (twiddle_factor*N)./(a_rms(i).*a_rms(i)*(t(end)-t(1)));
+        gamma_in = N./(a_rms(i).*a_rms(i)*(t(end)-t(1)));
         [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,ones(size(x))*sigma,ones(size(y))*sigma,S,t_knot,gamma_in,w);
         X = squeeze(B(:,:,1));
         error_x = X*m_x - x;
@@ -74,9 +75,19 @@ for i=1:length(a_rms)
         jx = squeeze(Bq(:,:,S))*m_x;
         jy = squeeze(Bq(:,:,S))*m_y;
         j = jx.*jx+jy.*jy;
-        twiddle_factors(i,iDrifter) = (gamma_in/twiddle_factor)/(N/(sum(j)*(tq(2)-tq(1))));
+        twiddle_factors(i,iDrifter) = gamma_in/(2*N/(sum(j)*(tq(2)-tq(1))));
+        a_rms_out(i,iDrifter) = sqrt( sum(j)*(tq(2)-tq(1))/(tq(end)-tq(1)) );
     end
 end
+
+[a_rms, sqrt(mean(a_rms_out.*a_rms_out,2))]
+
+if strcmp(distribution,'student-t')
+    var_x = mean((epsilon).^2,2);
+    sigma_out = sqrt(var_x*(nu-2)/nu );
+    nu_x_out = 2*var_x./(var_x - sigma*sigma);
+end
+
 
 ACx = ACx/Ndrifters;
 ACy = ACy/Ndrifters;
@@ -85,18 +96,19 @@ AC = (ACx+ACy)/2;
 histwidth = 100;
 nbins = 50;
 binwidth = histwidth/nbins;
-edges = [-1000;((-histwidth/2+binwidth):binwidth:(histwidth/2-binwidth))';1000];
-binleft = linspace((-histwidth/2),(histwidth/2-binwidth),nbins)';
+edges = [-3000;((-histwidth/2+binwidth):binwidth:(histwidth/2-binwidth))';3000]; % edges of all bins
+binleft = linspace((-histwidth/2),(histwidth/2-binwidth),nbins)'; % left edges of all the ones we'll show
 
-edgedensity = integral(p,(histwidth/2-binwidth),2*histwidth)/binwidth;
+edgedensity = integral(p,(histwidth/2-binwidth),3000)/binwidth;
 
 figure
 xi_left = linspace(-histwidth/2,-histwidth/2+binwidth,10)';
 xi_mid = linspace(-histwidth/2+binwidth,histwidth/2-binwidth,100)';
+xi_mid = xi_mid(2:(end-1));
 xi_right = linspace(histwidth/2-binwidth,histwidth/2,10)';
 xi = [xi_left;xi_mid;xi_right];
 denfunc = edgedensity*ones(size(xi));
-denfunc(11:110) = p(xi_mid);
+denfunc(11:108) = p(xi_mid);
 for i=1:length(a_rms)
     subplot(4,4,i)
     %     denhist(epsilon(i,:), 500,'b'); hold on
@@ -108,16 +120,18 @@ for i=1:length(a_rms)
     xlim([-50 50])
 end
 
-return
+% Confirmation that the we're summing to 1.0
+% trapz(xi,denfunc);
+% trapz(binleft, count/(length(epsilon(i,:))*binwidth));
 
 % https://en.wikipedia.org/wiki/Ljung?Box_test
 % rows test, columns are degrees of freedom
 n = length(x);
 coeff=n*(n+2)./(n-(1:maxlag));
 AC = (ACx+ACy)/2;
-Qx = cumsum(ACx(:,2:end).*ACx(:,2:end).*repmat(coeff,length(gamma2),1),2);
-Qy = cumsum(ACy(:,2:end).*ACy(:,2:end).*repmat(coeff,length(gamma2),1),2);
-Q = cumsum(AC(:,2:end).*AC(:,2:end).*repmat(coeff,length(gamma2),1),2);
+Qx = cumsum(ACx(:,2:end).*ACx(:,2:end).*repmat(coeff,length(a_rms),1),2);
+Qy = cumsum(ACy(:,2:end).*ACy(:,2:end).*repmat(coeff,length(a_rms),1),2);
+Q = cumsum(AC(:,2:end).*AC(:,2:end).*repmat(coeff,length(a_rms),1),2);
 
 chicheck = sum((epsilon/sigma).^2,2)/length(t);
 

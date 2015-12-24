@@ -964,6 +964,15 @@ is the tricky quantity to determine. If the errors are Gaussian, then it scales 
 
 In my tests, for a spline $S=5$, I find that $2\phi/N \sim 1/2400$, while for a spline $S=4$ I find that $2\phi/N \sim 1/1200$ and  $S=3$ I find that $2\phi/N \sim 1/950$. It's hard to know what's going on here. Assuming the errors themselves remain the same (they might not!), then this is suggesting that the weights $\sigma_i^2$ for each error are growing larger. Conversely, this suggest that the errors are getting smaller if the weights remain the same.
 
+\section{Assessing a good fit, revisited}
+I see three possibilities.
+
+First, we use the Ljung-Box test on the entire ensemble of autocorrelation sequences.
+
+Second, we ask for consistency in the parameters for the error distribution.
+
+Need to discuss cross-validation as a technique.
+
 \section{References}
 
 Check out `The Rod-Spring approximation: An intuitive approach to the best-fit least-squares linear approximation'.
