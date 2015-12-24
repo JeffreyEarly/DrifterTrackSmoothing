@@ -98,8 +98,8 @@ while (rel_error > 0.01)
     dx2 = weight_function(X*m_x - x);
     dy2 = weight_function(X*m_y - y);
     
-    Wx = diag(1./(dx2.^2));
-    Wy = diag(1./(dy2.^2));
+    Wx = diag(1./(dx2));
+    Wy = diag(1./(dy2));
     
     [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Bq, F, F, Wx, Wy, gamma, M, NC, x, y, h );
     
@@ -120,7 +120,7 @@ a=dx'*Wx*dx/N;
 b=dy'*Wy*dy/N;
 chi = 2/(a+b);
 sigma2 = sum(dx.*dx + dy.*dy)/(2*N);
-w_rms = sqrt(mean(1./[diag(Wx);diag(Wy)]));
+w_rms = median(sqrt(1./[diag(Wx);diag(Wy)]));
 fprintf('sum(dx/sigma)^2=%f, sum(dy/sigma)^2=%f, chi=%f, sigma = %f, w_rms=%f\n',a,b,chi,sqrt(sigma2),w_rms);
 
 

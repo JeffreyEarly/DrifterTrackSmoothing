@@ -89,8 +89,8 @@ while (rel_error > 0.01)
     dx2 = weight_function(X*m_x - x);
     dy2 = weight_function(Y*m_y - y);
     
-    Wx = diag(1./(dx2.^2));
-    Wy = diag(1./(dy2.^2));
+    Wx = diag(1./dx2);
+    Wy = diag(1./dy2);
     
     [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Y, Bq_x, Bq_y, F, F, Wx, Wy, gamma, M, NC, x, y, h );
     

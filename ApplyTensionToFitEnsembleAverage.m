@@ -22,7 +22,7 @@ elseif strcmp(distribution,'student-t')
     nu = 2.0;
     sigma = 15;
     a_rms =  10.^(linspace(log10(2e-6),log10(1e-4),16)'); % optimal is 1.4e-5 m/s^2
-    twiddle_factor = 1/320;
+    twiddle_factor = 1/1;
     
 %     a_rms =  10.^(linspace(log10(5e-10),log10(1e-7),16)'); % optimal is 7e-9 m/s^3
 %     twiddle_factor = 1/600;
