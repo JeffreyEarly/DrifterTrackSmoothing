@@ -971,11 +971,31 @@ First, we use the Ljung-Box test on the entire ensemble of autocorrelation seque
 
 Second, we ask for consistency in the parameters for the error distribution.
 
+Third, we want the autocorrelation sequence of the velocity not to go negative at lag 1, although I think this follows from above.
+
 Need to discuss cross-validation as a technique.
 
 \section{Notes to self}
 
 I have to go back to the idea of limiting the velocity distribution, not the time integral of it. That makes way more sense.
+
+\section{Velocity probability function}
+
+If we want to do a maximum likelihood of this,
+\begin{equation}
+P \sim \prod^N \exp \left[ -\frac{1}{2} \left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 \right] \cdot \prod^{N_u} \exp \left[  - \frac{1}{2} \left(  \frac{\dot{x}}{\sigma_u} \right)^2 \right] \Delta x.
+\end{equation}
+then we want to minimize this,
+\begin{equation}
+\phi = \frac{1}{2 N} \left[ x^k - X\indices{^k_j} \xi^j \right]^{\textrm{T}} \left(\Sigma^{-1}\right)\indices{^k_i} \left[ x^i - X\indices{^i_l} \xi^l \right] + \frac{1}{2 N_u} \left[V\indices{^k_j} \xi^j \right]^{\textrm{T}} W\indices{^k_i} \left[ V\indices{^i_j} \xi^j \right].
+\end{equation}
+The 1/N normalizations are justified on grounds that we're looking for an average likelihood, something not dependent on the number of observations or velocity grid.
+
+Differentiating the parameters to find the minimum we find that,
+\begin{align}
+\frac{\partial \phi}{\partial \xi^m} = - \frac{2}{N} x_k \left(\Sigma^{-1}\right)\indices{^k_i}  X\indices{^i_m}+ \frac{2}{N} X\indices{_k_m} \left(\Sigma^{-1}\right)\indices{^k_i}  X\indices{^i_l} \xi^l + \frac{2}{N_u} V\indices{_k_m} W\indices{^k_i}  V\indices{^i_l} \xi^l
+\end{align}
+which looks like it will give us exactly the same solution as the tension constraint, assuming a fine grid.
 
 \section{References}
 
