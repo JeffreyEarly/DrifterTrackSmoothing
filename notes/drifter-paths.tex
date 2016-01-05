@@ -997,6 +997,49 @@ Differentiating the parameters to find the minimum we find that,
 \end{align}
 which looks like it will give us exactly the same solution as the tension constraint, assuming a fine grid.
 
+\section{OMG I HAVE THE ANSWER}
+
+All my work that I did classifying the noise of the velocity and the acceleration IS the freakin' answer.
+
+Basically, you set the tension based on the noise of each derivative. This will smooth different amounts at each derivative. (since we just showed it's a Gaussian probability function) Let's say we have an expected noise of 1 m/s, then we'd want to restrict our fit to velocities below that value. Because, intuitively, if we think we're observing something with 1 m/s velocity, then it's likely? just noise.
+
+We could pick a sensible value. 95\% of the noise is within $2\sigma$. 68\% of the noise is within $\sigma$. So we can keep shrinking until we get to 5\% of the noise. This would mean that 95\% of the velocity we're observing is signal. That number is $0.0627 \sigma$, using
+\[
+\textrm{Pr}\sim1-\left(1-\frac{1}{2}\left(1+\textrm{erf} \left( \frac{x}{\sigma \sqrt{2}} \right) \right)2 \right)
+\]
+
+What happens if you double the distance between points? For the velocity variance, this drops it by a factor of two. Meaning, that you'd now have to consider lower velocities as improbable. 
+
+This needs to be modified by removing the mean---or actually just subtracting the fit from the observations.
+
+When I place a velocity tension condition, I cannot have a particle that starts out with a non-zero velocity. This really does act like tension and bends the velocity curve to fit. So, place an acceleration tension condition, then it works. Same is true at the next order. If you start out with non-zero forcing, you're going to want to place jerk conditions.
+
+So what's happening here is that if you demand a velocity tension, essentially you're asking to minimized the total squared velocity, while trading off with how much you're going to miss the observation points. So why does it reduce the velocity at the beginning and end, and yet match it while in the middle? 
+
+
+\section{Further refined penalty function}
+So we're going to have a penalty function like this,
+\begin{equation}
+\phi =  \frac{1}{2} \left[I\indices{^q_j} \left[ \mathcal{D}^2\right]\indices{^j_k} x^k - A\indices{^q_j} \xi^j \right]^{\textrm{T}} {\Sigma^{-1}}\indices{^k_i} \left[I\indices{^q_j} \left[\mathcal{D}^2\right]\indices{^j_i} x^i - A\indices{^q_j} \xi^j \right] 
+\end{equation}
+where $I\indices{^k_q}$ is the integration function and the index $q$ is the integration grid. The point here being that instead of requiring the \emph{average} velocity or acceleration to agree over the interval between appropriate observations, we are requiring it to agree at all points between the observation. When I say agree, I mean reproduce the expected noise.
+
+Perhaps this tension is only needed on the highest non-zero derivative? Yes. The only additional thing that would be solved by including it on the other derivatives would be an integration constant....which is what using the positions will take care of.
+
+Let's say we have really good accuracy in position and relatively weak temporal sampling. In other words, we know the average velocity between two points with good accuracy, but we've under sampled. If we constrain the velocity of our fit using the above method, then a true constant acceleration trajectory would reveal an infinite acceleration at each point. In other words, we'd have give ourselves enough information for a spline of order 1. You see, this will keep the velocities near the average velocity, and at the arc in the parabola it will necessarily have a discontinuous second derivative. Now, if we'd constrained the acceleration, it would produce a constant acceleration, provided we haven't also tried to constrain the velocity. This is all true in the under sampled case.
+
+But what if we're in the over sampled case? Now we have too much noise too really determine an acceleration. If we apply this technique to the acceleration, then it should give us something indistinguishable from zero. But if we use our technique of averaging the deviation, then it seems to me that it might allow acceleration to become really sloppy. I mean that high variation around zero would also produce the same level of noise. SOOOO, this would be a case where you'd want to it to be constant in this range..
+
+
+
+\section{Spline placement algorithm}
+
+Compute the derivatives of the observations and the expected noise at each derivative. When the rms value of the derivative exceeds the expected noise, add a new knot. You do this for the order of the spline that you're interested in.
+
+So, pick an order for a spline. Say, $K=3$, $S=2$. This is a spline that has a constant second derivative, acceleration. Now Compute the acceleration and the expected noise for acceleration at each point. Find all the points that exceed the $2\sigma$ noise threshold. Then we need to start asking if my neighbor is significantly different from me. If it is, we want a new knot, if it's not, we don't.
+
+I'm not quite sure how to get around the correlation structure. 
+
 \section{References}
 
 Check out `The Rod-Spring approximation: An intuitive approach to the best-fit least-squares linear approximation'.

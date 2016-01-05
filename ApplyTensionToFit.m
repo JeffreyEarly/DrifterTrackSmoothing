@@ -10,7 +10,7 @@ f0 = 2*Omega*sin(lat0*pi/180);
 iDrifter = 6;
 sigma = 9; % error in meters
 
-S = 4; % order of the spline
+S = 7; % order of the spline
 K = S+1;
 
 if strcmp(distribution,'gaussian')
@@ -28,8 +28,10 @@ elseif strcmp(distribution,'student-t')
     
      a_rms =  10.^(linspace(log10(5e-10),log10(1e-7),16)'); % optimal is 7e-9 m/s^3
 %     
-%     a_rms =  10.^(linspace(log10(5e-14),log10(1e-10),16)'); % optimal is 3.8e-12 m/s^4
+     a_rms =  10.^(linspace(log10(5e-14),log10(1e-10),16)'); % optimal is 3.8e-12 m/s^4
     
+     a_rms = 0.5*7.8e-18;
+     
     p = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
     w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
     rho = @(z) -log(sqrt(2)*gamma((nu+1)/2)./(sqrt(nu)*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2)));
@@ -49,6 +51,12 @@ dy = ones(size(y))*sigma;
 t_knot = t;
 N = length(t);
 
+% Create my 'mean' velocity
+gamma2 = (N)./((1e-11).*(1e-11)*(t(end)-t(1)));
+[m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,4,t_knot,gamma2,w);
+u_mean = squeeze(Bq(:,:,2))*m_x;
+v_mean = squeeze(Bq(:,:,2))*m_y;
+
 gamma2 = (N)./(a_rms.*a_rms*(t(end)-t(1)));
 
 maxlag = 30;
@@ -59,14 +67,24 @@ ACx = zeros(length(gamma2),maxlag+1);
 ACy = zeros(length(gamma2),maxlag+1);
 AC = zeros(length(gamma2),maxlag+1);
 epsilon = zeros(length(gamma2),2*n);
+velocity_x = zeros(length(gamma2),n*10);
+velocity_y = zeros(length(gamma2),n*10);
+acceleration_x = zeros(length(gamma2),n*10);
+acceleration_y = zeros(length(gamma2),n*10);
+maxder_x = zeros(length(gamma2),n*10);
+maxder_y = zeros(length(gamma2),n*10);
 gamma_out = zeros(length(gamma2),1);
 a2_bar = zeros(length(gamma2),1);
-for i=1:6%length(gamma2)
+for i=1:length(gamma2)
     [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,gamma2(i),w);
     X = squeeze(B(:,:,1));
     error_x = X*m_x - x;
     error_y = X*m_y - y;
     epsilon(i,:) = [error_x;error_y];
+    velocity_x(i,:) = squeeze(Bq(:,:,2))*m_x - u_mean;
+    velocity_y(i,:) = squeeze(Bq(:,:,2))*m_y - v_mean;
+    acceleration_x(i,:) = squeeze(Bq(:,:,3))*m_x;
+    acceleration_y(i,:) = squeeze(Bq(:,:,3))*m_y;
     variance(i) = mean((epsilon(i,:)).^2);
     ACx(i,:) = Autocorrelation(error_x,maxlag);
     ACy(i,:) = Autocorrelation(error_y,maxlag);
@@ -78,6 +96,8 @@ for i=1:6%length(gamma2)
     
     jx = squeeze(Bq(:,:,S))*m_x;
     jy = squeeze(Bq(:,:,S))*m_y;
+    maxder_x(i,:) = jx;
+    maxder_y(i,:) = jy;
     j = jx.*jx+jy.*jy;
     gamma_out(i) = N/(sum(j)*(tq(2)-tq(1)));
     a2_bar(i) = sqrt((sum(j)*(tq(2)-tq(1)))/(t(end)-t(1)));
@@ -163,6 +183,56 @@ for i=1:length(gamma2)
     
     plot(xi,denfunc,'LineWidth',2,'Color','magenta')
     xlim([-50 50])
+end
+
+figure
+for i=1:length(gamma2)
+    subplot(4,4,i)
+    denhist(velocity_x(i,:), 50,'b');
+    m = mean(velocity_x(i,:));
+    s = std(velocity_x(i,:));
+    vlines([m-s;m+s])
+    title(sprintf('mean=%.1f ± %.1f cm/s', 100*m, 100*s))
+end
+
+figure
+for i=1:length(gamma2)
+    subplot(4,4,i)
+    denhist(velocity_y(i,:), 50,'b');
+    m = mean(velocity_y(i,:));
+    s = std(velocity_y(i,:));
+    vlines([m-s;m+s])
+    title(sprintf('mean=%.1f ± %.1f cm/s', 100*m, 100*s))
+end
+
+figure
+for i=1:length(gamma2)
+    subplot(4,4,i)
+    denhist(acceleration_x(i,:), 50,'b');
+    m = mean(acceleration_x(i,:));
+    s = std(acceleration_x(i,:));
+    vlines([m-s;m+s])
+    title(sprintf('mean=%.1g ± %.1g cm/s^2', 100*m, 100*s))
+end
+
+figure
+for i=1:length(gamma2)
+    subplot(4,4,i)
+    denhist(acceleration_y(i,:), 50,'b');
+    m = mean(acceleration_y(i,:));
+    s = std(acceleration_y(i,:));
+    vlines([m-s;m+s])
+    title(sprintf('mean=%.1g ± %.1g cm/s^2', 100*m, 100*s))
+end
+
+figure
+for i=1:length(gamma2)
+    subplot(4,4,i)
+    denhist(maxder_x(i,:), 50,'b');
+    m = mean(maxder_x(i,:));
+    s = std(maxder_x(i,:));
+    vlines([m-s;m+s])
+    title(sprintf('mean=%.1g ± %.1g m/s^2', m, s))
 end
 
 chicheck = sum((epsilon/sigma).^2,2)/length(t);

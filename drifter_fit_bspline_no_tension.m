@@ -38,30 +38,15 @@
 %	cm	float(M,M)		covariance matrix of spline parameters
 %
 %------------------------------------------------------------------------------
-function [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,y,dx,dy,S,t_knot,p, weight_function)
+function [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline_no_tension(t,x,y,dx,dy,S,t_knot,weight_function)
 
 if (length(t) ~= length(x) || length(t) ~= length(y) )
    disp('The time series are not consistent lengths');
    return;
 end
 
-% If we were only given one tension value, assume it's for the end.
-if length(p) == 1
-   pin = p;
-   p = zeros(S-1,1);
-   p(end) = pin;
-end
-
-if (length(p) ~= S-1)
-    disp('The vector p must be of length S-1. You must sent a tension for 1st, 2nd, 3rd...S-1 derivatives.');
-    return;
-end
-
 B = bspline(t,t_knot,S+1);
 X = squeeze(B(:,:,1));
-V = squeeze(B(:,:,2));
-A = squeeze(B(:,:,3));
-J = squeeze(B(:,:,4));
 N = length(y); % also size(X,1);
 M = size(X,2); % number of splines
 
@@ -69,18 +54,12 @@ M = size(X,2); % number of splines
 Q = 10*N; % number of points on the quadrature grid
 tq = linspace(t(1),t(end),Q)';
 Bq = bspline(tq,t_knot,S+1);
-Xq = squeeze(Bq(:,:,1));
-Vq = squeeze(Bq(:,:,2));
-Aq = squeeze(Bq(:,:,3));
-Jq = squeeze(Bq(:,:,4));
-
-gamma = p*(tq(2)-tq(1));
 
 % set up F matrix and h vector for constraints
 NC = 2;
 F=zeros(NC,M);
-F(1,:) = J(1,:);
-F(2,:) = J(end,:);
+F(1,:) = squeeze(B(1,:,end));
+F(2,:) = squeeze(B(end,:,end));
 h(1) = 0.;
 h(2) = 0.;
 
@@ -88,7 +67,7 @@ Wx = diag(1./(dx.^2));
 Wy = diag(1./(dy.^2));
 
 dbstop if warning
-[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Bq, F, F, Wx, Wy, gamma, M, NC, x, y, h );
+[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Bq, F, F, Wx, Wy, M, NC, x, y, h );
 
 error_x_previous = dx;
 error_y_previous = dy;
@@ -101,7 +80,7 @@ while (rel_error > 0.01)
     Wx = diag(1./(dx2));
     Wy = diag(1./(dy2));
     
-    [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Bq, F, F, Wx, Wy, gamma, M, NC, x, y, h );
+    [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Bq, F, F, Wx, Wy, M, NC, x, y, h );
     
     rel_error = max(max( (dx2-error_x_previous)./dx2 ),max( (dy2-error_y_previous)./dy2 ));
     error_x_previous=dx2;
@@ -127,7 +106,7 @@ fprintf('sum(dx/sigma)^2=%f, sum(dy/sigma)^2=%f, chi=%f, sigma = %f, w_rms=%f\n'
 end
 
 
-function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Bq, F, Fy, Wx, Wy, gamma, M, NC, x, y, h )
+function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Bq, F, Fy, Wx, Wy, M, NC, x, y, h )
 % A (and D) matrix:
 % Rows are the N observations
 % Columns are the M splines
@@ -140,22 +119,12 @@ f0=0;
 E_x = X'*Wx*X; % MxM
 E_y = X'*Wy*X; % MxM
 
-for i=1:length(gamma)
-    if (gamma(i) ~= 0.0)
-        Xq = squeeze(Bq(:,:,i+1));
-        T = gamma(i)*(Xq'*Xq);
-        E_x = E_x + T;
-        E_y = E_y + T;
-    end
-end
+    m_x = E_x\(X'*Wx*x);
+    m_y = E_y\(X'*Wy*y);
 
-
-%     m_x = E_x\(X'*Wx*x);
-%     m_y = E_y\(X'*Wy*y);
-% 
-%     Cm_x = inv(E_x);
-%     Cm_y = inv(E_y);
-% return
+    Cm_x = inv(E_x);
+    Cm_y = inv(E_y);
+return
 Xq = squeeze(Bq(:,:,1));
 Vq = squeeze(Bq(:,:,2));
 C_x = -f0*0*(Vq'*Xq); % MxM
