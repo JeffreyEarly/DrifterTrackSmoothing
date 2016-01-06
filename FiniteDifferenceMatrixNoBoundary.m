@@ -1,18 +1,22 @@
-function [D,z] = FiniteDifferenceMatrixNoBoundary(numDerivs, x, order)
+function [D,z,width] = FiniteDifferenceMatrixNoBoundary(numDerivs, x, order)
 % Creates a finite difference matrix of aribtrary accuracy, on an arbitrary
 % grid. It does not implement boundary conditions (check my other routine
 % for that), because it seeks to make all rows linearly independent.
+%
 %
 % numDerivs ? the number of derivatives
 % x ? the grid
 % z location where approximations are to be accurate,
 % orderOfAccuracy ? minimum order of accuracy required
+% width ? the distance between the first and last point used in the
+% approximation.
 %
 % Jeffrey J. Early, 2015
 
 n = length(x);
 m = n - numDerivs;
 D = zeros(m,n);
+width = zeros(m,1);
 
 % order != accurracy.
 nPoints = (numDerivs+1) + 2*(order-1);
@@ -41,6 +45,7 @@ for i=1:m
     
     c = weights( z(i), x(range), numDerivs );
     D(i,range) = c(numDerivs+1,:);
+    width(i) = max(x(range))-min(x(range));
 end
 
 end

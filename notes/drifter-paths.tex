@@ -1040,6 +1040,30 @@ So, pick an order for a spline. Say, $K=3$, $S=2$. This is a spline that has a c
 
 I'm not quite sure how to get around the correlation structure. 
 
+Student t-test is,
+\begin{equation}
+t = \frac{ \bar{x} - \mu}{s/\sqrt{n}}
+\end{equation}
+where $s$ is the sample variance, not the expected variance. But, in our case we know the variance, so we use the z-test,
+\begin{equation}
+z = \frac{ \bar{x} - \mu}{\sigma/\sqrt{n}}
+\end{equation}
+where $z>2$ is 95\% confidence.
+
+What do we use for the variance?
+\begin{align}
+\textrm{var}(A+B+C) =& \textrm{var}(A) + \textrm{var}(B+C) + 2\textrm{cov}(A,B+C) \\
+=& \textrm{var}(A) +\textrm{var}(B) + \textrm{var}(C)  + 2\textrm{cov}(A,B)  + 2\textrm{cov}(A,C) + 2\textrm{cov}(B,C) 
+\end{align}
+Which means that we sum the columns on the covariance matrix for the values that we're interested in. This actually reduces the variances to just the first and last (the others cancel). The weird thing is that we're then 
+
+Unequal sample sizes from the t-test,
+\begin{equation}
+z = \frac{ \bar{x}_1 - \bar{x}_2}{ \sigma \sqrt{\frac{1}{n_1} + \frac{1}{n_2}} } 
+\end{equation}
+
+This appears to be more conservative than just throwing out data and extending the time interval. That's not right.
+
 \section{References}
 
 Check out `The Rod-Spring approximation: An intuitive approach to the best-fit least-squares linear approximation'.
