@@ -215,6 +215,46 @@ for S=1:1
    
 end
 
+% Can we discern changes in position
+knot_indices = [1];
+Sigma = sigma*ones(size(t));
+for j=2:length(t)
+    i = knot_indices(end);
+    dx = x(j)-x(i); !!!! no, difference from the mean position, right? If constant velocity, mean will get dragged up, 
+    s = sqrt( sigma(i)*sigma(i) + sigma(j)*sigma(j) );
+    if abs(dx) > 3*s
+        knot_indices(end+1) = j;
+    end
+    
+    if knot_indices(end) ~= length(t)
+        knot_indices(end+1) = length(t);
+    end
+end
+
+t_dx = t(knot_indices);
+x_dx = x(knot_indices);
+Sigma_dx = sigma(knot_indices);
+% At this point we'd have a piecewise constant spline. Each constant
+% segment will average over points that are within 3\sigma of each other.
+
+
+knot_indices = [1];
+for j=2:length(t_dx)
+    i = knot_indices(end);
+    dx = x_dx(j)-x_dx(i);
+    s = sqrt( sigma(i)*sigma(i) + sigma(j)*sigma(j) );
+    if abs(dx) > 3*s
+        knot_indices(end+1) = j;
+    end
+    
+    if knot_indices(end) ~= length(t)
+        knot_indices(end+1) = length(t);
+    end
+end
+
+
+
+
 [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot,w);
 x_fit = squeeze(Bq(:,:,1))*m_x;
 v_fit = squeeze(Bq(:,:,2))*m_x;
