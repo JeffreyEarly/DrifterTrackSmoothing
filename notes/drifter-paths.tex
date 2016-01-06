@@ -1064,6 +1064,10 @@ z = \frac{ \bar{x}_1 - \bar{x}_2}{ \sigma \sqrt{\frac{1}{n_1} + \frac{1}{n_2}} }
 
 This appears to be more conservative than just throwing out data and extending the time interval. That's not right.
 
+Using the technique of simply extending the time interval, i.e., dropping points in between, we get some excellent separation that looks really damn good. We know the covariance of, for example, $\epsilon^{\textrm{dv}}$, a change in velocity, so we know exactly what noise to compare to for significant change.
+
+A key point in the algorithm at the moment is that we add a new knot point only when the difference exceeds the noise threshold. But, this makes the problem asymmetric because we're only going fowards in time. Once we cross a significant threshold, we need to walk backwards in time until maximum statistical separation is found. God I hope that makes sense. In other words, maximize the z-score between the two vectors. Fantastic!
+
 \section{References}
 
 Check out `The Rod-Spring approximation: An intuitive approach to the best-fit least-squares linear approximation'.

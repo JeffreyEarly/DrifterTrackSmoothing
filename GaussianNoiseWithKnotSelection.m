@@ -128,54 +128,97 @@ t_knot1 = [t(1);  t(a_knot_indices+1); t(end)];
 %     end
 % end
 
+% for S=1:1
+%     [Diff,~,width] = FiniteDifferenceMatrixNoBoundary(S, t, 1);
+%     v = Diff*x;
+%     Sigma=zeros(N-S,N-S);
+%     for i=1:size(Sigma,1)
+%         for j=1:size(Sigma,2)
+%             Sigma(i,j) = sum(Diff(i,:).*Diff(j,:).*sigma'.*sigma');
+%         end
+%     end
+%     Sigma_diag = diag(Sigma);
+%     knot_indices = [];
+%     for i=1:(length(v)-S)
+%         if isempty(knot_indices)
+%             range = i:(i+S);
+%             sigmarange = range;
+%             n_scale = 1/sqrt(S);
+%             mu = 0;
+%             meandiff = mean(v(range))-mu; % compare the mean velocity to zero.
+%             meansigma = sqrt(sum(sum(Sigma(sigmarange,sigmarange),2),1));
+%         else
+%             range_prev = knot_indices(end):max((i-1),knot_indices(end)+S);
+%             range_next = i:(i+S);
+%             sigmarange = [range_prev,range_next];
+%             n_scale = sqrt(1/length(range_prev) + 1/length(range_next));
+%             meandiff = mean(v(range_next)) - mean(v(range_prev));
+%             meansigma = sqrt(sum(sum(Sigma(range_prev,range_prev),2),1) + sum(sum(Sigma(range_next,range_next),2),1));
+%         end
+%         
+%         
+%         if abs(meandiff) > 2*meansigma*n_scale
+%             knot_indices(end+1) = i;
+%         end
+%     end
+%     
+%     if isempty(knot_indices)
+%        fprintf('Not significantly different from zero at order %d\n', S);
+%         S=S-1;
+%        break;
+%     else
+%         t_knot = [t(1);  t(knot_indices+1); t(end)];
+%     end
+% end
+% S=S+1
+
 for S=1:1
-    [Diff,~,width] = FiniteDifferenceMatrixNoBoundary(S, t, 1);
-    v = Diff*x;
-    Sigma=zeros(N-S,N-S);
-    for i=1:size(Sigma,1)
-        for j=1:size(Sigma,2)
-            Sigma(i,j) = sum(Diff(i,:).*Diff(j,:).*sigma'.*sigma');
-        end
-    end
-    Sigma_diag = diag(Sigma);
-    knot_indices = [];
-    for i=1:(length(v)-S)
+%     [Diff,~,width] = FiniteDifferenceMatrixNoBoundary(S, t, 1);
+%     v = Diff*x;
+%     Sigma=zeros(N-S,N-S);
+%     for i=1:size(Sigma,1)
+%         for j=1:size(Sigma,2)
+%             Sigma(i,j) = sum(Diff(i,:).*Diff(j,:).*sigma'.*sigma');
+%         end
+%     end
+   knot_indices = []; 
+   v = [];
+   Sigma_v = [];
+   dt_v = [];
+   
+   for j=2:length(t)
         if isempty(knot_indices)
-            range = i:(i+S);
-            sigmarange = range;
-            n_scale = 1/sqrt(S);
-            mu = 0;
-            meandiff = mean(v(range))-mu; % compare the mean velocity to zero.
-            meansigma = sqrt(sum(sum(Sigma(sigmarange,sigmarange),2),1));
+            i = 1;
+            lastv = 0;
+            lastsigma = 0;
+            lastcov = 0;
         else
-            range_prev = knot_indices(end):max((i-1),knot_indices(end)+S);
-            range_next = i:(i+S);
-            sigmarange = [range_prev,range_next];
-            n_scale = sqrt(1/length(range_prev) + 1/length(range_next));
-            meandiff = mean(v(range_next)) - mean(v(range_prev));
-            meansigma = sqrt(sum(sum(Sigma(range_prev,range_prev),2),1) + sum(sum(Sigma(range_next,range_next),2),1));
+            i = knot_indices(end);
+            lastv = v(end);
+            lastsigma = Sigma_v(end);
+            lastcov = sigma/dt_v(end);
         end
         
-        
-        if abs(meandiff) > 2*meansigma*n_scale
-            knot_indices(end+1) = i;
+        newsigma = 2*sigma*sigma/( ( t(j) - t(i) )*( t(j) - t(i) ) );
+        cov = -lastcov*sigma/( t(j) - t(i) );
+        meansigma = sqrt( newsigma + lastsigma - 2*cov); % the sqrt(2) is the sample size in the z-test
+        newv = ( x(j) - x(i) )/( t(j) - t(i) );
+        if abs(newv-lastv) > 3*meansigma
+            knot_indices(end+1) = j;
+            v(end+1) = newv;
+            Sigma_v(end+1) = newsigma;
+            dt_v(end+1) = t(j) - t(i);
         end
-    end
-    
-    if isempty(knot_indices)
-       fprintf('Not significantly different from zero at order %d\n', S);
-        S=S-1;
-       break;
-    else
-        t_knot = [t(1);  t(knot_indices+1); t(end)];
-    end
+   end
+   
+   t_knot = [t(1);  t(knot_indices); t(end)];
+   
 end
-S=S+1
 
 [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot,w);
 x_fit = squeeze(Bq(:,:,1))*m_x;
 v_fit = squeeze(Bq(:,:,2))*m_x;
-a_fit = squeeze(Bq(:,:,3))*m_x;
+% a_fit = squeeze(Bq(:,:,3))*m_x;
 % j_fit = squeeze(Bq(:,:,4))*m_x;
 x_error = x - squeeze(B(:,:,1))*m_x;
 
