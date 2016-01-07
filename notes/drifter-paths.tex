@@ -1068,6 +1068,16 @@ Using the technique of simply extending the time interval, i.e., dropping points
 
 A key point in the algorithm at the moment is that we add a new knot point only when the difference exceeds the noise threshold. But, this makes the problem asymmetric because we're only going fowards in time. Once we cross a significant threshold, we need to walk backwards in time until maximum statistical separation is found. God I hope that makes sense. In other words, maximize the z-score between the two vectors. Fantastic!
 
+This is very straight, dirt simple algorithm for creating knot points for $K=1$ ($S=0$), a piecewise constant function. All you do is add a new point to a set, and then recompute the mean. If all the points in that set are within 2 or 3 $\sigma$ of the mean, then you're good. If they're not, then you start a new set. That works beautifully.
+
+So when do we decide what to do with velocity? Any of the previous sets tell us that we saw a significant change in position. And thus, we definitely observed a velocity. So we compute those velocities. We then do the same thing as before with position. 
+
+At level 0, we look for significant changes in position. At level 1, we look for significant changes in velocity. Etc.
+
+If we do find significant changes in position, then it means we have a nonzero velocity and $S\geq1$. But, we don't yet know where to put the knot points for $S=1$, because we don't which velocity are significantly different from each other. If all the velocities are indistinguishable, but nonzero, then we'd be fitting to a linear trend.
+
+So the second part to the algorithm has to be to sweep through the velocities, and find those that are not distinguishable from each other. You probably have to start with the two neighbors that are most alike, combine them, then look around again. The reason is that every time you combine a group, you may change the way its neighbors get grouped.
+
 \section{References}
 
 Check out `The Rod-Spring approximation: An intuitive approach to the best-fit least-squares linear approximation'.

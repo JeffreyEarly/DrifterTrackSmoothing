@@ -217,40 +217,46 @@ end
 
 % Can we discern changes in position
 knot_indices = [1];
+t_knot = t(1);
 Sigma = sigma*ones(size(t));
 for j=2:length(t)
     i = knot_indices(end);
-    dx = x(j)-x(i); !!!! no, difference from the mean position, right? If constant velocity, mean will get dragged up, 
-    s = sqrt( sigma(i)*sigma(i) + sigma(j)*sigma(j) );
-    if abs(dx) > 3*s
-        knot_indices(end+1) = j;
-    end
+    range = i:j;
     
-    if knot_indices(end) ~= length(t)
-        knot_indices(end+1) = length(t);
+    dx = x(range)-mean(x(range));
+    if (any(abs(dx) > 2.5*Sigma(range)))
+        knot_indices(end+1) = j;
+        t_knot(end+1) = t(j-1) + (t(j)-t(j-1))/2;
     end
 end
+
+if knot_indices(end) ~= length(t)
+    knot_indices(end+1) = length(t);
+    t_knot(end+1) = t(end);
+end
+t_knot = t_knot';
 
 t_dx = t(knot_indices);
 x_dx = x(knot_indices);
-Sigma_dx = sigma(knot_indices);
+Sigma_dx = Sigma(knot_indices);
 % At this point we'd have a piecewise constant spline. Each constant
 % segment will average over points that are within 3\sigma of each other.
+t_knot = t_dx;
+S=1;
 
-
-knot_indices = [1];
-for j=2:length(t_dx)
-    i = knot_indices(end);
-    dx = x_dx(j)-x_dx(i);
-    s = sqrt( sigma(i)*sigma(i) + sigma(j)*sigma(j) );
-    if abs(dx) > 3*s
-        knot_indices(end+1) = j;
-    end
-    
-    if knot_indices(end) ~= length(t)
-        knot_indices(end+1) = length(t);
-    end
-end
+% knot_indices = [1];
+% for j=2:length(t_dx)
+%     i = knot_indices(end);
+%     dx = x_dx(j)-x_dx(i);
+%     s = sqrt( sigma(i)*sigma(i) + sigma(j)*sigma(j) );
+%     if abs(dx) > 3*s
+%         knot_indices(end+1) = j;
+%     end
+%     
+%     if knot_indices(end) ~= length(t)
+%         knot_indices(end+1) = length(t);
+%     end
+% end
 
 
 
@@ -271,6 +277,7 @@ x_error = x - squeeze(B(:,:,1))*m_x;
 
 mean_x_error = sqrt(mean((path(tq) - x_fit).^2));
 mean_v_error = sqrt(mean((speed(tq) - v_fit).^2));
+%mean_v_error=0;
 
 figure
 plot(t,x_true), hold on
@@ -282,10 +289,13 @@ figure
 hist(x_error)
 title(sprintf('std=%f',std(x_error)))
 
+
+
 figure
 subplot(2,1,1)
 plot( tq, v_fit,'b'), hold on
 scatter(t_v,Diff1*x)
+return
 subplot(2,1,2)
 plot( tq, a_fit,'b'), hold on
 scatter(t_a,a)
