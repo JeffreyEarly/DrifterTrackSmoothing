@@ -258,60 +258,132 @@ S=1;
 %     end
 % end
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% z-score grouping algorithm
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-Sigma = sigma*ones(size(t));
-knot_indices = (1:length(t))';
-left = knot_indices; % left most index of the grouping
-right = knot_indices; % right most index of the grouping
-xmean = zeros(size(left));  % mean of each grouping
-for i=1:length(left)
-    xmean(i) = mean(x(left(i):right(i)));
+% Sigma = sigma*ones(size(t));
+% knot_indices = (1:length(t))';
+% left = knot_indices; % left most index of the grouping
+% right = knot_indices; % right most index of the grouping
+% xmean = zeros(size(left));  % mean of each grouping
+% for i=1:length(left)
+%     xmean(i) = mean(x(left(i):right(i)));
+% end
+% dx = diff(xmean); % difference between neighboring groupings
+% 
+% tolerance = zeros(size(dx));
+% for i=1:length(tolerance)
+%     tolerance(i) = sqrt(mean(Sigma(left(i):right(i+1)).^2));
+% end
+% 
+% % This isn't quite right. We need something based on a Chi-squared
+% % distribution. Because as our knowledge of the mean increase, we change
+% % our estimate of confidence.
+% z_score = abs(dx./tolerance);
+% [min_z_score,m_index] = min(z_score);
+% 
+% while (min_z_score < 2.5)
+%     % These two positions are indistinguishable, so merge them
+%     right(m_index) = right(m_index+1);
+%     left(m_index+1) = [];
+%     right(m_index+1) = [];
+%     
+%     xmean(m_index+1) = [];
+%     xmean(m_index) = mean(x(left(m_index):right(m_index)));
+%     
+%     dx(m_index) = [];
+%     tolerance(m_index) = [];
+%     if (m_index > 1) % update the left difference
+%         dx(m_index-1) = xmean(m_index)-xmean(m_index-1);
+%         tolerance(m_index-1) = sqrt(mean(Sigma(left(m_index-1):right(m_index)).^2));
+%     end
+%     if (m_index < length(xmean))
+%         dx(m_index) = xmean(m_index+1)-xmean(m_index);
+%         tolerance(m_index) = sqrt(mean(Sigma(left(m_index):right(m_index+1)).^2));
+%     end
+%     
+%     z_score = abs(dx./tolerance);
+%     [min_z_score,m_index] = min(z_score);
+% end
+% 
+% t_knot = [t(1);  (t(left(2:end))+t(right(1:(end-1))))/2; t(end)];
+% 
+% S=0;
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% z-score grouping algorithm for velocity
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+S = 1;
+[Diff,~,width] = FiniteDifferenceMatrixNoBoundary(S, t, 1);
+v = Diff*x;
+Sigma2x = sigma*sigma*ones(N,1);
+Sigma2=zeros(N-S,N-S);
+for i=1:size(Sigma2,1)
+    for j=1:size(Sigma2,2)
+        Sigma2(i,j) = sum(Diff(i,:).*Diff(j,:).*sigma'.*sigma');
+    end
 end
-dx = diff(xmean); % difference between neighboring groupings
 
-tolerance = zeros(size(dx));
+left = (1:(length(t)-1))'; % left most index of the grouping
+right = (2:length(t))'; % right most index of the grouping
+dv = diff(v); % difference between neighboring groupings
+
+% the tolerance will be sqrt( sigma_left^2 + sigma_right^2 - 2*covariance)
+tolerance = zeros(size(dv));
 for i=1:length(tolerance)
-    tolerance(i) = sqrt(mean(Sigma(left(i):right(i+1)).^2));
+    tolerance(i) = sqrt(Sigma2(i,i) + Sigma2(i+1,i+1) - 2*Sigma2(i,i+1));
 end
 
-% This isn't quite right. We need something based on a Chi-squared
-% distribution. Because as our knowledge of the mean increase, we change
-% our estimate of confidence.
-z_score = abs(dx./tolerance);
+z_score = abs(dv./tolerance);
 [min_z_score,m_index] = min(z_score);
 
-while (min_z_score < 2.5)
+while (min_z_score < 3.0)
     % These two positions are indistinguishable, so merge them
     right(m_index) = right(m_index+1);
     left(m_index+1) = [];
     right(m_index+1) = [];
     
-    xmean(m_index+1) = [];
-    xmean(m_index) = mean(x(left(m_index):right(m_index)));
+    v(m_index+1) = [];
+    v(m_index) =  (x(right(m_index)) - x(left(m_index)))/(t(right(m_index)) - t(left(m_index)));
     
-    dx(m_index) = [];
+    Sigma2(m_index+1,:) = [];
+    Sigma2(:,m_index+1) = [];
+    dv(m_index) = [];
     tolerance(m_index) = [];
+    
+    Sigma2(m_index,m_index) = (Sigma2x(left(m_index)) + Sigma2x(right(m_index)))/(t(right(m_index)) - t(left(m_index)))^2;
     if (m_index > 1) % update the left difference
-        dx(m_index-1) = xmean(m_index)-xmean(m_index-1);
-        tolerance(m_index-1) = sqrt(mean(Sigma(left(m_index-1):right(m_index)).^2));
+        dv(m_index-1) = v(m_index)-v(m_index-1);
+        cov = -Sigma2x(left(m_index))/( (t(right(m_index-1)) - t(left(m_index-1)))*(t(right(m_index)) - t(left(m_index))) );
+        Sigma2(m_index-1,m_index) = cov;
+        Sigma2(m_index,m_index-1) = cov;
+        tolerance(m_index-1) = sqrt(Sigma2(m_index-1,m_index-1) + Sigma2(m_index,m_index) - 2*Sigma2(m_index-1,m_index));
     end
-    if (m_index < length(xmean))
-        dx(m_index) = xmean(m_index+1)-xmean(m_index);
-        tolerance(m_index) = sqrt(mean(Sigma(left(m_index):right(m_index+1)).^2));
+    if (m_index < length(v))
+        dv(m_index) = v(m_index+1)-v(m_index);
+        cov = -Sigma2x(left(m_index+1))/( (t(right(m_index)) - t(left(m_index)))*(t(right(m_index+1)) - t(left(m_index+1))) );
+        Sigma2(m_index,m_index+1) = cov;
+        Sigma2(m_index+1,m_index) = cov;
+        tolerance(m_index) = sqrt(Sigma2(m_index,m_index) + Sigma2(m_index+1,m_index+1) - 2*Sigma2(m_index,m_index+1));
     end
     
-    z_score = abs(dx./tolerance);
+    z_score = abs(dv./tolerance);
     [min_z_score,m_index] = min(z_score);
 end
 
-t_knot = [t(1);  (t(left(2:end))+t(right(1:(end-1))))/2; t(end)];
-
-S=0;
+t_knot = [t(1);  t(left(2:end)); t(end)];
 
 
 [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot,w);
 x_fit = squeeze(Bq(:,:,1))*m_x;
-% v_fit = squeeze(Bq(:,:,2))*m_x;
+v_fit = squeeze(Bq(:,:,2))*m_x;
 % a_fit = squeeze(Bq(:,:,3))*m_x;
 % j_fit = squeeze(Bq(:,:,4))*m_x;
 x_error = x - squeeze(B(:,:,1))*m_x;
@@ -324,8 +396,8 @@ x_error = x - squeeze(B(:,:,1))*m_x;
 % end
 
 mean_x_error = sqrt(mean((path(tq) - x_fit).^2));
-% mean_v_error = sqrt(mean((speed(tq) - v_fit).^2));
-mean_v_error=0;
+mean_v_error = sqrt(mean((speed(tq) - v_fit).^2));
+% mean_v_error=0;
 
 figure
 plot(t,x_true), hold on
@@ -336,8 +408,6 @@ title(sprintf('position rms error=%.2f meters, velocity rms error=%.2f m/s',mean
 figure
 hist(x_error)
 title(sprintf('std=%f',std(x_error)))
-
-return
 
 figure
 subplot(2,1,1)
