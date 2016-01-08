@@ -1080,6 +1080,27 @@ So the second part to the algorithm has to be to sweep through the velocities, a
 
 Possible title: Smoothing noisy GPS data with optimal B-spline knot placement
 
+The only issue now is figuring out how this scales to higher derivatives.
+
+When we group neighboring velocities, we are, apparently doing a time-weighted average. That's the only way it makes sense following the definition of the derivative. However, it's not clear how we add the variances in the same way.
+
+\begin{align}
+v_1 + \epsilon^v_1 \equiv& \frac{x_2-x_1}{t_2-t_1} + \frac{\epsilon_2 - \epsilon_1}{t_2-t_1}\\
+v_2 + \epsilon^v_2 \equiv& \frac{x_3-x_2}{t_3-t_2} + \frac{\epsilon_3 - \epsilon_2}{t_3-t_2}
+\end{align}
+And then we define the new time-weighted average,
+\begin{equation}
+\bar{v}_{12} \equiv \frac{\Delta t_1 (v_1 + \epsilon^v_1) + \Delta t_2 (v_2 + \epsilon^v_2)}{\Delta t_1 + \Delta t_2}
+\end{equation}
+and we can try to compute the covariance.
+\begin{align}
+\textrm{cov}(\bar{v}_{12}, \bar{v}_{12}) =& \frac{ \textrm{cov}(\Delta t_1 (v_1 + \epsilon^v_1) + \Delta t_2 (v_2 + \epsilon^v_2), \Delta t_1 (v_1 + \epsilon^v_1) + \Delta t_2 (v_2 + \epsilon^v_2)) }{ (\Delta t_1 + \Delta t_2)^2 } \\
+=& \frac{1}{(\Delta t_{12})^2} \textrm{cov}(\Delta t_1 (v_1 + \epsilon^v_1), \Delta t_1 (v_1 + \epsilon^v_1) + \Delta t_2 (v_2 + \epsilon^v_2)) \\ \nonumber &+ \frac{1}{(\Delta t_{12})^2} \textrm{cov}(\Delta t_2 (v_2 + \epsilon^v_2), \Delta t_1 (v_1 + \epsilon^v_1) + \Delta t_2 (v_2 + \epsilon^v_2)) \\
+(\Delta t_{12})^2 \textrm{cov}(\bar{v}_{12}, \bar{v}_{12}) =& \textrm{cov}(\Delta t_1 (v_1 + \epsilon^v_1), \Delta t_1 (v_1 + \epsilon^v_1) ) +  \textrm{cov}(\Delta t_1 (v_1 + \epsilon^v_1), \Delta t_2 (v_2 + \epsilon^v_2)) \\ \nonumber &+ \textrm{cov}(\Delta t_2 (v_2 + \epsilon^v_2), \Delta t_1 (v_1 + \epsilon^v_1) ) + \textrm{cov}(\Delta t_2 (v_2 + \epsilon^v_2),  \Delta t_2 (v_2 + \epsilon^v_2)) \\
+=& (\Delta t_1)^2 \textrm{cov}( \epsilon^v_1, \epsilon^v_1) + 2 \Delta t_1 \Delta t_2 \textrm{cov}(\epsilon^v_1,\epsilon^v_2) +  (\Delta t_2)^2 \textrm{cov}( \epsilon^v_2, \epsilon^v_2) 
+\end{align}
+This is exactly what you'd hope for: we essentially undo the time scalings.
+
 \section{References}
 
 Check out `The Rod-Spring approximation: An intuitive approach to the best-fit least-squares linear approximation'.
