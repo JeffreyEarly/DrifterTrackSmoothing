@@ -1114,6 +1114,14 @@ The best I can come up with at the moment is to minimize the error of the accele
 
 One key point here is that the information gleaned from the velocity sorting algorithm is helpful. Each point where there's a significant change in velocity, means that there's potentially a significant change in acceleration. So there's no sense in looking else where for such an inflection point. This point could take the left and right velocity vector to be different lengths. However, a 'non-change' in velocity would almost certainly be centered in time to maximize the statistical power (reduce the error).
 
+\section{Rethinking}
+
+I am back to believe there is nothing different about looking for changes in position than looking for changes in velocity.
+
+You start by grouping things with the lowest z-score together until all groups have a minimum z-score from each other. So now these are statistically significant changes in position.
+
+Now you want to start to find statistically significant changes in velocity. Imagine a particle at rest for 10 seconds which then moves with a slow velocity for 10 more seconds. The noise level is such that you get several points for each statistically significant change in position during the nonzero velocity phase.
+
 \section{References}
 
 Check out `The Rod-Spring approximation: An intuitive approach to the best-fit least-squares linear approximation'.
