@@ -1099,7 +1099,20 @@ and we can try to compute the covariance.
 (\Delta t_{12})^2 \textrm{cov}(\bar{v}_{12}, \bar{v}_{12}) =& \textrm{cov}(\Delta t_1 (v_1 + \epsilon^v_1), \Delta t_1 (v_1 + \epsilon^v_1) ) +  \textrm{cov}(\Delta t_1 (v_1 + \epsilon^v_1), \Delta t_2 (v_2 + \epsilon^v_2)) \\ \nonumber &+ \textrm{cov}(\Delta t_2 (v_2 + \epsilon^v_2), \Delta t_1 (v_1 + \epsilon^v_1) ) + \textrm{cov}(\Delta t_2 (v_2 + \epsilon^v_2),  \Delta t_2 (v_2 + \epsilon^v_2)) \\
 =& (\Delta t_1)^2 \textrm{cov}( \epsilon^v_1, \epsilon^v_1) + 2 \Delta t_1 \Delta t_2 \textrm{cov}(\epsilon^v_1,\epsilon^v_2) +  (\Delta t_2)^2 \textrm{cov}( \epsilon^v_2, \epsilon^v_2) 
 \end{align}
-This is exactly what you'd hope for: we essentially undo the time scalings.
+This is exactly what you'd hope for: we essentially undo the time scalings, add everything up, then scale with the new time. Specifically, in the covariance matrix we multiply the columns and then the rows by the $\Delta t$ between the points they represent, then sum the columns and rows over which we're averaging, then divide by the new $\Delta t^2$.
+
+So what is,
+\begin{align}
+\textrm{cov} (\bar{v}_{12}, \bar{v}_{34}) =& \textrm{cov} \left( \frac{\Delta t_1 \epsilon^v_1 + \Delta t_2 \epsilon^v_2}{\Delta t_1 + \Delta t_2}, \frac{\Delta t_3 \epsilon^v_3 + \Delta t_4 \epsilon^v_4}{\Delta t_3 + \Delta t_4} \right) \\
+=& \frac{\Delta t_2 \Delta t_3}{ \left( \Delta t_1 + \Delta t_2 \right) \left( \Delta t_3 + \Delta t_4\right)} \textrm{cov} ( \epsilon^v_2, \epsilon^v_3)
+\end{align}
+Same pattern as before. Multiply by the old $\Delta t$ (once for the column, once for the row), then divide by the new $\Delta t$ (once for the column, once for the row).
+
+Note that the time-weighted acceleration is just the difference between the first and last velocity, divided by time. All the intermediate information is essentially garbaged, just as in the velocity average. This does not seem like the best use of statistical power because the end point velocities still have relatively high variance.
+
+The best I can come up with at the moment is to minimize the error of the acceleration for a particular grouping by choosing an optimal set of velocities to difference. Or we go back to the earlier idea of using the results from the velocity difference significance. It's not clear where you'd place knot points. And, you'd still not have detected non-accelerations that are statistically significant. In other words, no change in velocity could be a statistically significant observation. So knot points would be between the velocity difference knot points. You'd have one where the acceleration changes value to the other observation acceleration. But you might also have a second one, in between which the acceleration drops to zero. That's probably a doable algorithm, but I don't really like it.
+
+One key point here is that the information gleaned from the velocity sorting algorithm is helpful. Each point where there's a significant change in velocity, means that there's potentially a significant change in acceleration. So there's no sense in looking else where for such an inflection point. This point could take the left and right velocity vector to be different lengths. However, a 'non-change' in velocity would almost certainly be centered in time to maximize the statistical power (reduce the error).
 
 \section{References}
 
