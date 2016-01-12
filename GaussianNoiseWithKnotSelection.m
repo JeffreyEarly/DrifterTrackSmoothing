@@ -19,6 +19,7 @@ path = @(t) u_true*sech((t-50)/u_width).^2;
 speed = @(t) -2*(u_true/u_width).*tanh((t-50)/u_width).*sech((t-50)/u_width).^2;
 
 x_true = path(t);
+v_true = speed(t);
 
 sigma = 4; % meters
 
@@ -135,9 +136,9 @@ else
 end
 
 figure
-plot(t,x_true), hold on
-plot(tq,x_fit,'b')
-scatter(t,x,5)
+plot(t,x_true,'k','LineWidth',1), hold on
+plot(tq,x_fit,'b','LineWidth',1.5)
+scatter(t,x,6^2,'filled')
 vlines(t_knot, 'g--')
 title(sprintf('position rms error=%.2f meters, velocity rms error=%.2f m/s',mean_x_error, mean_v_error))
 
@@ -150,8 +151,9 @@ if S>0
     
     figure
     subplot(2,1,1)
-    plot( tq, v_fit,'b'), hold on
-    scatter(t_v1,Diff1*x)
+    plot(t,v_true,'k','LineWidth',1), hold on
+    plot( tq, v_fit,'b','LineWidth',1.5)
+    scatter(t_v1,Diff1*x,6^2,'filled')
     vlines(t_knot, 'g--')
 end
 

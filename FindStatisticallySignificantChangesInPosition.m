@@ -25,7 +25,7 @@ dx = diff(xmean); % difference between neighboring groupings
 
 tolerance = zeros(size(dx));
 for i=1:length(tolerance)
-    tolerance(i) = sqrt(mean(Sigma(left(i):right(i+1)).^2));
+    tolerance(i) = sqrt(mean(Sigma(left(i):right(i+1)).^2)/length(left(i):right(i+1)));
 end
 
 % This isn't quite right. We need something based on a Chi-squared
