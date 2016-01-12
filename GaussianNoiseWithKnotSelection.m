@@ -30,454 +30,109 @@ x = x_true + epsilon;
 
 N = length(t);
 
-% Differentiation matrix for velocity, and velocity grid t_v
-[Diff1,t_v1] = FiniteDifferenceMatrixNoBoundary(1, t, 1);
-v = Diff1*x;
-dt_v = diff(t);
-Sigma_x=zeros(N-1,N-1);
-for i=1:size(Sigma_x,1)
-    for j=1:size(Sigma_x,2)
-        Sigma_x(i,j) = sum(Diff1(i,:).*Diff1(j,:).*sigma'.*sigma');
-    end
-end
-sigma_x_diag = diag(Sigma_x);
-
-v_knot_indices = [1]';
-for i=2:(length(v)-1)
-    range=(v_knot_indices(end):i);
-    mu = sum(dt_v(range).*v(range))/sum(dt_v(range));
-    meandiff = v(i)-mu;
-    meansigma = sqrt(mean(sigma_x_diag(range)));
-    if abs(meandiff) > 3*meansigma
-       v_knot_indices(end+1) = i; 
-    end
-end
-v_knot_indices(1) = [];
-
-t_knot = [t(1); t(v_knot_indices); t(end)];
-
 p = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
 w = @(z)(sigma*sigma);
 
-S=2;
-[Diff2,t_a] = FiniteDifferenceMatrixNoBoundary(2, t, 1);
-a = Diff2*x;
-dt_a = dt_v(1:end-1) + dt_v(2:end);
-Sigma_xx=zeros(N-2,N-2);
-for i=1:size(Sigma_xx,1)
-    for j=1:size(Sigma_xx,2)
-        Sigma_xx(i,j) = sum(Diff2(i,:).*Diff2(j,:).*sigma'.*sigma');
-    end
-end
-sigma_xx_diag = diag(Sigma_xx);
-a_knot_indices = [];
-for i=1:length(a)
-    if isempty(a_knot_indices)
-        range = 1:i;
-        mu = 0;
-    else
-        range=(a_knot_indices(end):i);
-        mu = sum(dt_a(range).*a(range))/sum(dt_a(range));
-    end
-    meandiff = a(i)-mu;
-    meansigma = sqrt(mean(sigma_xx_diag(range)));
-    if abs(meandiff) > 3*meansigma
-       a_knot_indices(end+1) = i; 
-    end
-end
-
-t_knot1 = [t(1);  t(a_knot_indices+1); t(end)];
-
-% for S=1:5
-%     [Diff,~,width] = FiniteDifferenceMatrixNoBoundary(S, t, 1);
-%     v = Diff*x;
-%     Sigma=zeros(N-S,N-S);
-%     for i=1:size(Sigma,1)
-%         for j=1:size(Sigma,2)
-%             Sigma(i,j) = sum(Diff(i,:).*Diff(j,:).*sigma'.*sigma');
-%         end
-%     end
-%     Sigma_diag = diag(Sigma);
-%     knot_indices = [];
-%     %for i=2:(length(v)-S)
-%     i=2;
-%     while i<=length(v)-S
-%         if isempty(knot_indices)
-%             range = 1:(i-1);
-%             mu = 0;
-%         else
-%             range=(knot_indices(end):(i-1));
-%             mu = sum(width(range).*v(range))/sum(width(range));
-%         end
-%         meandiff = mean(v(i:i+S))-mu;
-%         meansigma = sqrt(mean(Sigma_diag(range)));
-%         if abs(meandiff) > 2.0*meansigma
-%             knot_indices(end+1) = i;
-%             i=i+1+S;
-%         else
-%             i=i+1;
-%         end
-%     end
-%     
-%     if isempty(knot_indices)
-%        fprintf('Not significantly different from zero at order %d\n', S);
-%        S=S-1;
-%        break;
-%     else
-%         t_knot = [t(1);  t(knot_indices+1); t(end)];
-%     end
-% end
-
-% for S=1:1
-%     [Diff,~,width] = FiniteDifferenceMatrixNoBoundary(S, t, 1);
-%     v = Diff*x;
-%     Sigma=zeros(N-S,N-S);
-%     for i=1:size(Sigma,1)
-%         for j=1:size(Sigma,2)
-%             Sigma(i,j) = sum(Diff(i,:).*Diff(j,:).*sigma'.*sigma');
-%         end
-%     end
-%     Sigma_diag = diag(Sigma);
-%     knot_indices = [];
-%     for i=1:(length(v)-S)
-%         if isempty(knot_indices)
-%             range = i:(i+S);
-%             sigmarange = range;
-%             n_scale = 1/sqrt(S);
-%             mu = 0;
-%             meandiff = mean(v(range))-mu; % compare the mean velocity to zero.
-%             meansigma = sqrt(sum(sum(Sigma(sigmarange,sigmarange),2),1));
-%         else
-%             range_prev = knot_indices(end):max((i-1),knot_indices(end)+S);
-%             range_next = i:(i+S);
-%             sigmarange = [range_prev,range_next];
-%             n_scale = sqrt(1/length(range_prev) + 1/length(range_next));
-%             meandiff = mean(v(range_next)) - mean(v(range_prev));
-%             meansigma = sqrt(sum(sum(Sigma(range_prev,range_prev),2),1) + sum(sum(Sigma(range_next,range_next),2),1));
-%         end
-%         
-%         
-%         if abs(meandiff) > 2*meansigma*n_scale
-%             knot_indices(end+1) = i;
-%         end
-%     end
-%     
-%     if isempty(knot_indices)
-%        fprintf('Not significantly different from zero at order %d\n', S);
-%         S=S-1;
-%        break;
-%     else
-%         t_knot = [t(1);  t(knot_indices+1); t(end)];
-%     end
-% end
-% S=S+1
-
-for S=1:1
-%     [Diff,~,width] = FiniteDifferenceMatrixNoBoundary(S, t, 1);
-%     v = Diff*x;
-%     Sigma=zeros(N-S,N-S);
-%     for i=1:size(Sigma,1)
-%         for j=1:size(Sigma,2)
-%             Sigma(i,j) = sum(Diff(i,:).*Diff(j,:).*sigma'.*sigma');
-%         end
-%     end
-   knot_indices = []; 
-   v = [];
-   Sigma_v = [];
-   dt_v = [];
-   
-   for j=2:length(t)
-        if isempty(knot_indices)
-            i = 1;
-            lastv = 0;
-            lastsigma = 0;
-            lastcov = 0;
-        else
-            i = knot_indices(end);
-            lastv = v(end);
-            lastsigma = Sigma_v(end);
-            lastcov = sigma/dt_v(end);
-        end
-        
-        newsigma = 2*sigma*sigma/( ( t(j) - t(i) )*( t(j) - t(i) ) );
-        cov = -lastcov*sigma/( t(j) - t(i) );
-        meansigma = sqrt( newsigma + lastsigma - 2*cov); % the sqrt(2) is the sample size in the z-test
-        newv = ( x(j) - x(i) )/( t(j) - t(i) );
-        if abs(newv-lastv) > 3*meansigma
-            knot_indices(end+1) = j;
-            v(end+1) = newv;
-            Sigma_v(end+1) = newsigma;
-            dt_v(end+1) = t(j) - t(i);
-        end
-   end
-   
-   t_knot = [t(1);  t(knot_indices); t(end)];
-   
-end
-
-% Can we discern changes in position
-knot_indices = [1];
-t_knot = t(1);
 Sigma = sigma*ones(size(t));
-for j=2:length(t)
-    i = knot_indices(end);
-    range = i:j;
-    
-    dx = x(range)-mean(x(range));
-    if (any(abs(dx) > 2.5*Sigma(range)))
-        knot_indices(end+1) = j;
-        t_knot(end+1) = t(j-1) + (t(j)-t(j-1))/2;
-    end
-end
+S = 0;
+[t_knot] = FindStatisticallySignificantChangesInPosition(t,x,Sigma,3.0);
+S = 1;
+[t_knot] = FindStatisticallySignificantChangesInVelocity(t,x,Sigma,3.0);
 
-if knot_indices(end) ~= length(t)
-    knot_indices(end+1) = length(t);
-    t_knot(end+1) = t(end);
-end
-t_knot = t_knot';
-
-t_dx = t(knot_indices);
-x_dx = x(knot_indices);
-Sigma_dx = Sigma(knot_indices);
-% At this point we'd have a piecewise constant spline. Each constant
-% segment will average over points that are within 3\sigma of each other.
-t_knot = t_dx;
-S=1;
-
-% knot_indices = [1];
-% for j=2:length(t_dx)
-%     i = knot_indices(end);
-%     dx = x_dx(j)-x_dx(i);
-%     s = sqrt( sigma(i)*sigma(i) + sigma(j)*sigma(j) );
-%     if abs(dx) > 3*s
-%         knot_indices(end+1) = j;
-%     end
-%     
-%     if knot_indices(end) ~= length(t)
-%         knot_indices(end+1) = length(t);
-%     end
-% end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
-% z-score grouping algorithm
+% Now let's take a look at the acceleration and those errors
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Sigma = sigma*ones(size(t));
-% knot_indices = (1:length(t))';
-% left = knot_indices; % left most index of the grouping
-% right = knot_indices; % right most index of the grouping
-% xmean = zeros(size(left));  % mean of each grouping
-% for i=1:length(left)
-%     xmean(i) = mean(x(left(i):right(i)));
-% end
-% dx = diff(xmean); % difference between neighboring groupings
+% v_indices = [1; left(2:end); length(t)];
+% % v_indices = (1:length(t))';
+% t_knot = t(v_indices);
+% [Diff,t_v,width] = FiniteDifferenceMatrixNoBoundary(1, t_knot, 1);
+% v = Diff*x(v_indices);
+% Sigma2v = Sigma2;
+% % S = 1;
+% % Sigma2v=zeros(N-S,N-S);
+% % for i=1:size(Sigma2v,1)
+% %     for j=1:size(Sigma2v,2)
+% %         Sigma2v(i,j) = sum(Diff(i,:).*Diff(j,:).*sigma'.*sigma');
+% %     end
+% % end
 % 
-% tolerance = zeros(size(dx));
+% S = 2;
+% [Diff,~,width] = FiniteDifferenceMatrixNoBoundary(2, t_knot, 1);
+% a = Diff*x(v_indices);
+% N = length(t_knot);
+% Sigma2x = sigma*sigma*ones(N,1);
+% Sigma2=zeros(N-S,N-S);
+% for i=1:size(Sigma2,1)
+%     for j=1:size(Sigma2,2)
+%         Sigma2(i,j) = sum(Diff(i,:).*Diff(j,:).*sigma'.*sigma');
+%     end
+% end
+% 
+% left = (1:(length(v_indices)-1))'; % left most index of the grouping
+% right = (2:length(v_indices))'; % right most index of the grouping
+% da = diff(a); % difference between neighboring groupings
+% 
+% % the tolerance will be sqrt( sigma_left^2 + sigma_right^2 - 2*covariance)
+% tolerance = zeros(size(da));
 % for i=1:length(tolerance)
-%     tolerance(i) = sqrt(mean(Sigma(left(i):right(i+1)).^2));
+%     tolerance(i) = sqrt(Sigma2(i,i) + Sigma2(i+1,i+1) - 2*Sigma2(i,i+1));
 % end
 % 
-% % This isn't quite right. We need something based on a Chi-squared
-% % distribution. Because as our knowledge of the mean increase, we change
-% % our estimate of confidence.
-% z_score = abs(dx./tolerance);
+% z_score = abs(da./tolerance);
 % [min_z_score,m_index] = min(z_score);
 % 
-% while (min_z_score < 2.5)
-%     % These two positions are indistinguishable, so merge them
+% while (min_z_score < 3.0)
+%     % These two accelerations are indistinguishable, so merge them
 %     right(m_index) = right(m_index+1);
 %     left(m_index+1) = [];
 %     right(m_index+1) = [];
 %     
-%     xmean(m_index+1) = [];
-%     xmean(m_index) = mean(x(left(m_index):right(m_index)));
+%     a(m_index+1) = [];
+%     a(m_index) =  (v(right(m_index)) - v(left(m_index)))/(t_v(right(m_index)) - t_v(left(m_index)));
 %     
-%     dx(m_index) = [];
+%     Sigma2(m_index+1,:) = [];
+%     Sigma2(:,m_index+1) = [];
+%     da(m_index) = [];
 %     tolerance(m_index) = [];
+%     
+%     Sigma2(m_index,m_index) = (Sigma2v(left(m_index),left(m_index)) + Sigma2v(right(m_index),right(m_index)))/(t_v(right(m_index)) - t_v(left(m_index)))^2;
 %     if (m_index > 1) % update the left difference
-%         dx(m_index-1) = xmean(m_index)-xmean(m_index-1);
-%         tolerance(m_index-1) = sqrt(mean(Sigma(left(m_index-1):right(m_index)).^2));
+%         da(m_index-1) = a(m_index)-a(m_index-1);
+%         cov = -Sigma2v(left(m_index),left(m_index))/( (t_v(right(m_index-1)) - t_v(left(m_index-1)))*(t_v(right(m_index)) - t_v(left(m_index))) );
+%         Sigma2(m_index-1,m_index) = cov;
+%         Sigma2(m_index,m_index-1) = cov;
+%         tolerance(m_index-1) = sqrt(Sigma2(m_index-1,m_index-1) + Sigma2(m_index,m_index) - 2*Sigma2(m_index-1,m_index));
 %     end
-%     if (m_index < length(xmean))
-%         dx(m_index) = xmean(m_index+1)-xmean(m_index);
-%         tolerance(m_index) = sqrt(mean(Sigma(left(m_index):right(m_index+1)).^2));
+%     if (m_index < length(a))
+%         da(m_index) = a(m_index+1)-a(m_index);
+%         cov = -Sigma2v(left(m_index+1),left(m_index+1))/( (t_v(right(m_index)) - t_v(left(m_index)))*(t_v(right(m_index+1)) - t_v(left(m_index+1))) );
+%         Sigma2(m_index,m_index+1) = cov;
+%         Sigma2(m_index+1,m_index) = cov;
+%         tolerance(m_index) = sqrt(Sigma2(m_index,m_index) + Sigma2(m_index+1,m_index+1) - 2*Sigma2(m_index,m_index+1));
 %     end
 %     
-%     z_score = abs(dx./tolerance);
+%     z_score = abs(da./tolerance);
 %     [min_z_score,m_index] = min(z_score);
 % end
 % 
-% t_knot = [t(1);  (t(left(2:end))+t(right(1:(end-1))))/2; t(end)];
-% 
-% S=0;
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% z-score grouping algorithm for velocity
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-S = 1;
-[Diff,~,width] = FiniteDifferenceMatrixNoBoundary(S, t, 1);
-v = Diff*x;
-Sigma2x = sigma*sigma*ones(N,1);
-Sigma2=zeros(N-S,N-S);
-for i=1:size(Sigma2,1)
-    for j=1:size(Sigma2,2)
-        Sigma2(i,j) = sum(Diff(i,:).*Diff(j,:).*sigma'.*sigma');
-    end
-end
-
-left = (1:(length(t)-1))'; % left most index of the grouping
-right = (2:length(t))'; % right most index of the grouping
-dv = diff(v); % difference between neighboring groupings
-
-% the tolerance will be sqrt( sigma_left^2 + sigma_right^2 - 2*covariance)
-tolerance = zeros(size(dv));
-for i=1:length(tolerance)
-    tolerance(i) = sqrt(Sigma2(i,i) + Sigma2(i+1,i+1) - 2*Sigma2(i,i+1));
-end
-
-z_score = abs(dv./tolerance);
-[min_z_score,m_index] = min(z_score);
-
-while (min_z_score < 3.0)
-    % These two positions are indistinguishable, so merge them
-    right(m_index) = right(m_index+1);
-    left(m_index+1) = [];
-    right(m_index+1) = [];
-    
-    v(m_index+1) = [];
-    v(m_index) =  (x(right(m_index)) - x(left(m_index)))/(t(right(m_index)) - t(left(m_index)));
-    
-    Sigma2(m_index+1,:) = [];
-    Sigma2(:,m_index+1) = [];
-    dv(m_index) = [];
-    tolerance(m_index) = [];
-    
-    Sigma2(m_index,m_index) = (Sigma2x(left(m_index)) + Sigma2x(right(m_index)))/(t(right(m_index)) - t(left(m_index)))^2;
-    if (m_index > 1) % update the left difference
-        dv(m_index-1) = v(m_index)-v(m_index-1);
-        cov = -Sigma2x(left(m_index))/( (t(right(m_index-1)) - t(left(m_index-1)))*(t(right(m_index)) - t(left(m_index))) );
-        Sigma2(m_index-1,m_index) = cov;
-        Sigma2(m_index,m_index-1) = cov;
-        tolerance(m_index-1) = sqrt(Sigma2(m_index-1,m_index-1) + Sigma2(m_index,m_index) - 2*Sigma2(m_index-1,m_index));
-    end
-    if (m_index < length(v))
-        dv(m_index) = v(m_index+1)-v(m_index);
-        cov = -Sigma2x(left(m_index+1))/( (t(right(m_index)) - t(left(m_index)))*(t(right(m_index+1)) - t(left(m_index+1))) );
-        Sigma2(m_index,m_index+1) = cov;
-        Sigma2(m_index+1,m_index) = cov;
-        tolerance(m_index) = sqrt(Sigma2(m_index,m_index) + Sigma2(m_index+1,m_index+1) - 2*Sigma2(m_index,m_index+1));
-    end
-    
-    z_score = abs(dv./tolerance);
-    [min_z_score,m_index] = min(z_score);
-end
-
-
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Now let's take a look at the acceleration and those errors
-
-v_indices = [1; left(2:end); length(t)];
-% v_indices = (1:length(t))';
-t_knot = t(v_indices);
-[Diff,t_v,width] = FiniteDifferenceMatrixNoBoundary(1, t_knot, 1);
-v = Diff*x(v_indices);
-Sigma2v = Sigma2;
-% S = 1;
-% Sigma2v=zeros(N-S,N-S);
-% for i=1:size(Sigma2v,1)
-%     for j=1:size(Sigma2v,2)
-%         Sigma2v(i,j) = sum(Diff(i,:).*Diff(j,:).*sigma'.*sigma');
-%     end
-% end
-
-S = 2;
-[Diff,~,width] = FiniteDifferenceMatrixNoBoundary(2, t_knot, 1);
-a = Diff*x(v_indices);
-N = length(t_knot);
-Sigma2x = sigma*sigma*ones(N,1);
-Sigma2=zeros(N-S,N-S);
-for i=1:size(Sigma2,1)
-    for j=1:size(Sigma2,2)
-        Sigma2(i,j) = sum(Diff(i,:).*Diff(j,:).*sigma'.*sigma');
-    end
-end
-
-left = (1:(length(v_indices)-1))'; % left most index of the grouping
-right = (2:length(v_indices))'; % right most index of the grouping
-da = diff(a); % difference between neighboring groupings
-
-% the tolerance will be sqrt( sigma_left^2 + sigma_right^2 - 2*covariance)
-tolerance = zeros(size(da));
-for i=1:length(tolerance)
-    tolerance(i) = sqrt(Sigma2(i,i) + Sigma2(i+1,i+1) - 2*Sigma2(i,i+1));
-end
-
-z_score = abs(da./tolerance);
-[min_z_score,m_index] = min(z_score);
-
-while (min_z_score < 3.0)
-    % These two accelerations are indistinguishable, so merge them
-    right(m_index) = right(m_index+1);
-    left(m_index+1) = [];
-    right(m_index+1) = [];
-    
-    a(m_index+1) = [];
-    a(m_index) =  (v(right(m_index)) - v(left(m_index)))/(t_v(right(m_index)) - t_v(left(m_index)));
-    
-    Sigma2(m_index+1,:) = [];
-    Sigma2(:,m_index+1) = [];
-    da(m_index) = [];
-    tolerance(m_index) = [];
-    
-    Sigma2(m_index,m_index) = (Sigma2v(left(m_index),left(m_index)) + Sigma2v(right(m_index),right(m_index)))/(t_v(right(m_index)) - t_v(left(m_index)))^2;
-    if (m_index > 1) % update the left difference
-        da(m_index-1) = a(m_index)-a(m_index-1);
-        cov = -Sigma2v(left(m_index),left(m_index))/( (t_v(right(m_index-1)) - t_v(left(m_index-1)))*(t_v(right(m_index)) - t_v(left(m_index))) );
-        Sigma2(m_index-1,m_index) = cov;
-        Sigma2(m_index,m_index-1) = cov;
-        tolerance(m_index-1) = sqrt(Sigma2(m_index-1,m_index-1) + Sigma2(m_index,m_index) - 2*Sigma2(m_index-1,m_index));
-    end
-    if (m_index < length(a))
-        da(m_index) = a(m_index+1)-a(m_index);
-        cov = -Sigma2v(left(m_index+1),left(m_index+1))/( (t_v(right(m_index)) - t_v(left(m_index)))*(t_v(right(m_index+1)) - t_v(left(m_index+1))) );
-        Sigma2(m_index,m_index+1) = cov;
-        Sigma2(m_index+1,m_index) = cov;
-        tolerance(m_index) = sqrt(Sigma2(m_index,m_index) + Sigma2(m_index+1,m_index+1) - 2*Sigma2(m_index,m_index+1));
-    end
-    
-    z_score = abs(da./tolerance);
-    [min_z_score,m_index] = min(z_score);
-end
-
-t_knot = [t(1); mean( [t(v_indices(left(2:(end-1)))), t(v_indices(right(2:(end-1))))],2 ); t(end)];
-
-S=1;
-t_knot = t(v_indices);
+% t_knot = [t(1); mean( [t(v_indices(left(2:(end-1)))), t(v_indices(right(2:(end-1))))],2 ); t(end)];
 
 [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot,w);
+
 x_fit = squeeze(Bq(:,:,1))*m_x;
-v_fit = squeeze(Bq(:,:,2))*m_x;
-
-% j_fit = squeeze(Bq(:,:,4))*m_x;
 x_error = x - squeeze(B(:,:,1))*m_x;
-
-% c(end+1)=a;
-% d(end+1)=std(v_fit);
-% f(end+1)=std(a_fit);
-% g(end+1)=std(j_fit);
-
-% end
-
 mean_x_error = sqrt(mean((path(tq) - x_fit).^2));
-mean_v_error = sqrt(mean((speed(tq) - v_fit).^2));
-% mean_v_error=0;
+
+if S>0
+    v_fit = squeeze(Bq(:,:,2))*m_x;
+    mean_v_error = sqrt(mean((speed(tq) - v_fit).^2));
+else
+    mean_v_error=0;
+end
 
 figure
 plot(t,x_true), hold on
@@ -491,6 +146,8 @@ hist(x_error)
 title(sprintf('std=%f',std(x_error)))
 
 if S>0
+    [Diff1,t_v1,width] = FiniteDifferenceMatrixNoBoundary(S, t, 1);
+    
     figure
     subplot(2,1,1)
     plot( tq, v_fit,'b'), hold on
