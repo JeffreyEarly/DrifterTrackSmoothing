@@ -1122,6 +1122,22 @@ You start by grouping things with the lowest z-score together until all groups h
 
 Now you want to start to find statistically significant changes in velocity. Imagine a particle at rest for 10 seconds which then moves with a slow velocity for 10 more seconds. The noise level is such that you get several points for each statistically significant change in position during the nonzero velocity phase.
 
+No no, start again.
+
+Group by significant changes in position.
+
+To check for significant changes in velocity, create the velocity between first points of two neighboring groups, and the last points of those same groups. If there's a significant difference, then it means you found a change in velocity. Actually, you use the mean value returned by the least squares fit, but you use the $\Delta t$ determined by the first and last points as suggested. 
+
+first point/last point test is done during the first sweep to determine whether or not we tear down the wall (knot point) between two groupings. We tear down the walls as necessary walls that remain indicate we still have significant changes in velocity (or position).
+
+I think there's something very right about this.
+
+Essentially you use the mean value of the grouping (for both position and time) to compute the velocity, then you do a $z$-test on all the velocities. You combine the worst scoring, but *only* if the first point/last point test shows no significant change.
+
+You use the standard error from the best fit to assess whether things are statistically distinguishable. This is assessing constant changes in position from others.
+
+You can write this algorithm as a local assessment of each grouping/knot point. So if the change in two velocities looks the same as the changes in the two neighboring velocities, eliminate the point between them.
+
 \section{References}
 
 Check out `The Rod-Spring approximation: An intuitive approach to the best-fit least-squares linear approximation'.

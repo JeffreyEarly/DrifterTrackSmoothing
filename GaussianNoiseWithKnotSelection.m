@@ -122,20 +122,28 @@ S = 0;
 [t_knot0] = FindStatisticallySignificantChangesInPosition(t,x,Sigma,3.0);
 [m_x0,m_y0,Cm_x0,Cm_y0,B0,Bq0,tq0] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot0,w);
 
-S = 1;
-[t_knot1] = FindStatisticallySignificantChangesInVelocity(t,x,Sigma,3.0);
-[m_x1,m_y1,Cm_x1,Cm_y1,B1,Bq1,tq1] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot1,w);
-
-
 x_fit0 = squeeze(Bq0(:,:,1))*m_x0;
 x_error0 = x - squeeze(B0(:,:,1))*m_x0;
 mean_x_error0 = sqrt(mean((path(tq0) - x_fit0).^2));
+
+S = 1;
+[t_knot1] = FindStatisticallySignificantChangesInVelocity(t,x,Sigma,3.0);
+[m_x1,m_y1,Cm_x1,Cm_y1,B1,Bq1,tq1] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot1,w);
 
 x_fit1 = squeeze(Bq1(:,:,1))*m_x1;
 x_error1 = x - squeeze(B1(:,:,1))*m_x1;
 mean_x_error1 = sqrt(mean((path(tq1) - x_fit1).^2));
 v_fit1 = squeeze(Bq1(:,:,2))*m_x1;
-mean_v_error1 = sqrt(mean((speed(tq1) - v_fit).^2));
+mean_v_error1 = sqrt(mean((speed(tq1) - v_fit1).^2));
+
+S = 2;
+[m_x2,m_y2,Cm_x2,Cm_y2,B2,Bq2,tq2] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot1,w);
+
+x_fit2 = squeeze(Bq2(:,:,1))*m_x2;
+x_error2 = x - squeeze(B2(:,:,1))*m_x2;
+mean_x_error2 = sqrt(mean((path(tq2) - x_fit2).^2));
+v_fit2 = squeeze(Bq2(:,:,2))*m_x2;
+mean_v_error2 = sqrt(mean((speed(tq2) - v_fit2).^2));
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -146,19 +154,26 @@ mean_v_error1 = sqrt(mean((speed(tq1) - v_fit).^2));
 
 figure
 
-subplot(2,1,1)
+subplot(3,1,1)
 plot(t,x_true,'k','LineWidth',1), hold on
 plot(tq0,x_fit0,'b','LineWidth',1.5)
 scatter(t,x,6^2,'filled')
 vlines(t_knot0, 'g--')
 title(sprintf('position rms error=%.2f meters',mean_x_error0))
 
-subplot(2,1,2)
+subplot(3,1,2)
 plot(t,x_true,'k','LineWidth',1), hold on
 plot(tq1,x_fit1,'b','LineWidth',1.5)
 scatter(t,x,6^2,'filled')
 vlines(t_knot1, 'g--')
 title(sprintf('position rms error=%.2f meters, velocity rms error=%.2f m/s',mean_x_error1, mean_v_error1))
+
+subplot(3,1,3)
+plot(t,x_true,'k','LineWidth',1), hold on
+plot(tq2,x_fit2,'b','LineWidth',1.5)
+scatter(t,x,6^2,'filled')
+vlines(t_knot1, 'g--')
+title(sprintf('position rms error=%.2f meters, velocity rms error=%.2f m/s',mean_x_error2, mean_v_error2))
 
 
 figure
@@ -180,19 +195,33 @@ title(sprintf('std=%f',std(x_error1)))
 [Diff1,t_v1,width] = FiniteDifferenceMatrixNoBoundary(1, t, 1);
 
 figure
+
 subplot(2,1,1)
 plot(t,v_true,'k','LineWidth',1), hold on
 plot( tq1, v_fit1,'b','LineWidth',1.5)
 scatter(t_v1,Diff1*x,6^2,'filled')
 vlines(t_knot1, 'g--')
 
-if S>1
-    subplot(2,1,2)
-    a_fit = squeeze(Bq(:,:,3))*m_x;
-    plot( tq, a_fit,'b'), hold on
-    scatter(t_a,Diff2*x)
-    vlines(t_knot, 'g--')
-end
+subplot(2,1,2)
+plot(t,v_true,'k','LineWidth',1), hold on
+plot( tq2, v_fit2,'b','LineWidth',1.5)
+scatter(t_v1,Diff1*x,6^2,'filled')
+vlines(t_knot1, 'g--')
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Acceleration Figures
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+[Diff2,t_a,width] = FiniteDifferenceMatrixNoBoundary(2, t, 1);
+
+figure
+
+a_fit2 = squeeze(Bq2(:,:,3))*m_x2;
+plot( tq2, a_fit2,'b','LineWidth',1.5), hold on
+scatter(t_a,Diff2*x)
+vlines(t_knot, 'g--')
 
 % for i=2:length(t_knot)
 %    range=(t_knot(i-1):t_knot(i))+1;
