@@ -119,7 +119,7 @@ w = @(z)(sigma*sigma);
 
 Sigma = sigma*ones(size(t));
 S = 0;
-[t_knot0] = FindStatisticallySignificantChangesInPosition(t,x,Sigma,3.0);
+[t_knot0, group0] = FindStatisticallySignificantChangesInPosition(t,x,Sigma,3.0);
 [m_x0,m_y0,Cm_x0,Cm_y0,B0,Bq0,tq0] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot0,w);
 
 x_fit0 = squeeze(Bq0(:,:,1))*m_x0;
@@ -221,7 +221,7 @@ figure
 a_fit2 = squeeze(Bq2(:,:,3))*m_x2;
 plot( tq2, a_fit2,'b','LineWidth',1.5), hold on
 scatter(t_a,Diff2*x)
-vlines(t_knot, 'g--')
+% vlines(t_knot2, 'g--')
 
 % for i=2:length(t_knot)
 %    range=(t_knot(i-1):t_knot(i))+1;

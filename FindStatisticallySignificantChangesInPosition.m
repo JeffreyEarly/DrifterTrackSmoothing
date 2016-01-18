@@ -12,23 +12,25 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-function [t_knot] = FindStatisticallySignificantChangesInPosition(t,x,Sigma,z_threshold)
+function [t_knot, group] = FindStatisticallySignificantChangesInPosition(t,x,Sigma,z_threshold)
+
+group = struct('left',[],'right',[],'value',[]);
 
 knot_indices = (1:length(t))';
-left = knot_indices; % left most index of the grouping
-right = knot_indices; % right most index of the grouping
-xmean = zeros(size(left));  % mean of each grouping
-for i=1:length(left)
-    xmean(i) = mean(x(left(i):right(i)));
+group.left = knot_indices; % left most index of the grouping
+group.right = knot_indices; % right most index of the grouping
+group.value = zeros(size(group.left));  % mean of each grouping
+for i=1:length(group.left)
+    group.value(i) = mean(x(group.left(i):group.right(i)));
 end
-dx = diff(xmean); % difference between neighboring groupings
+dx = diff(group.value); % difference between neighboring groupings
 
 tolerance = zeros(size(dx));
 for i=1:length(tolerance)
-    tolerance(i) = sqrt(mean(Sigma(left(i):right(i+1)).^2)/length(left(i):right(i+1)));
+    tolerance(i) = sqrt(mean(Sigma(group.left(i):group.right(i+1)).^2)/length(group.left(i):group.right(i+1)));
 end
 
-% This isn't quite right. We need something based on a Chi-squared
+% This isn't quite group.right. We need something based on a Chi-squared
 % distribution. Because as our knowledge of the mean increase, we change
 % our estimate of confidence.
 z_score = abs(dx./tolerance);
@@ -36,27 +38,31 @@ z_score = abs(dx./tolerance);
 
 while (min_z_score < z_threshold)
     % These two positions are indistinguishable, so merge them
-    right(m_index) = right(m_index+1);
-    left(m_index+1) = [];
-    right(m_index+1) = [];
+    group.right(m_index) = group.right(m_index+1);
+    group.left(m_index+1) = [];
+    group.right(m_index+1) = [];
     
-    xmean(m_index+1) = [];
-    xmean(m_index) = mean(x(left(m_index):right(m_index)));
+    group.value(m_index+1) = [];
+    group.value(m_index) = mean(x(group.left(m_index):group.right(m_index)));
     
     dx(m_index) = [];
     tolerance(m_index) = [];
-    if (m_index > 1) % update the left difference
-        dx(m_index-1) = xmean(m_index)-xmean(m_index-1);
-        tolerance(m_index-1) = sqrt(mean(Sigma(left(m_index-1):right(m_index)).^2));
+    if (m_index > 1) % update the group.left difference
+        dx(m_index-1) = group.value(m_index)-group.value(m_index-1);
+        a = mean(Sigma(group.left(m_index-1):group.right(m_index-1)).^2)/length(group.left(m_index-1):group.right(m_index-1));
+        b = mean(Sigma(group.left(m_index):group.right(m_index)).^2)/length(group.left(m_index):group.right(m_index));
+        tolerance(m_index-1) = sqrt(a+b);
     end
-    if (m_index < length(xmean))
-        dx(m_index) = xmean(m_index+1)-xmean(m_index);
-        tolerance(m_index) = sqrt(mean(Sigma(left(m_index):right(m_index+1)).^2));
+    if (m_index < length(group.value))
+        dx(m_index) = group.value(m_index+1)-group.value(m_index);
+        a = mean(Sigma(group.left(m_index):group.right(m_index)).^2)/length(group.left(m_index):group.right(m_index));
+        b = mean(Sigma(group.left(m_index+1):group.right(m_index+1)).^2)/length(group.left(m_index+1):group.right(m_index+1));
+        tolerance(m_index) = sqrt(a+b);
     end
     
     z_score = abs(dx./tolerance);
     [min_z_score,m_index] = min(z_score);
 end
 
-t_knot = [t(1);  (t(left(2:end))+t(right(1:(end-1))))/2; t(end)];
+t_knot = [t(1);  (t(group.left(2:end))+t(group.right(1:(end-1))))/2; t(end)];
 
