@@ -120,7 +120,15 @@ w = @(z)(sigma*sigma);
 Sigma = sigma*ones(size(t));
 S = 0;
 [t_knot0, group0] = FindStatisticallySignificantChangesInPosition(t,x,Sigma,3.0);
-[m_x0,m_y0,Cm_x0,Cm_y0,B0,Bq0,tq0] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot0,w);
+[m_x0,Cm_x0,B0] = bspline_fit_no_tension(t,x,Sigma,S,t_knot0,w);
+
+tq0 = linspace(t(1),t(end),10*N)';
+Bq0 = bspline(tq0,t_knot0,S+1);
+tm0 = (t(group0.left)+t(group0.right))/2;
+Bm0 = bspline(tm0,t_knot0,S+1);
+val = squeeze(Bm0(:,:,1))*m_x0;
+Ex = squeeze(Bm0(:,:,1))*Cm_x0*squeeze(Bm0(:,:,1)).';
+
 
 x_fit0 = squeeze(Bq0(:,:,1))*m_x0;
 x_error0 = x - squeeze(B0(:,:,1))*m_x0;

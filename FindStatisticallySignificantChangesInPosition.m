@@ -20,8 +20,10 @@ knot_indices = (1:length(t))';
 group.left = knot_indices; % left most index of the grouping
 group.right = knot_indices; % right most index of the grouping
 group.value = zeros(size(group.left));  % mean of each grouping
+group.error = zeros(size(group.left)); % size of the assumed error
 for i=1:length(group.left)
     group.value(i) = mean(x(group.left(i):group.right(i)));
+    group.error(i) = sqrt(mean(Sigma(group.left(i):group.right(i)).^2)/length(group.left(i):group.right(i)));
 end
 dx = diff(group.value); % difference between neighboring groupings
 
@@ -44,6 +46,8 @@ while (min_z_score < z_threshold)
     
     group.value(m_index+1) = [];
     group.value(m_index) = mean(x(group.left(m_index):group.right(m_index)));
+    group.error(m_index+1) = [];
+    group.error(m_index) = sqrt(mean(Sigma(group.left(m_index):group.right(m_index)).^2)/length(group.left(m_index):group.right(m_index)));
     
     dx(m_index) = [];
     tolerance(m_index) = [];

@@ -16,7 +16,7 @@ S = K-1;
 % points.
 t_knot = [repmat(t_knot(1),S,1); t_knot; repmat(t_knot(end),S,1)];
 dt_knot = diff(t_knot);
-t_knot2 = t_knot + [dt_knot; dt_knot(end)];
+t_knot2 = t_knot + [dt_knot; 0];
 
 % numer of knots
 M = length(t_knot);

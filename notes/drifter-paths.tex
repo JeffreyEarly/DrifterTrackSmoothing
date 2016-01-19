@@ -1138,6 +1138,12 @@ You use the standard error from the best fit to assess whether things are statis
 
 You can write this algorithm as a local assessment of each grouping/knot point. So if the change in two velocities looks the same as the changes in the two neighboring velocities, eliminate the point between them.
 
+\section{It gets better}
+
+The results of the maximum likelihood fit actually give us both the mean, and the error for the fit. The error for the coefficients on the fit is computed $E\indices{^i_j} =  \left(X\indices{_i^k} \left(\Sigma^{-1}\right)\indices{^k_m}  X\indices{^m_j}\right)^{-1}$. Recall $X\indices{^i_j}$ is the spline basis where the first index references the $N$ observations at times $t_i$ and the second index references the $M$ knot points. We currently spit this quantity out at the end of the spline fitting algorithm.
+
+If you then conjugate by the basis, you can determine the errors in position, (or velocity or whatever), including the covariance structure. Specifically, ${E_X}=X E X^T$ or ${E_V}=V E V^T$
+
 \section{References}
 
 Check out `The Rod-Spring approximation: An intuitive approach to the best-fit least-squares linear approximation'.
