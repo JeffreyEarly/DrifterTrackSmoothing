@@ -14,6 +14,52 @@
 
 function [t_knot] = FindStatisticallySignificantChangesInVelocityFromGroup(group0,t,x,Sigma,z_threshold)
 
+% we will use this as an index into group0
+group1 = struct('left',[],'right',[],'value',[],'error',[]);
+
+group1.left = (1:length(group0.left))'; % left most index of the grouping
+group1.right = (1:length(group0.left))'; % right most index of the grouping
+group1.value = zeros(size(group1.left));  % mean of each grouping
+group1.error = zeros(size(group1.left));  % mean of each grouping
+
+N = length(t);
+S = 1;
+velocity = zeros(length(group.left)-1,1); % this the minimum size, it may grow.
+Sigma2=zeros(N-S,N-S); % too big, need to shrink after
+nVel=0;
+dt_last=0;
+for i=1:(length(group0.value)-1)
+    nVel=nVel+1;
+    dx = group0.value(i+1) - group0.value(i);
+    
+    % Compute the left-velocity
+    dt_left = t(group0.left(i+1)) - t(group0.left(i));
+    velocity(nVel) = dx/dt_left;
+    
+    Sigma2(nVel,nVel) = ( group0.error(i) + group0.error(i+1) )/dt_left^2;
+    
+    if (nVel > 1)
+        cov = -group0.error(i)/(dt_last*dt_left);
+        Sigma2(nVel-1,nVel) = cov;
+        Sigma2(nVel,nVel-1) = cov;
+    end
+    
+    dt_last = dt_left;
+    % Compute the right-velocity, if different from the left-velocity
+    if (group0.left(i) ~= group0.right(i) || group0.left(i+1) ~= group0.right(i+1))
+        nVel=nVel+1;
+        dt_right = t(group0.right(i+1)) - t(group0.right(i));
+        velocity(nVel) = dx/dt_right;
+        
+        Sigma2(nVel,nVel) = ( group0.error(i) + group0.error(i+1) )/dt_right^2;
+        cov = ( group0.error(i) + group0.error(i+1) )/(dt_right*dt_left);
+        Sigma2(nVel-1,nVel) = cov;
+        Sigma2(nVel,nVel-1) = cov;
+        
+        dt_last = dt_right;
+    end
+end
+
 N = length(t);
 S = 1;
 [Diff,~,width] = FiniteDifferenceMatrixNoBoundary(S, t, 1);

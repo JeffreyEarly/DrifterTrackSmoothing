@@ -128,6 +128,9 @@ tm0 = (t(group0.left)+t(group0.right))/2;
 Bm0 = bspline(tm0,t_knot0,S+1);
 val = squeeze(Bm0(:,:,1))*m_x0;
 Ex = squeeze(Bm0(:,:,1))*Cm_x0*squeeze(Bm0(:,:,1)).';
+% A == B
+% A = diag(Ex);
+% B = group0.error;
 
 
 x_fit0 = squeeze(Bq0(:,:,1))*m_x0;
