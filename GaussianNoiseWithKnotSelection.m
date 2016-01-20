@@ -132,14 +132,20 @@ Ex = squeeze(Bm0(:,:,1))*Cm_x0*squeeze(Bm0(:,:,1)).';
 % A = diag(Ex);
 % B = group0.error;
 
-
 x_fit0 = squeeze(Bq0(:,:,1))*m_x0;
 x_error0 = x - squeeze(B0(:,:,1))*m_x0;
 mean_x_error0 = sqrt(mean((path(tq0) - x_fit0).^2));
 
+[t_knot1] = FindStatisticallySignificantChangesInVelocityFromGroupUsingRecu(group0,t,x,Sigma,3.0,w);
+
 S = 1;
-[t_knot1] = FindStatisticallySignificantChangesInVelocity(t,x,Sigma,3.0);
+
 [m_x1,m_y1,Cm_x1,Cm_y1,B1,Bq1,tq1] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot1,w);
+
+tm1 = (t_knot1(1:end-1) + t_knot1(2:end))/2;
+Bm1 = bspline(tm1,t_knot1,S+1);
+val = squeeze(Bm1(:,:,2))*m_x1;
+Ex = squeeze(Bm1(:,:,2))*Cm_x1*squeeze(Bm1(:,:,2)).';
 
 x_fit1 = squeeze(Bq1(:,:,1))*m_x1;
 x_error1 = x - squeeze(B1(:,:,1))*m_x1;

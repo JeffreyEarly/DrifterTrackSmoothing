@@ -1142,7 +1142,7 @@ You can write this algorithm as a local assessment of each grouping/knot point. 
 
 The results of the maximum likelihood fit actually give us both the mean, and the error for the fit. The error for the coefficients on the fit is computed $E\indices{^i_j} =  \left(X\indices{_k^i} \left(\Sigma^{-1}\right)\indices{^k_m}  X\indices{^m_j}\right)^{-1}$. Recall $X\indices{^i_j}$ is the spline basis where the first index references the $N$ observations at times $t_i$ and the second index references the $M$ knot points. We currently spit this quantity out at the end of the spline fitting algorithm.
 
-If you then conjugate by the basis, you can determine the errors in position, (or velocity or whatever), including the covariance structure. Specifically, ${E_X}=X E X^T$ or ${E_V}=V E V^T$
+If you then conjugate by the basis, you can determine the errors in position, (or velocity or whatever), including the covariance structure. Specifically, the \emph{standard error in position} is ${SE_X}=X E X^T$, while the \emph{standard error in velocity} is ${SE_V}=V E V^T$. Note that this provides the covariance structure as well. At the highest order of the spline (where it is piece
 
 \subsection{No-velocity detection test}
 
