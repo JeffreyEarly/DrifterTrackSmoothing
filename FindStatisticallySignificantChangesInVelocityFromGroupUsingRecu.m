@@ -1,4 +1,4 @@
-function [t_knot] = FindStatisticallySignificantChangesInVelocityFromGroupUsingRecu(group0,t,x,Sigma,z_threshold,w)
+function [t_knot,group1] = FindStatisticallySignificantChangesInVelocityFromGroupUsingRecu(group0,t,x,Sigma,z_threshold,w)
 
 % we will use this as an index into group0
 group1 = struct('left',[],'right',[],'value',[],'error',[]);
@@ -56,7 +56,7 @@ while (min_z_score < z_threshold)
     group1.left(m_index+1) = [];
     group1.right(m_index+1) = [];
     
-    t_knot = FindKnotsFromVelocityGroup(group1);
+    t_knot = FindKnotsFromVelocityGroup(group1,t);
     
     [m_x,Cm_x,B] = bspline_fit_no_tension(t,x,Sigma,S,t_knot,w);
     
@@ -75,12 +75,14 @@ while (min_z_score < z_threshold)
     [min_z_score,m_index] = min(z_score);
 end
 
+
+
 end
 
-function [t_knot] = FindKnotsFromVelocityGroup(group1)
+function [t_knot] = FindKnotsFromVelocityGroup(group1,t)
 t_knot = zeros(length(group1.left)+1,1);
     for i=1:length(group1.left)
-        t_knot(i)=group1.left(i);
+        t_knot(i)=t(group1.left(i));
     end
-    t_knot(end) = group1.right(end);
+    t_knot(end) = t(group1.right(end));
 end

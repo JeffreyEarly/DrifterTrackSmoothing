@@ -15,11 +15,14 @@ speed = @(t) 2*a_true.*t + u_true*ones(size(t));
 
 u_true = 500;
 u_width = 10;
-path = @(t) u_true*sech((t-50)/u_width).^2;
-speed = @(t) -2*(u_true/u_width).*tanh((t-50)/u_width).*sech((t-50)/u_width).^2;
+t_0 = 50;
+path = @(t) u_true*sech((t-t_0)/u_width).^2;
+speed = @(t) -2*(u_true/u_width).*tanh((t-t_0)/u_width).*sech((t-t_0)/u_width).^2;
+acceleration = @(t) (u_true/u_width^2)*(4 * (tanh((t-t_0)/u_width)).^2 .* (sech((t-t_0)/u_width)).^2 - 2*(sech((t-t_0)/u_width)).^4);
 
 x_true = path(t);
 v_true = speed(t);
+a_true = acceleration(t);
 
 sigma = 4; % meters
 
@@ -136,7 +139,7 @@ x_fit0 = squeeze(Bq0(:,:,1))*m_x0;
 x_error0 = x - squeeze(B0(:,:,1))*m_x0;
 mean_x_error0 = sqrt(mean((path(tq0) - x_fit0).^2));
 
-[t_knot1] = FindStatisticallySignificantChangesInVelocityFromGroupUsingRecu(group0,t,x,Sigma,3.0,w);
+[t_knot1, group1] = FindStatisticallySignificantChangesInVelocityFromGroupUsingRecu(group0,t,x,Sigma,3.0,w);
 
 S = 1;
 
@@ -153,8 +156,10 @@ mean_x_error1 = sqrt(mean((path(tq1) - x_fit1).^2));
 v_fit1 = squeeze(Bq1(:,:,2))*m_x1;
 mean_v_error1 = sqrt(mean((speed(tq1) - v_fit1).^2));
 
+[t_knot2, group2] = FindStatisticallySignificantChangesInAccelFromGroupUsingRecu(group1,t,x,Sigma,3.0,w);
+
 S = 2;
-[m_x2,m_y2,Cm_x2,Cm_y2,B2,Bq2,tq2] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot1,w);
+[m_x2,m_y2,Cm_x2,Cm_y2,B2,Bq2,tq2] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot2,w);
 
 x_fit2 = squeeze(Bq2(:,:,1))*m_x2;
 x_error2 = x - squeeze(B2(:,:,1))*m_x2;
@@ -189,17 +194,20 @@ subplot(3,1,3)
 plot(t,x_true,'k','LineWidth',1), hold on
 plot(tq2,x_fit2,'b','LineWidth',1.5)
 scatter(t,x,6^2,'filled')
-vlines(t_knot1, 'g--')
+vlines(t_knot2, 'g--')
 title(sprintf('position rms error=%.2f meters, velocity rms error=%.2f m/s',mean_x_error2, mean_v_error2))
 
 
 figure
-subplot(1,2,1)
+subplot(1,3,1)
 hist(x_error0)
 title(sprintf('std=%f',std(x_error0)))
-subplot(1,2,2)
+subplot(1,3,2)
 hist(x_error1)
 title(sprintf('std=%f',std(x_error1)))
+subplot(1,3,3)
+hist(x_error2)
+title(sprintf('std=%f',std(x_error2)))
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -223,7 +231,7 @@ subplot(2,1,2)
 plot(t,v_true,'k','LineWidth',1), hold on
 plot( tq2, v_fit2,'b','LineWidth',1.5)
 scatter(t_v1,Diff1*x,6^2,'filled')
-vlines(t_knot1, 'g--')
+vlines(t_knot2, 'g--')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -236,9 +244,10 @@ vlines(t_knot1, 'g--')
 figure
 
 a_fit2 = squeeze(Bq2(:,:,3))*m_x2;
-plot( tq2, a_fit2,'b','LineWidth',1.5), hold on
+plot(t,a_true,'k','LineWidth',1), hold on,
+plot( tq2, a_fit2,'b','LineWidth',1.5)
 scatter(t_a,Diff2*x)
-% vlines(t_knot2, 'g--')
+vlines(t_knot2, 'g--')
 
 % for i=2:length(t_knot)
 %    range=(t_knot(i-1):t_knot(i))+1;

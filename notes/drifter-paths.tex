@@ -1144,10 +1144,53 @@ The results of the maximum likelihood fit actually give us both the mean, and th
 
 If you then conjugate by the basis, you can determine the errors in position, (or velocity or whatever), including the covariance structure. Specifically, the \emph{standard error in position} is ${SE_X}=X E X^T$, while the \emph{standard error in velocity} is ${SE_V}=V E V^T$. Note that this provides the covariance structure as well. At the highest order of the spline (where it is piece
 
+When you group \emph{positions}, you place knot points between the position data.
+
+When you group \emph{velocities}, you place knot points between the velocity data, which has the effect of placing knot points on the position data (for evenly spaced data).
+
+Logically then, when you group \emph{accelerations}, you place knot points between the acceleration data, which has the effect of placing knot points on the velocity data, which has the effect of placing knot points between the position data (for evenly spaced data).
+
+At each level you possible double the knot points. After position groups are finalized, you consider changes in velocity to the left and to the right of the position knot point. Same thing goes with acceleration, you consider acceleration knot points to the left and to the right of the velocity knot points.
+
+Thinking about the simplest cases of acceleration. Let's assume you have zero velocity, followed by some constant velocity, followed by some zero velocity and that the constant velocity takes place between two data points. You then want three knot points placed.
+
 \subsection{No-velocity detection test}
 
 Compute the left-hand velocity, and the right-hand velocity, then compare. If significant, then you still need a knot point. You put it on the right point of the left group if the lefthand velocity is absolutely smaller. You put it on the left point of the right group if the righthand velocity is absolutely smaller.
 
+\section{What I'm actually doing}
+
+\subsection{Positions}
+I'm trying to use the z-test for positions. This is roughly $z = \frac{\bar{x} - \mu_0}{s}$ where $\bar{x}$ is the sample mean, $\mu_0$ is the hypothesis and $s^2=\sigma^2/n$. The quantity $s$ is referred to as the standard error of the mean. The z-test differs from the t-test in that we know $\sigma^2$, instead of using the sample standard deviation. When comparing two data sets, you'd use $z = \frac{\bar{x}_1 - \bar{x}_0}{\sqrt{ s_1^2 + s_2^2}}$.
+
+Let's say we have two groups of data, $g^1$ and $g^2$. When I write $g^1.x$, this refers to the set of data points, $x_i$, in the first group. Likewise, $g^1.n$ refers to the number of of data points in that set.
+
+I'm defining things in the following way for each group $g^i$,
+\begin{align}
+g^i.\mu =& \frac{1}{g^i.n} \sum_{k}^{g^i.n} g^i.x_k \\
+g^i.s =&  \frac{1}{g^i.n} \sum_{k}^{g^i.n} g^i.\sigma_k^2
+\end{align}
+The test statistic between groups $i$ and $i+1$ is,
+\begin{equation}
+z = \frac{g^{i+1}.\mu - g^i.\mu}{\sqrt{g^{i+1}.s^2 + g^i.s^2} }
+\end{equation}
+You can think of the quantity $\sqrt{g^{i+1}.s^2 + g^i.s^2}$ as being the pooled standard error, z simply the difference in the means in units of that value.
+
+The final test is whether $z>3$, my cutoff for things looking sufficiently different.
+
+\subsection{Velocities}
+I'm trying to use the same test statistic for velocities, but now there are some additional complications.
+
+First, the standard error appears be defined as,
+\begin{equation}
+s^2 = \frac{ \frac{1}{n-2} \sum_k^n (x_k - \hat{x}(t_k))^2}{\sum_k^n (t_k - \bar{t})^2}.
+\end{equation}
+Structurally this looks like the sample variance, weighted towards the end points. I'm not sure this is what we want, because we think we already know the variance, right?
+
+The other thing, is that the the two samples might covary in some way. So we need to include the effect of covariance. The pooled standard error when then look like,
+\begin{equation}
+\sqrt{g^{i+1}.s^2 + g^i.s^2 - 2 \textrm{cov}(g^{i+1},g^i)}
+\end{equation}
 
 
 \section{References}
