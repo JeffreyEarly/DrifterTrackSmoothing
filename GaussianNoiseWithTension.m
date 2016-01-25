@@ -8,7 +8,7 @@
 dt = 1;
 t=(0:dt:100)'; % seconds
 a_true = 0;
-u_true = 0; % meters/second
+u_true = 1; % meters/second
 
 path = @(t) a_true*(t.*t) + u_true.*t;
 speed = @(t) 2*a_true.*t + u_true*ones(size(t));
@@ -31,7 +31,7 @@ S=3;
 t_knot = t;
 N = length(t);
 
-v = 1e3;
+v = 1e-3;
 gamma = (N)./(v*v*(t(end)-t(1)));
 [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot,gamma,w);
 x_fit_low_tension = squeeze(Bq(:,:,1))*m_x;
