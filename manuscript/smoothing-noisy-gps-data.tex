@@ -26,7 +26,7 @@
 %
 % Enter your Abstract here
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\newcommand{\myabstract}{There's lots of noisy GPS data. Here's how you should smooth it.}
+\newcommand{\myabstract}{We develop a technique for smoothing noisy GPS data using B-splines with tension. We show how the tension condition routinely employed in smoothing splines can be restated as a maximum likelihood problem and then how the tension parameter can be chosen based on physical reasoning. The GPS errors appear to be non-Gaussian, so we use a t-distribution in the maximum likelihood.  }
 %
 \begin{document}
 %
@@ -35,7 +35,7 @@
 %
 % Enter your TITLE here
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-\title{\textbf{\large{Smoothing Noisy GPS Data}}}
+\title{\textbf{\large{Smoothing Noisy GPS Data with Tension}}}
 %
 % Author names, with corresponding author information. 
 % [Update and move the \thanks{...} block as appropriate.]
@@ -80,7 +80,60 @@
 % MAIN BODY OF PAPER
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
+Global positioning system receivers (now commonly referred to as `a GPS') are used in literally billions of devices around the the world to track positions. The quality of the position data can be quite good, with accuracies down to a few meters (cite gps.gov), but real world effects (such as atmospheric conditions sky blockages, to quote gps.gov) can significantly increase the errors. Kalman filters are often employed to reduce these errors because they can be run in real time (cite something). Here we consider an alternative approach using smoothing B-splines to control errors for data that has been collected and archived.
 
+The data shown here was collected from from oceanic surface \emph{drifters}, floating buoys with drogues tethered 15-30 meters below the ocean surface, depending on the particular experiment. In the past, these drifters have used Argos positioning system which has significantly poorer temporal coverage and position accuracy (cite elipot), but recently more surface drifters have employed GPS receivers and transmitted their data back through Argos or Iridium satellites. The GPS receiver sits on the surface buoy and collects position data, but because of atmospheric conditions or ocean waves, the receivers are sometimes unable to obtain a position, or when they do, it is highly inaccurately. Thus, despite nominal accuracies of a few meters, it is often the case that some data is off by more than 1000 meters.
+
+In addition to correcting the position errors, it is also important to interpolate the data to a regular grid. Although the sampling period of a GPS receiver can be fixed, because of missing data and time to to acquire signals, the sampling can be quite irregular. Because many analysis techniques require regular sampling (e.g., a Fourier transform), it is necessary to interpolate the signal onto a regular grid. So the approach taken here is not to simply discard poor data, but also to interpolate the position.
+
+For this particular note we will consider nine surface drifters that were deployed in the Sargasso Sea in the summer of 2011. These particular drifters were part of the LatMix experiment (cite BAMs) and recorded data at approximately 30 minute intervals over the course of a week before being retrieved.
+
+%%%%%%%%%%%%%%%%%%%%%%
+%
+\section{Maximum Likelihood}
+%
+%%%%%%%%%%%%%%%%%%%%%%
+
+Throughout this discussion assume that we have collected bivariate time series data of drifter positions given as either projected coordinates $(x_i, y_i)$ or longitude/latitude $(\phi_i, \theta_i$) at times $t_i$. The goal is to create a model of position $(x(t),y(t))$ that is continuous in $t$, and perhaps even continuous a higher derivative, such as velocity, that best matches the data given an assumed set of errors.
+
+Slightly rewording a quote from Numerical Recipes, the central idea of maximum likelihood is to ask ``Given a particular path $(x(t),y(t))$, what is the probability that this dataset $(t_i,x_i, y_i)$ could have occurred?'' The goal is then to find the path that is most likely to have produced that dataset.
+
+Conceptually we have two major pieces that we need to solve this problem:
+\begin{enumerate}
+\item we need to specify the probability function and
+\item we need to specify the form of the path (model).
+\end{enumerate}
+
+%%%%%%%%%%%%%%%%%%%%%%
+\subsection{Gaussian errors}
+%%%%%%%%%%%%%%%%%%%%%%
+
+The probability function is used to describe the errors in the position, $\epsilon_i \equiv x_i - x(t_i)$. The canonical example in one-dimension is to assume that the error in our position measurements are Gaussian and therefore the probability of the observed data given the model is,
+\begin{equation}
+\label{max-gaussian}
+P \sim \prod \exp \left[ -\frac{1}{2} \left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 \right] \Delta x
+\end{equation}
+where $x_i$ represents the observations at time $t_i$ with estimated error of $\sigma_i$.
+
+Maximizing the probability function in equation \ref{max-gaussian} is also the same as minimizing its argument (called the penalty function),
+\begin{equation}
+\label{least-squares}
+\phi = \sum \left[\frac{1}{2} \left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 \right].
+\end{equation}
+Stated in this way is plain to see that this is the same as asking for the `least-squares' fit of the errors.
+
+%%%%%%%%%%%%%%%%%%%%%%
+\subsection{A model}
+%%%%%%%%%%%%%%%%%%%%%%
+
+Simply connecting a straight line to each individual data point would certainly maximize equation \ref{max-gaussian} (and minimize equation least-squares) because it would set all the errors to zero, but the resulting distribution of errors (a delta function at zero) wouldn't look anything like the assumed Gaussian distribution. Thus, if we want the error distribution that we get out to look like that which we assumed, it also necessary to \emph{constrain} the problem in some way. There are conceptually (at least) two ways of doing this, either 
+\begin{enumerate}
+\item specify a model with fewer degrees of freedom than data points, or
+\item specify an additional \emph{global} constraints on the model in the penalty function.
+\end{enumerate}
+These two may be equivalent. For example, you may decide the model is a straight line (with two degrees of freedom), or you could set a constraint that that the integral of the second derivative vanish.
+
+The approach taken h
 
 
 %%%%%%%%%%%%%%%%%%%%%%
@@ -89,7 +142,7 @@
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
-A B-spline, or basis spline, of order $K$ is a piecewise polynomial function defined with respect to knot points. The terminology here is confusing, but generally seems to be that a B-spline of \emph{order} $K$, is a piecewise polynomial of \emph{degree} $S=K-1$. That means that a $4$th order B-spline is a piecewise cubic polynomial. The \emph{knot points} define the location where the polynomials meet. Continuity is maintained to as high of order as possible. So a $K=1$ B-spline is a piecewise constant function with value $1$ between two knot points, while $K=2$ B-spline forms a continuous triangle function with a piecewise constant first derivative (see figure \ref{bsplines}).
+A B-spline, or basis spline, of order $K$ is a piecewise polynomial function defined with respect to knot points. The terminology here is confusing, but generally seems to be that a B-spline of \emph{order} $K$, is a piecewise polynomial of \emph{degree} $S=K-1$. That means that a $4$th order B-spline is a piecewise cubic polynomial. The \emph{knot points} define the location where the polynomials meet. Continuity is maintained to as high of order as possible. For example, a $K=1$ B-spline is a piecewise constant function with value $1$ between two knot points, while $K=2$ B-spline forms a continuous triangle function with a piecewise constant first derivative (see figure \ref{bsplines}).
 
 \begin{figure}[t]
   \noindent\includegraphics[width=39pc,angle=0]{bsplines}\\
