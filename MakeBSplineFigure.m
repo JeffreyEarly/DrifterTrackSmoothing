@@ -12,7 +12,7 @@ iSpline = 2;
 iSubplot = 1;
 h = zeros(maxK*maxD,1);
 
-FigureSize = [50 50 figure_width_2col 400*scaleFactor];
+FigureSize = [50 50 figure_width_1col 225*scaleFactor];
 
 figure('Units', 'points', 'Position', FigureSize)
 set(gcf,'PaperPositionMode','auto')
@@ -39,10 +39,12 @@ for K=1:maxK
             end
             set( gca, 'FontSize', figure_axis_tick_size);
             
+            set(gca, 'XTick', []);
             if (K<maxK)
                 set(gca, 'XTick', []);
             end
             
+            set(gca, 'YTick', []);
             if (D>1)
                 set(gca, 'YTick', []);
             else

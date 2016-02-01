@@ -94,7 +94,7 @@ For this particular note we will consider nine surface drifters that were deploy
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
-Throughout this discussion assume that we have collected bivariate time series data of drifter positions given as either projected coordinates $(x_i, y_i)$ or longitude/latitude $(\phi_i, \theta_i$) at times $t_i$. The goal is to create a model of position $(x(t),y(t))$ that is continuous in $t$, and perhaps even continuous a higher derivative, such as velocity, that best matches the data given an assumed set of errors.
+Throughout this discussion assume that we have collected bivariate time series data of drifter positions given as either projected coordinates $(x_i, y_i)$ or longitude/latitude $(\phi_i, \theta_i$) at times $t_i$. The goal is to create a model of position $(x(t),y(t))$ that is continuous in $t$, and perhaps even continuous a higher derivative---such as velocity or acceleration---that best matches the data given an assumed set of errors.
 
 Slightly rewording a quote from Numerical Recipes, the central idea of maximum likelihood is to ask ``Given a particular path $(x(t),y(t))$, what is the probability that this dataset $(t_i,x_i, y_i)$ could have occurred?'' The goal is then to find the path that is most likely to have produced that dataset.
 
@@ -145,7 +145,7 @@ The approach taken h
 A B-spline, or basis spline, of order $K$ is a piecewise polynomial function defined with respect to knot points. The terminology here is confusing, but generally seems to be that a B-spline of \emph{order} $K$, is a piecewise polynomial of \emph{degree} $S=K-1$. That means that a $4$th order B-spline is a piecewise cubic polynomial. The \emph{knot points} define the location where the polynomials meet. Continuity is maintained to as high of order as possible. For example, a $K=1$ B-spline is a piecewise constant function with value $1$ between two knot points, while $K=2$ B-spline forms a continuous triangle function with a piecewise constant first derivative (see figure \ref{bsplines}).
 
 \begin{figure}[t]
-  \noindent\includegraphics[width=39pc,angle=0]{bsplines}\\
+  \noindent\includegraphics[width=19pc,angle=0]{bsplines}\\
   \caption{This shows an example B-spline and its derivatives (columns) for orders $K=1..4$ (rows).}
   \label{bsplines}
 \end{figure}
