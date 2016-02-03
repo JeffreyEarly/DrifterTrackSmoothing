@@ -84,16 +84,16 @@ A B-spline (or basis spline) of \emph{order} $K$ (\emph{degree} $S=K-1$) is a pi
 The $m$-th B-spline of order $K=1$ is defined as,
 \begin{equation}
 X^1_m(t) \equiv \begin{cases}
-1      & \text{if $ \tau_m \leq t < \tau_{m+1}$ and $\tau_m \neq  \tau_{m+1}$}, \\
+1      & \text{if $ \tau_m \leq t < \tau_{m+1}$}, \\
 0     & \text{otherwise}.
 \end{cases}
 \end{equation}
-This is the rectangle function as shown in the first row, first column of figure \ref{bsplines}. If we are given $P$ knot points, then we can construction $P-1$ B-splines of order $K=1$, although notice that if some of the knot points are repeated this will result in some splines that are zero everywhere. To represent an interpolating function $x(t)$ for the $N$ observations of a particle position $(t_i,x_i)$ we define $N+1$ knot points as,
+This is the rectangle function as shown in the first row, first column of figure \ref{bsplines}. If we are given $P$ knot points, then we can construction $P-1$ B-splines of order $K=1$, although notice that if a knot point is repeated this will result in a splines that is zero everywhere. To represent an interpolating function $x(t)$ for the $N$ observations of a particle position $(t_i,x_i)$ we define $N+1$ knot points as,
 \begin{equation}
 \tau_m = \begin{cases}
-t_1      & \text{if $m=1$}, \\
-t_{m-1} + \frac{t_{m-1}+t_m}{2}	  & \text{if $1<m \leq N$}\\
-t_N     & \text{if $m=N$}.
+t_1      & \text{$m=1$}, \\
+t_{m-1} + \frac{t_{m-1}-t_m}{2}	  & \text{$1<m \leq N$}\\
+t_N     & \text{$m>N$}.
 \end{cases}
 \end{equation}
 This will create $N$ independent basis functions that provide support for the region $t_i \leq t \leq t_N$ (provided the last spline is defined to include the last knot point). The interpolating function $x(t)$ is defined as $x(t) \equiv  X^1_m(t) \xi^m$ where the coefficients $\xi^m$ are found by solving $X^1_m(t^i) \xi^m = x^i$. The result of this process is shown in figure \ref{interpolation} for 7 irregularly spaced data points.
@@ -104,18 +104,32 @@ X^K_m(t) \equiv \frac{t - t_m}{t_{m+K-1} - t_m} X^{K-1}_m(t) + \frac{t_{m+K}-t}{
 \end{equation}
 This recursion formula takes two neighboring lower order splines and ramps the left one up over its nonzero domain and ramps the right one down over its nonzero domain. The result of this process is to create splines that span across one additional knot point at each order, and maintain continuity across one more derivatives. Examples are shown in figure \ref{bsplines}.
 
-Any knot points that are repeated $T$ times will result in an a total of $T-1$ splines of order one that are everywhere zero. This has the effect of introducing discontinuities in the derivatives for higher order splines. For our purposes, we will only use this feature to prevent higher order splines from cross the boundaries. For $K=2$ order splines we will use knot points at locations,
+Any knot points that are repeated $T$ times will result in an a total of $T-1$ splines of order one that are everywhere zero. This has the effect of introducing discontinuities in the derivatives for higher order splines. For our purposes, we will only use this feature to prevent higher order splines from cross the boundaries. For $K=2$ order splines we will use $N+2$ knot points at locations,
 \begin{equation}
 \tau_m = \begin{cases}
-t_1      	& \text{if $m\leq2$}, \\
-t_{m-3}	& \text{if $2<m < N$}\\
-t_N 		& \text{if $m=N$}.
+t_1      	& \text{$m < 3$}, \\
+t_{m-1}	& \text{$3 \leq m < N$}\\
+t_N 		& \text{$m \geq N$}.
 \end{cases}
 \end{equation}
+This creates a knot point at every observation point, but repeats the first and last knot point. This has the effect of terminating the first and last spline at the boundary and creating $N$ second order B-splines, $X^2_m(t)$. Once again the interpolating function $x(t)$ is defined as $x(t) \equiv  X^2_m(t) \xi^m$ where the coefficients $\xi^m$ are found by solving $X^2_m(t^i) \xi^m = x^i$. The second row of figure \ref{interpolation} shows an example.
 
-
-
-
+This process can be continued to higher and higher order B-splines. For splines that are of \emph{even} order, we create $N+K$ knots points with
+\begin{equation}
+\tau_m^{\text{$K$-even}} = \begin{cases}
+t_1      	& \text{$m < K+1$}, \\
+t_{m-K/2}	& \text{$K+1 \leq m < N$}\\
+t_N 		& \text{$m>N$}
+\end{cases}
+\end{equation}
+and for splines that are \emph{odd} order, we create $N+K$ knot points with,
+\begin{equation}
+\tau_m^{\text{$K$-odd}} = \begin{cases}
+t_1      	& \text{$m < K+1$}, \\
+t_{m-K/2} + \frac{t_{m-K/2}-t_{m-K/2+1}}{2}	& \text{$K+1 \leq m < N$}\\
+t_N 		& \text{$m>N$}
+\end{cases}
+\end{equation}
 
 
 
