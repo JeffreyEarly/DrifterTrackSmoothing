@@ -2,19 +2,32 @@
 scaleFactor = 1;
 LoadFigureDefaults
 
-t_knot = [0;1;3;4;5;8;10];
-
-t = linspace(0,10,1001)';
+t = 2*pi*2.5*(0:10)'/10;
+t = 2*pi*2.5*[0;1;3;4;5;8;10]/10;
+x = sin(t);
+sigma = 1;
+dx = sigma*ones(size(x));
+w = @(z)(sigma*sigma);
+N = length(t);
+tq = linspace(t(1),t(end),100*N)';
+ylimits = [-1.5 1.5];
+% ylimits = [-2.2 2.2];
 
 maxK = 4;
 maxD = 4;
 iSpline = 2;
 iSubplot = 1;
 h = zeros(maxK*maxD,1);
-ylimit = [-2 2];
-FigureSize = [50 50 figure_width_1col+7 225*scaleFactor];
 
-figure('Units', 'points', 'Position', FigureSize)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Position Figures
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+FigureSize = [50 50 figure_width_2col+8 225*scaleFactor];
+
+fig1 = figure('Units', 'points', 'Position', FigureSize)
 set(gcf,'PaperPositionMode','auto')
 set(gcf, 'Color', 'w');
 fig1.PaperUnits = 'points';
@@ -22,7 +35,11 @@ fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
 for K=1:maxK
-    B = bspline(t,t_knot,K);
+    S = K-1;
+    [t_knot] = NaturalKnotsForSpline( t, K );
+    [m_x,Cm_x,B] = bspline_fit_no_tension(t,x,dx,S,t_knot,w);
+    Bq = bspline(tq,t_knot,S+1);
+    
     for D=1:maxK
         index=(K-1)*maxD+D;
         if D > min(K,maxD)
@@ -34,10 +51,18 @@ for K=1:maxK
             h(index) = subplot(maxK,maxD,iSubplot);
             
             for i=1:length(t_knot)
-                plot([t_knot(i) t_knot(i)],ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]); hold on
+                plot([t_knot(i) t_knot(i)],ylimits, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]); hold on;
             end
-            ylim(ylimit)
-            plot(t,squeeze(B(:,iSpline+K-1,D)), 'LineWidth', 1.0*scaleFactor, 'Color', 'k');
+            ylim(ylimits)
+            xlim([min(t) max(t)])
+            
+            plot(tq,squeeze(Bq(:,:,D))*m_x, 'LineWidth', 1.0*scaleFactor, 'Color', 'k')
+            
+            if (D==1)
+                scatter(t,x,(5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
+            end
+            
+         
             set( gca, 'FontSize', figure_axis_tick_size);
             
             set(gca, 'XTick', []);
@@ -75,4 +100,5 @@ fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 fig1.PaperPositionMode = 'auto';
 
-print('-depsc2', 'figures/bsplines.eps')
+print('-depsc2', 'figures/interpolation.eps')
+
