@@ -39,6 +39,7 @@
 
 \abstract{We develop a technique for smoothing noisy GPS data using B-splines with tension. We show how the tension condition routinely employed in smoothing splines can be restated as a maximum likelihood problem and then how the tension parameter can be chosen based on physical reasoning. The GPS errors appear to be non-Gaussian, so we use a t-distribution in the maximum likelihood.  }
 
+\usepackage{tensor}
 
 \begin{document}
 
@@ -107,8 +108,8 @@ This recursion formula takes two neighboring lower order splines and ramps the l
 Any knot points that are repeated $T$ times will result in an a total of $T-1$ splines of order one that are everywhere zero. This has the effect of introducing discontinuities in the derivatives for higher order splines. For our purposes, we will only use this feature to prevent higher order splines from cross the boundaries. For $K=2$ order splines we will use $N+2$ knot points at locations,
 \begin{equation}
 \tau_m = \begin{cases}
-t_1      	& \text{$m < 3$}, \\
-t_{m-1}	& \text{$3 \leq m < N$}\\
+t_1      	& \text{$m \leq 2$}, \\
+t_{m-1}	& \text{$2 < m < N$}\\
 t_N 		& \text{$m \geq N$}.
 \end{cases}
 \end{equation}
@@ -117,21 +118,28 @@ This creates a knot point at every observation point, but repeats the first and 
 This process can be continued to higher and higher order B-splines. For splines that are of \emph{even} order, we create $N+K$ knots points with
 \begin{equation}
 \tau_m^{\text{$K$-even}} = \begin{cases}
-t_1      	& \text{$m < K+1$}, \\
-t_{m-K/2}	& \text{$K+1 \leq m < N$}\\
-t_N 		& \text{$m>N$}
+t_1      	& \text{$m \leq K$}, \\
+t_{m-K/2}	& \text{$K < m < N$}\\
+t_N 		& \text{$m \geq N$}
 \end{cases}
+\label{even-knots}
 \end{equation}
 and for splines that are \emph{odd} order, we create $N+K$ knot points with,
 \begin{equation}
 \tau_m^{\text{$K$-odd}} = \begin{cases}
-t_1      	& \text{$m < K+1$}, \\
-t_{m-K/2} + \frac{t_{m-K/2}-t_{m-K/2+1}}{2}	& \text{$K+1 \leq m < N$}\\
-t_N 		& \text{$m>N$}
+t_1      	& \text{$m \leq K$}, \\
+t_{m-\frac{K+1}{2}} + \frac{t_{m-\frac{K+1}{2}}-t_{m-\frac{K+1}{2}+1}}{2}	& \text{$K < m \leq N$}\\
+t_N 		& \text{$m > N$}
 \end{cases}
+\label{odd-knots}
 \end{equation}
+The knot points are chosen specifically to create $N$ splines for the $N$ data points such that the interpolated function $x(t)$ crosses all $N$ observations $(t_i,x_i)$. Examples are shown in figure \ref{interpolation}.
 
-
+\begin{figure}
+  \centerline{\includegraphics[width=19pc,angle=0]{bsplines}}
+  \caption{This shows an example B-spline and its derivatives (columns) for orders $K=1..4$ (rows).}
+  \label{bsplines}
+\end{figure}
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
@@ -139,59 +147,107 @@ t_N 		& \text{$m>N$}
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
-Throughout this discussion assume that 
-Slightly rewording a quote from Numerical Recipes, the central idea of maximum likelihood is to ask ``Given a particular path $(x(t),y(t))$, what is the probability that this dataset $(t_i,x_i, y_i)$ could have occurred?'' The goal is then to find the path that is most likely to have produced that dataset.
+Using B-splines we now have a mechanism for generating continuous paths given a set of observations, but each observation, $x_i$, differs from the true value, $x(t_i)$, by some noise, $\epsilon_i \equiv x_i - x(t_i)$. The goal now is to find a path $x(t)$ that is not contaminated by the noise.
+
+The approach taken here is to use maximum likelihood. The central idea of maximum likelihood is to ask ``Given a particular path $(x(t),y(t))$, what is the probability that this dataset $(t_i,x_i, y_i)$ could have occurred?'' (cite press et al). The goal is then to find the path that is most likely to have produced that dataset.
 
 Conceptually we have two major pieces that we need to solve this problem:
 \begin{enumerate}
-\item we need to specify the probability function and
+\item we need to specify the probability distribution function (PDF) for the errors and
 \item we need to specify the form of the path (model).
 \end{enumerate}
 
 %%%%%%%%%%%%%%%%%%%%%%
-\subsection{Gaussian errors}
+\subsection{Error PDF}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The probability function is used to describe the errors in the position, $\epsilon_i \equiv x_i - x(t_i)$. The canonical example in one-dimension is to assume that the error in our position measurements are Gaussian and therefore the probability of the observed data given the model is,
+The probability function is used to describe the errors in the position, $\epsilon_i$. The canonical example in one-dimension is to assume that the error in our position measurements are Gaussian and therefore the probability of the observed data given the model is,
 \begin{equation}
 \label{max-gaussian}
-P \sim \prod \exp \left[ -\frac{1}{2} \left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 \right] \Delta x
+P \sim \prod_{i=1}^{N}  \exp \left[ -\frac{1}{2} \left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 \right] \Delta x
 \end{equation}
 where $x_i$ represents the observations at time $t_i$ with estimated error of $\sigma_i$.
 
 Maximizing the probability function in equation \ref{max-gaussian} is also the same as minimizing its argument (called the penalty function),
 \begin{equation}
 \label{least-squares}
-\phi = \sum \left[\frac{1}{2} \left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 \right].
+\phi =\sum_{i=1}^{N} \left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 .
 \end{equation}
 Stated in this way is plain to see that this is the same as asking for the `least-squares' fit of the errors.
 
 %%%%%%%%%%%%%%%%%%%%%%
-\subsection{A model}
+\subsection{Model}
 %%%%%%%%%%%%%%%%%%%%%%
 
-Simply connecting a straight line to each individual data point would certainly maximize equation \ref{max-gaussian} (and minimize equation least-squares) because it would set all the errors to zero, but the resulting distribution of errors (a delta function at zero) wouldn't look anything like the assumed Gaussian distribution. Thus, if we want the error distribution that we get out to look like that which we assumed, it also necessary to \emph{constrain} the problem in some way. There are conceptually (at least) two ways of doing this, either 
+The model used here will be an interpolating B-spline representation of the data at some order $K$ with knot points generated by equations \ref{even-knots} and \ref{odd-knots}. Of course, we've chosen our knot points such that the model intersects each observations and this certainly maximizes equation \ref{max-gaussian} (and minimize equation least-squares) because all the errors are zero, but the resulting distribution of errors (a delta function at zero) doesn't look anything like the assumed Gaussian distribution. Thus, if we want the error distribution that we get out to look like that which we assumed, it also necessary to \emph{constrain} the problem in some way. There are conceptually (at least) two ways of doing this, either 
 \begin{enumerate}
 \item specify a model with fewer degrees of freedom than data points, or
 \item specify an additional \emph{global} constraints on the model in the penalty function.
 \end{enumerate}
 These two may be equivalent. For example, you may decide the model is a straight line (with two degrees of freedom), or you could set a constraint that that the integral of the second derivative vanish.
 
-The approach taken h
-\begin{figure}
-  \centerline{\includegraphics[width=19pc,angle=0]{bsplines}}
-  \caption{This shows an example B-spline and its derivatives (columns) for orders $K=1..4$ (rows).}
-  \label{bsplines}
-\end{figure}
+We could easily create a model with fewer degrees of freedom than data points by simply removing and rearranging  some of the knot points generated by equations \ref{even-knots} and \ref{odd-knots}. This is certainly worth doing if the data is \emph{oversampled}, where expected distance traversed ($u_{\textrm{rms}}\Delta t$) between observation times ($\Delta t$) is less than the expected error $\sigma_x$. For the cases considered here, we are in an \emph{under-sampled} regime where the drifters have traveled far beyond their the expected error in the time between observations.
 
-
-
+The other alternative, and the approach taken here, is to specify a global constraint on the model in the penalty function. In particular, we will use what is known as a smoothing spline.
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
 \section{Smoothing Spline}
 %
 %%%%%%%%%%%%%%%%%%%%%%
+
+The smoothing spline augments the penalty function by adding a global constraint on the $m$-th derivative of the resulting function (cite de boor),
+\begin{equation}
+\label{smoothing-spline}
+\phi =  \sum_{i=1}^{N} \left( \frac{x_i - x(t_i)}{\sigma_i} \right) ^2 + \lambda_m \int_{t_1}^{t_N} \left(\frac{d^m x}{dt^m}\right)^2 \, dt.
+\end{equation}
+If $\lambda_m \rightarrow 0$ then this reduces to the least-squares fit in equation \ref{least-squares}, but if $\lambda_m \rightarrow \infty$ then this forces the model to an $m$-th order polynomial (e.g., when $m=2$, the model will forced to be a straight line because it has no second derivative). 
+
+Assuming a Gaussian distribution in the errors, an appropriate choice for parameter $\lambda$ would reproduce the $\chi^2$-distribution (cite teanby). That is, to say that $\sum \epsilon_i^2/\sigma_i^2 \sim \chi^2_k$, or in the limit of large $N$,  $\frac{1}{N} \sum \epsilon_i^2/\sigma_i^2 \sim 1$.
+
+However, there is a very simple \emph{physical} interpretation for the parameter $\lambda_m$. Consider the case where $m=1$ so that the smoothing spline is a constraint on velocity. When averaged over the integration time, the integral produces the root mean square velocity, $u_{\textrm{rms}}$ so that the penalty function becomes
+\begin{equation}
+\label{smoothing-spline-velocity}
+\phi =  \sum_{i=1}^{N} \left( \frac{x_i - x(t_i)}{\sigma_i} \right) ^2 + \frac{N}{u_{\textrm{rms}}^2 T} \int_{t_1}^{t_N} u^2(t) \, dt.
+\end{equation}
+where $T\equiv t_N-t_1$. The factor of $N$ in $\lambda_1 =  \frac{N}{u_{\textrm{rms}}^2 T}$ is the scaling for the $\chi^2$ distribution produced by the first term.
+
+The smoothing spline can be restated in terms of maximum likelihood. Assume that in addition to knowing about how the measurement errors are distributed, that we also know how the velocity of underlying physical process is distributed. For example, in geophysical turbulence it has been shown that the velocity probability distribution function is like a two-sided exponential (cite Bracco et al., 2000). Here we will consider the case where the velocity PDF is Gaussian. Stated as maximum likelihood, this means that at \emph{any given instant} (not just the times of observation) we expected the model velocity to look Gaussian. We can discretize the problem by sampling the velocity $Q$ at times $t_q = t_1 + q \Delta t_q$ where $\Delta t_q=\frac{t_N-t_1}{Q-1}$ and $q=0..Q-1$. The maximum likelihood is thus stated as,
+\begin{equation}
+P \sim \prod^N _{i=1}\exp \left[ -\frac{1}{2} \left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 \right] \cdot \prod^{Q}_{q=1} \exp \left[  - \frac{1}{2} \left(  \frac{u(t_q)}{\sigma_u} \right)^2 \right] \Delta x.
+\end{equation}
+Writing this as penalty function (after converting the product of exponentials into exponentials of sums), we have that
+\begin{equation}
+\phi =  \frac{1}{N} \sum^N _{i=1}\left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 + \frac{1}{Q} \sum^{Q}_{q=1}  \left(  \frac{u(t_q)}{\sigma_u} \right)^2
+\end{equation}
+where we've renormalized the error PDF and the velocity PDF to have equal weighting regardless of number of points. Some simple rearranging gives you that,
+\begin{equation}
+\label{smoothing-spline-pdf}
+\phi = \frac{1}{N} \sum^N _{i=1}  \left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 + \frac{1}{\sigma_u^2 T} \sum^{Q}_{q=1}  u^2(t_q) \Delta t_q.
+\end{equation}
+Apart from the discretization of the integral, equation \ref{smoothing-spline-velocity} is the same as \ref{smoothing-spline-pdf}. (need to fix the indices for Q).
+
+%%%%%%%%%%%%%%%%%%%%%%
+%
+\section{Numerical Implementation}
+%
+%%%%%%%%%%%%%%%%%%%%%%
+
+The B-splines are generated using the algorithm described in de Boor with knot points determined by equations \ref{even-knots} and \ref{odd-knots}. The matrix $X^i_m$ denotes the $m$-th B-spline at time $t_i$. The first, second and third derivatives of the B-splines are denotes by $V^i_m$, $A^i_m$, $J^i_m$, denoting velocity, acceleration and jerk, respectively.
+
+The covariance matrix describing the measurement errors, $\Sigma\indices{^i_j}$, is taken to be diagonal. In other words, we will assume that the position errors are independent. 
+
+Fully discretized the penalty function is
+\begin{equation}
+\begin{split}
+\phi = \frac{1}{N} \left[ x^k - X\indices{^k_j} \xi^j \right]^{\textrm{T}} \left(\Sigma^{-1}\right)\indices{^k_i} \left[ x^i - X\indices{^i_l} \xi^l \right] \\
++ \frac{1}{Q a_{\textrm{rms}}^2} \left[A\indices{^q_j} \xi^j \right]^{\textrm{T}} \left[ A\indices{^q_l} \xi^l \right].
+\end{split}
+\end{equation}
+To find the coefficients that minimize this function, we take the derivative with respect to $\xi^m$, set it equal to zero, and solve for $\xi^m$. 
+\begin{equation}
+\xi^m = \left[\frac{1}{N} X\indices{_k_j} \left(\Sigma^{-1}\right)\indices{^k_i}  X\indices{^i_m} + \frac{1}{Q a_{\textrm{rms}}^2} {A}\indices{^q_j}{A}\indices{^q_m} \right]^{-1} x_k \left(\Sigma^{-1}\right)\indices{^k_i}   X\indices{^i_j}
+\end{equation}
 
 
 %\begin{acknowledgment} 
