@@ -1,41 +1,19 @@
-%------------------------------------------------------------------------------
-%
-%     Constrained cbs curve fitting in tension
-%     Nick Teanby 30/01/07
-%
-%------------------------------------------------------------------------------
-%
-%     Function to smooth a set of unevenly spaced x,y data
-%	and output the cubic B spline parameters and covariance.
-%
-%     Allows constraints to be imposed on the smooth curve
-%     by using the method of Lagrange multipliers.
-%
-%	Constraints [optional] can be on y, dy/dx, or d2y/dx2.
-%
-%	NB. curvature at ends of curve will be constrained to zero by default.
-%
-%     Tension is applied using a quadratic spring approximation as explained
-%	in Teanby 2007.
-%
-%	  input
-%       -----
-%	x	float(n)		x data
-%	dx	float(n)		x data errors
-%
-%	  input [optional]
-%	  ----------------
-%	x0	float(n0)		x constraints
-%	y0	float(n0)		constraints [ y , dy/dx, d2y/dx2 ]
-%	ctype	float(n0)		constraint type [0=y, 1=grad, 2=curvature]
-%
-%       output
-%       ------
-%	m	float(M)		spline parameters
-%	cm	float(M,M)		covariance matrix of spline parameters
-%
-%------------------------------------------------------------------------------
 function [m_x,Cm_x,B] = bspline_fit_no_tension(t,x,dx,S,t_knot,weight_function)
+% bspline_fit_no_tension    Find the maximum likelihood fit
+%
+% t         independent variable (time), length N
+% x         observations at time t_i, length N
+% dx        error of observation x, length N
+% S         degree of spline (e.g., 3 denotes cubic), scalar
+% t_knot    knot points for the splines
+% weight_function   used for iteratively reweighted least-squares
+%
+% 
+% B is a matrix containing the M B-splines, at the N locations t_i, for
+% K=S+1 derivatives. The matrix is NxMxK.
+%
+% m_x       The coefficients for the model fit, length M.
+% Cm_x      The error in the coefficients, size MxM
 
 if (length(t) ~= length(x) )
     disp('The time series are not consistent lengths');
@@ -82,7 +60,7 @@ function [m_x, Cm_x] = ComputeSolution( X, Wx, x )
 % Wx is NxN
 % x is Nx1
 
-% set up inverse theory matrices
+% set up inverse matrices
 E_x = X'*Wx*X; % MxM
 
 m_x = E_x\(X'*Wx*x);

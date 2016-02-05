@@ -244,11 +244,12 @@ Fully discretized the penalty function is
 + \frac{1}{Q a_{\textrm{rms}}^2} \left[A\indices{^q_j} \xi^j \right]^{\textrm{T}} \left[ A\indices{^q_l} \xi^l \right].
 \end{split}
 \end{equation}
-To find the coefficients that minimize this function, we take the derivative with respect to $\xi^m$, set it equal to zero, and solve for $\xi^m$. 
+To find the coefficients that minimize this function, we take the derivative with respect to $\xi^m$, set it equal to zero, and solve for $\xi^m$,
 \begin{equation}
-\xi^m = \left[\frac{1}{N} X\indices{_k_j} \left(\Sigma^{-1}\right)\indices{^k_i}  X\indices{^i_m} + \frac{1}{Q a_{\textrm{rms}}^2} {A}\indices{^q_j}{A}\indices{^q_m} \right]^{-1} x_k \left(\Sigma^{-1}\right)\indices{^k_i}   X\indices{^i_j}
+\xi^m = \left[\frac{1}{N} X\indices{_k_j} \left(\Sigma^{-1}\right)\indices{^k_i}  X\indices{^i_m} + \frac{1}{Q a_{\textrm{rms}}^2} {A}\indices{^q_j}{A}\indices{^q_m} \right]^{-1} x_k \left(\Sigma^{-1}\right)\indices{^k_i}   X\indices{^i_j}.
 \end{equation}
 
+Let's consider smoothing the acceleration and the jerk because they do not have a well defined mean. There are then two parameters to vary, the assumed standard error of the positions, and the assumed distribution of the acceleration (or jerk). Let's consider two scenarios, one where the position error is large (say 150 meters) and another where the position error is small, say 15 meters, and then choose a tension that gives us the right chi squared distribution. In the first case the resulting error PDF won't look Gaussian, and in the second case the autocorrelation sequence will look bad.
 
 %\begin{acknowledgment} 
 %Start acknowledgments here.
