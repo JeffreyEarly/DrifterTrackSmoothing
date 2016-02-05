@@ -21,7 +21,7 @@ if strcmp(distribution,'gaussian')
     
     a = 1.4e-5;
     j = 7e-9;
-    gamma = [0; 1/a^2; 1/j^2];
+    gamma = [0; 1/a^2; 0];
     
 elseif strcmp(distribution,'student-t')
     % nu = 2.005; sigma = 8;

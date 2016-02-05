@@ -227,6 +227,8 @@ where we've renormalized the error PDF and the velocity PDF to have equal weight
 \end{equation}
 Apart from the discretization of the integral, equation \ref{smoothing-spline-velocity} is the same as \ref{smoothing-spline-pdf}. (need to fix the indices for Q).
 
+The implication of this result is that adding tension to the penalty function is equivalent to assuming that one of the higher order derivatives in the model (e.g., acceleration) is Gaussian. This is therefore making an assumption about the \emph{physics} of the model, and not an assumption about the errors. 
+
 %%%%%%%%%%%%%%%%%%%%%%
 %
 \section{Numerical Implementation}
@@ -250,6 +252,18 @@ To find the coefficients that minimize this function, we take the derivative wit
 \end{equation}
 
 Let's consider smoothing the acceleration and the jerk because they do not have a well defined mean. There are then two parameters to vary, the assumed standard error of the positions, and the assumed distribution of the acceleration (or jerk). Let's consider two scenarios, one where the position error is large (say 150 meters) and another where the position error is small, say 15 meters, and then choose a tension that gives us the right chi squared distribution. In the first case the resulting error PDF won't look Gaussian, and in the second case the autocorrelation sequence will look bad.
+
+%%%%%%%%%%%%%%%%%%%%%%
+\section{Optimal parameters}
+%%%%%%%%%%%%%%%%%%%%%%
+
+Fundamentally we have two parameters that we're trying to vary, the error in the position and the rms acceleration. The chi squared statistics mentioned earlier is just part of the idea of trying to find a parameter that forces the expected error PDF to match the PDF that we get out. Of course, we might also try to match the acceleration PDF as well. So the question is then which do we match, the error PDF, the acceleration PDF, or both?
+
+The answer is somewhat philosophical. If the practitioner is highly certain that the errors follow a particular PDF, then it might be advisable to match the error PDFs. On the other hand, perhaps the measurement errors aren't well understood, but the underlying physical process is fairly well understood. In this case you might want to match the more physical metric, the acceleration PDF in this example. This 
+
+
+But, we're trying to match both of these distributions. So on some level we'd want both to to do well. So we should maximize the joint pdf.
+
 
 %\begin{acknowledgment} 
 %Start acknowledgments here.
