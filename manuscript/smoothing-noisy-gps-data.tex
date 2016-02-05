@@ -259,7 +259,9 @@ Let's consider smoothing the acceleration and the jerk because they do not have 
 
 Fundamentally we have two parameters that we're trying to vary, the error in the position and the rms acceleration. The chi squared statistics mentioned earlier is just part of the idea of trying to find a parameter that forces the expected error PDF to match the PDF that we get out. Of course, we might also try to match the acceleration PDF as well. So the question is then which do we match, the error PDF, the acceleration PDF, or both?
 
-The answer is somewhat philosophical. If the practitioner is highly certain that the errors follow a particular PDF, then it might be advisable to match the error PDFs. On the other hand, perhaps the measurement errors aren't well understood, but the underlying physical process is fairly well understood. In this case you might want to match the more physical metric, the acceleration PDF in this example. This 
+The answer is somewhat philosophical. If the practitioner is highly certain that the errors follow a particular PDF, then it might be advisable to match the error PDFs. On the other hand, perhaps the measurement errors aren't well understood, but the underlying physical process is fairly well understood. In this case you might want to match the more physical metric, the acceleration PDF in this example.
+
+For our purposes its fair to say that we have a much stronger handle on a reasonable range of accelerations. 
 
 
 But, we're trying to match both of these distributions. So on some level we'd want both to to do well. So we should maximize the joint pdf.

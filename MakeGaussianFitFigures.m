@@ -78,6 +78,10 @@ a = 1.1826e-04;
 sigma = 200;
 a = 1.8125e-6;
 
+% optimal acceleration error, both parameters free
+sigma = 131.8940;
+a = 10^(-5.6154);
+
 position_pdf_small = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
 w = @(z)(sigma*sigma);
 velocity_pdf_small = @(z) exp(-(z.*z)/(2*a*a))/(a*sqrt(2*pi));
