@@ -26,7 +26,8 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 nu = 2.00; sigma = 8;
-a = 0.8e-5;
+a = 0.8e-5; % input acceleration variances matches output
+a= 1.1994e-05; % Ljung-Box minimum
 
 position_pdf_big = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
 w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
@@ -73,6 +74,8 @@ AC_big = (ACx_big + ACy_big)/2;
 
 log10(std(a_big)/a)
 
+
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Small error, small tension case
@@ -83,10 +86,17 @@ log10(std(a_big)/a)
 % Very good set of parameters
 nu = 2.0; sigma = 4;
 a = 1.6e-5;
+a = 1.0799e-05; % Ljung-Box test
 
 % Very good set of parameters
-nu = 2.0; sigma = 20;
-a = 0.52e-5;
+% nu = 2.0; sigma = 20;
+% a = 0.52e-5;
+
+% Optimal for the Ljung-Box test
+nu = 2.0; sigma = 1.7; a = 9.3254e-06;
+
+% Nudge down the acceleration to reject outliers.
+nu = 2.0; sigma = 1.7; a = 8e-06;
 
 
 position_pdf_small = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
@@ -175,13 +185,13 @@ subplot(2,2,1)
 plot_hist_with_pdf( error_big, position_pdf_big, 50, 50 )
 
 subplot(2,2,2)
-plot_hist_with_pdf( error_small, position_pdf_small, 100, 50 )
+plot_hist_with_pdf( error_small, position_pdf_small, 10, 50 )
 
 subplot(2,2,3)
 plot_hist_with_pdf( a_big, velocity_pdf_big, 5e-5, 50 )
 
 subplot(2,2,4)
-plot_hist_with_pdf( a_small, velocity_pdf_small, 5e-5, 50 )
+plot_hist_with_pdf( a_small, velocity_pdf_small, 10e-5, 50 )
 
 figure
 subplot(1,2,1)
@@ -209,9 +219,13 @@ p = sum(2*((-1).^(j-1)).*exp(-2*j.*j*lambda*lambda))
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 figure
-
+subplot(2,1,1)
 plot(AC_small), hold on
 plot(AC_big)
-
+subplot(2,1,2)
+[p1, Q1] = LjungBoxTest(AC_small, Nall);
+[p2, Q2] = LjungBoxTest(AC_big, Nall);
+plot(p1), hold on
+plot(p2)
 
 
