@@ -257,6 +257,13 @@ Let's consider smoothing the acceleration and the jerk because they do not have 
 \section{Optimal parameters}
 %%%%%%%%%%%%%%%%%%%%%%
 
+
+\begin{enumerate}
+\item does the assumed error PDF match the resulting PDF?
+\item does the error correlation structure match our assumptions?
+\item does the assumed acceleration PDF match the resulting PDF?
+\end{enumerate}
+
 Fundamentally we have two parameters that we're trying to vary, the error in the position and the rms acceleration. The chi squared statistics mentioned earlier is just part of the idea of trying to find a parameter that forces the expected error PDF to match the PDF that we get out. Of course, we might also try to match the acceleration PDF as well. So the question is then which do we match, the error PDF, the acceleration PDF, or both?
 
 The answer is somewhat philosophical. If the practitioner is highly certain that the errors follow a particular PDF, then it might be advisable to match the error PDFs. On the other hand, perhaps the measurement errors aren't well understood, but the underlying physical process is fairly well understood. In this case you might want to match the more physical metric, the acceleration PDF in this example.
@@ -266,6 +273,9 @@ For our purposes its fair to say that we have a much stronger handle on a reason
 
 But, we're trying to match both of these distributions. So on some level we'd want both to to do well. So we should maximize the joint pdf.
 
+When fitting using the Student t-distribution we look for two things, 1) does the autocorrelation sequence look flat and 2) does the acceleration PDF match expectations. We find that if we go to $\sigma=4$, then the matching acceleration PDF (with the same variance) no longer appears to be Gaussian. We want to have the minimum restriction possible on the positions, so setting $\sigma=20$ isn't ideal because we think GPS errors should be smaller than that.
+
+So use the KS statistic to determine when the acceleration PDF looks Gaussian, assuming that we're matching the variance of the distributions.
 
 %\begin{acknowledgment} 
 %Start acknowledgments here.
