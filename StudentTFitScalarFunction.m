@@ -1,5 +1,7 @@
 function totalError = StudentTFitScalarFunction( sigma, nu, a, drifters)
 
+shouldRejectOutliers = 1;
+
 a = 10^(a);
 S = 3; % order of the spline
 maxlag = 15;
@@ -22,10 +24,15 @@ for iDrifter = 1:Ndrifters
     error_x_big = X*m_x - x;
     error_y_big = X*m_y - y;
     
+    if shouldRejectOutliers == 1
+        error_x_big(abs(error_x_big) > 3*sigma) = [];
+        error_y_big(abs(error_y_big) > 3*sigma) = [];
+    end
+    
     ACx_big = ACx_big + Autocorrelation(error_x_big,maxlag);
     ACy_big = ACy_big + Autocorrelation(error_y_big,maxlag);
     
-    n = n + length(drifters.x{iDrifter});
+    n = n + length(error_x_big) + length(error_y_big);
 end
 
 ACx_big = ACx_big/Ndrifters;

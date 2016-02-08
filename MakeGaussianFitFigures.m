@@ -24,16 +24,8 @@ end
 % Large error, large tension case
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-sigma = 200; a = 2.5e-5;
 
-sigma = 195; a = 1.5e-5;
-
-% optimal total error (and position error), given a
-sigma = 195; a = 1.5e-5;
-
-% optimal acceleration error, given a
-sigma = 65; a = 1.5e-5;
-sigma = 65; a = 0.5e-5;
+sigma = 50; a = 1e-5;
 
 position_pdf_big = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
 w = @(z)(sigma*sigma);
@@ -88,8 +80,8 @@ AC_big = (ACx_big + ACy_big)/2;
 % Small error, small tension case
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-sigma = 20; % error in meters
-a = 9e-5;
+sigma = 50; % error in meters
+a = 1e-4;
 
 % optimal total error, both parameters free
 % sigma = 80;
@@ -235,12 +227,12 @@ fig1.PaperUnits = 'points';
 fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
-plot(AC_small, 'LineWidth', 0.5*scaleFactor, 'Color',0.4*[1.0 1.0 1.0]), hold on
-plot(AC_big, 'LineWidth', 0.5*scaleFactor, 'Color',0.0*[1.0 1.0 1.0])
+plot( (1:length(AC_small))'-1, AC_small, 'LineWidth', 0.5*scaleFactor, 'Color',0.4*[1.0 1.0 1.0]), hold on
+plot( (1:length(AC_big))'-1, AC_big, 'LineWidth', 0.5*scaleFactor, 'Color',0.0*[1.0 1.0 1.0])
 xlabel('lag', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 ylabel('autocorrelation', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 ylim([-1 1])
-xlim([0 25])
+xlim([0 15])
 
 fig1 = tightfig;
 fig1.Position = FigureSize;
@@ -259,10 +251,10 @@ print('-depsc2', 'figures/gaussianacf.eps')
 figure
 
 subplot(2,2,1)
-plot_hist_with_pdf( error_big, position_pdf_big, 1000, 50 )
+plot_hist_with_pdf( error_big, position_pdf_big, 300, 50 )
 
 subplot(2,2,2)
-plot_hist_with_pdf( error_small, position_pdf_small, 100, 50 )
+plot_hist_with_pdf( error_small, position_pdf_small, 300, 50 )
 
 subplot(2,2,3)
 plot_hist_with_pdf( a_big, velocity_pdf_big, 1e-4, 50 )
@@ -270,6 +262,13 @@ plot_hist_with_pdf( a_big, velocity_pdf_big, 1e-4, 50 )
 subplot(2,2,4)
 plot_hist_with_pdf( a_small, velocity_pdf_small, 5e-4, 50 )
 
+figure
+plot_hist_with_pdf( error_big, position_pdf_big, 200, 50, 0.3*[1.0 1.0 1.0] )
+plot_hist_with_pdf( error_small, position_pdf_small, 200, 50, 0.3*[1.0 1.0 1.0] )
+
+% figure
+% plot_hist_with_pdf( a_big, velocity_pdf_big, 1e-4, 50, 0.3*[1.0 1.0 1.0] )
+% plot_hist_with_pdf( a_small, velocity_pdf_small, 1e-4, 50, 0.3*[1.0 1.0 1.0] )
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %

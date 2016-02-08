@@ -1,4 +1,8 @@
-function plot_hist_with_pdf( data, pdf, histwidth, nbins )
+function plot_hist_with_pdf( data, pdf, histwidth, nbins, color )
+
+if nargin < 5
+    color = 'b';
+end
 
 binwidth = histwidth/nbins;
 edges = [-histwidth*10;((-histwidth/2+binwidth):binwidth:(histwidth/2-binwidth))';histwidth*10];
@@ -14,6 +18,8 @@ edgedensity = integral(pdf,(histwidth/2-binwidth),2*histwidth)/binwidth;
 denfunc = edgedensity*ones(size(xi));
 denfunc(11:110) = pdf(xi_mid);
 count = histcounts(data,edges)';
-bar(binleft, count/(length(data)*binwidth), 'histc'); hold on;
+g = bar(binleft, count/(length(data)*binwidth), 'histc'); hold on;
+g.FaceColor = color;
+g.FaceAlpha = 0.5;
 plot(xi,denfunc,'LineWidth',2,'Color','magenta')
 xlim([min(xi) max(xi)])

@@ -11,6 +11,9 @@ Ndrifters = length(drifters.x);
 S = 3; % order of the spline
 K = S+1;
 
+shouldDiscardOutliersInACF = 0;
+shouldUseSignedACF = 1;
+
 maxlag = 30;
 
 % How many data points do we have total
@@ -45,6 +48,7 @@ ACy_big = zeros(maxlag+1,1);
 a_big = [];
 ax_big = [];
 ay_big = [];
+n_acf_big = 0;
 error_big = zeros(2*Nall,1);
 iEpsilon = 1;
 for iDrifter = 1:Ndrifters
@@ -73,8 +77,19 @@ for iDrifter = 1:Ndrifters
     error_big(iEpsilon:(iEpsilon+2*N-1)) = [error_x_big;error_y_big];
     iEpsilon = iEpsilon + 2*N + 1;
     
+    if shouldUseSignedACF == 1
+        error_x_big = sign(error_x_big);
+        error_y_big = sign(error_y_big);
+    end
+    
+    if shouldDiscardOutliersInACF == 1
+        error_x_big(abs(error_x_big) > 6*sigma) = [];
+        error_y_big(abs(error_y_big) > 6*sigma) = [];
+    end
+    
     ACx_big = ACx_big + Autocorrelation(error_x_big,maxlag);
     ACy_big = ACy_big + Autocorrelation(error_y_big,maxlag);
+    n_acf_big = n_acf_big + length(error_x_big) + length(error_y_big);
 end
 
 ACx_big = ACx_big/Ndrifters;
@@ -111,12 +126,20 @@ nu = 2.0; sigma = 1.7; a = 8e-06;
 nu = 2.0; sigma = 2.5; a = 9e-06;
 
 % Nudge down the acceleration to reject outliers.
-nu = 2.0; sigma = 2.5; a = 8e-06;
+nu = 2.0; sigma = 4.0; a = 7e-06;
 
+% ACF experiment
+% nu = 2.0; sigma = 4.0; a = 3e-06;
+
+
+sigma_gps = 1.75;
+gaussian_pdf_small = @(z) exp(-(z.*z)/(2*sigma_gps*sigma_gps))/(sigma_gps*sqrt(2*pi));
 
 position_pdf_small = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
 w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
+
 velocity_pdf_small = @(z) exp(-(z.*z)/(2*a*a))/(a*sqrt(2*pi));
+exponential_pdf_small = @(z) exp(-(abs(z))/(a))/(2*a);
 velocity_cdf_small = @(z) 0.5*(1 + erf(z/(a*sqrt(2))));    
 
 ACx_small = zeros(maxlag+1,1);
@@ -124,6 +147,7 @@ ACy_small = zeros(maxlag+1,1);
 a_small = [];
 ax_small = [];
 ay_small = [];
+n_acf_small = 0;
 error_small = zeros(2*Nall,1);
 iEpsilon = 1;
 for iDrifter = 1:Ndrifters
@@ -152,6 +176,18 @@ for iDrifter = 1:Ndrifters
     error_y_small = X*m_y - y;
     error_small(iEpsilon:(iEpsilon+2*N-1)) = [error_x_small;error_y_small];
     iEpsilon = iEpsilon + 2*N + 1;
+    
+    if shouldUseSignedACF == 1
+        error_x_small = sign(error_x_small);
+        error_y_small = sign(error_y_small);
+    end
+        
+    if shouldDiscardOutliersInACF == 1
+        error_x_small(abs(error_x_small) > 6*sigma) = [];
+        error_y_small(abs(error_y_small) > 6*sigma) = [];
+    end
+    
+    n_acf_small = n_acf_small + length(error_x_small) + length(error_y_small);
     
     ACx_small = ACx_small + Autocorrelation(error_x_small,maxlag);
     ACy_small = ACy_small + Autocorrelation(error_y_small,maxlag);
@@ -237,13 +273,16 @@ subplot(2,2,1)
 plot_hist_with_pdf( error_big, position_pdf_big, 10, 50 )
 
 subplot(2,2,2)
-plot_hist_with_pdf( error_small, position_pdf_small, 10, 50 )
+plot_hist_with_pdf( error_small, position_pdf_small, 20, 50 )
+plot_hist_with_pdf( error_small, gaussian_pdf_small, 20, 50 )
 
 subplot(2,2,3)
 plot_hist_with_pdf( a_big, velocity_pdf_big, 10e-5, 50 )
 
 subplot(2,2,4)
 plot_hist_with_pdf( a_small, velocity_pdf_small, 10e-5, 50 )
+% plot_hist_with_pdf( a_small, exponential_pdf_small, 10e-5, 50 )
+
 
 figure
 subplot(1,2,1)
@@ -275,8 +314,8 @@ subplot(2,1,1)
 plot(AC_small), hold on
 plot(AC_big)
 subplot(2,1,2)
-[p1, Q1] = LjungBoxTest(AC_small, Nall);
-[p2, Q2] = LjungBoxTest(AC_big, Nall);
+[p1, Q1] = LjungBoxTest(AC_small, n_acf_small);
+[p2, Q2] = LjungBoxTest(AC_big, n_acf_big);
 plot(p1), hold on
 plot(p2)
 
