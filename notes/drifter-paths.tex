@@ -848,6 +848,15 @@ Or in general
 \begin{equation}
 w(\epsilon_i) = \sigma^2 \frac{\nu}{\nu+1} \left( 1 + \frac{\epsilon_i^2}{\nu \sigma^2} \right)
 \end{equation}
+This can be made simpler,
+\begin{equation}
+w(\epsilon_i) = \sigma^2 \frac{\nu}{\nu+1} \left( \frac{\nu \sigma^2 + \epsilon_i^2}{\nu \sigma^2} \right)
+\end{equation}
+which is just,
+\begin{equation}
+w(\epsilon_i) = \sigma^2 \frac{\nu  + \frac{\epsilon_i^2}{\sigma^2}}{\nu+1}
+\end{equation}
+So now its easy to see how the reweighting works.
 
 \section{Refined penalty function}
 The previous penalty function wasn't quite right. In fact, we should have

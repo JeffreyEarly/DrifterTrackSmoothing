@@ -214,6 +214,7 @@ where $T\equiv t_N-t_1$. The factor of $N$ in $\lambda_1 =  \frac{N}{u_{\textrm{
 
 The smoothing spline can be restated in terms of maximum likelihood. Assume that in addition to knowing about how the measurement errors are distributed, that we also know how the velocity of underlying physical process is distributed. For example, in geophysical turbulence it has been shown that the velocity probability distribution function is like a two-sided exponential (cite Bracco et al., 2000). Here we will consider the case where the velocity PDF is Gaussian. Stated as maximum likelihood, this means that at \emph{any given instant} (not just the times of observation) we expected the model velocity to look Gaussian. We can discretize the problem by sampling the velocity $Q$ at times $t_q = t_1 + q \Delta t_q$ where $\Delta t_q=\frac{t_N-t_1}{Q-1}$ and $q=0..Q-1$. The maximum likelihood is thus stated as,
 \begin{equation}
+\label{gaussian-max-likelihood}
 P \sim \prod^N _{i=1}\exp \left[ -\frac{1}{2} \left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 \right] \cdot \prod^{Q}_{q=1} \exp \left[  - \frac{1}{2} \left(  \frac{u(t_q)}{\sigma_u} \right)^2 \right] \Delta x.
 \end{equation}
 Writing this as penalty function (after converting the product of exponentials into exponentials of sums), we have that
@@ -227,7 +228,7 @@ where we've renormalized the error PDF and the velocity PDF to have equal weight
 \end{equation}
 Apart from the discretization of the integral, equation \ref{smoothing-spline-velocity} is the same as \ref{smoothing-spline-pdf}. (need to fix the indices for Q).
 
-The implication of this result is that adding tension to the penalty function is equivalent to assuming that one of the higher order derivatives in the model (e.g., acceleration) is Gaussian. This is therefore making an assumption about the \emph{physics} of the model, and not an assumption about the errors. 
+The implication of this result is that adding tension to the penalty function is equivalent to assuming that one of the higher order derivatives in the model (e.g., acceleration) is Gaussian. This is therefore making an assumption about the underlying \emph{physical process} of the model. This is in contrast to the other term which is entirely a statement about measurement noise.
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
@@ -235,47 +236,89 @@ The implication of this result is that adding tension to the penalty function is
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
+\begin{figure*}[t]
+  \centerline{\includegraphics[width=39pc,angle=0]{gaussianfit}}
+  
+  \caption{This shows a high tension (black line) and low tension (gray line) model fit assuming Gaussian errors for a one of the drifters.}
+  \label{gaussianfit}
+\end{figure*}
+
+
 The B-splines are generated using the algorithm described in de Boor with knot points determined by equations \ref{even-knots} and \ref{odd-knots}. The matrix $X^i_m$ denotes the $m$-th B-spline at time $t_i$. The first, second and third derivatives of the B-splines are denotes by $V^i_m$, $A^i_m$, $J^i_m$, denoting velocity, acceleration and jerk, respectively.
 
-The covariance matrix describing the measurement errors, $\Sigma\indices{^i_j}$, is taken to be diagonal. In other words, we will assume that the position errors are independent. 
-
-Fully discretized the penalty function is
+The discretized the penalty function is
 \begin{equation}
 \begin{split}
 \phi = \frac{1}{N} \left[ x^k - X\indices{^k_j} \xi^j \right]^{\textrm{T}} \left(\Sigma^{-1}\right)\indices{^k_i} \left[ x^i - X\indices{^i_l} \xi^l \right] \\
-+ \frac{1}{Q a_{\textrm{rms}}^2} \left[A\indices{^q_j} \xi^j \right]^{\textrm{T}} \left[ A\indices{^q_l} \xi^l \right].
++ \frac{1}{Q a_{\textrm{rms}}^2} \left[A\indices{^q_j} \xi^j \right]^{\textrm{T}} \left[ A\indices{^q_l} \xi^l \right]
 \end{split}
 \end{equation}
+where $\Sigma\indices{^i_j}$ denotes the covariance matrix describing the measurement errors.
+
 To find the coefficients that minimize this function, we take the derivative with respect to $\xi^m$, set it equal to zero, and solve for $\xi^m$,
 \begin{equation}
-\xi^m = \left[\frac{1}{N} X\indices{_k_j} \left(\Sigma^{-1}\right)\indices{^k_i}  X\indices{^i_m} + \frac{1}{Q a_{\textrm{rms}}^2} {A}\indices{^q_j}{A}\indices{^q_m} \right]^{-1} x_k \left(\Sigma^{-1}\right)\indices{^k_i}   X\indices{^i_j}.
+\begin{split}
+\xi^m = \left[\frac{1}{N} X\indices{_k_j} \left(\Sigma^{-1}\right)\indices{^k_i}  X\indices{^i_m} + \frac{1}{Q a_{\textrm{rms}}^2} {A}\indices{^q_j}{A}\indices{^q_m} \right]^{-1} \\
+\cdot x_k \left(\Sigma^{-1}\right)\indices{^k_i}   X\indices{^i_j}.
+\end{split}
+\label{solution}
 \end{equation}
+The first matrix on the right hand side of equation \ref{solution} is $N\times N$ and fully invertible because the knots point were chosen such that each spline has at least one data point in its nonzero region. This is a nice feature because it means the solution will be well-behaved even if there is no tension.
 
-Let's consider smoothing the acceleration and the jerk because they do not have a well defined mean. There are then two parameters to vary, the assumed standard error of the positions, and the assumed distribution of the acceleration (or jerk). Let's consider two scenarios, one where the position error is large (say 150 meters) and another where the position error is small, say 15 meters, and then choose a tension that gives us the right chi squared distribution. In the first case the resulting error PDF won't look Gaussian, and in the second case the autocorrelation sequence will look bad.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \section{Optimal parameters}
 %%%%%%%%%%%%%%%%%%%%%%
 
+If we assume that the position errors are independent and all described by Gaussian PDFs with the same variance, then the covariance matrix $\Sigma\indices{^i_j}$ reduces to the scalar, $\sigma^2$. This means that the maximum likelihood solution reduces to
+\begin{equation}
+\xi^m = \left[ X\indices{_k_j}   X\indices{^k_m} + \gamma {A}\indices{^q_j}{A}\indices{^q_m} \right]^{-1} 
+ x_k \   X\indices{^k_j}.
+\label{scalar-solution}
+\end{equation}
+where $\gamma = \frac{N \sigma^2}{Q a_{\textrm{rms}}^2}$. There is exactly one free tunable parameter, , for this model.
 
+We can adjust $\gamma$ to change the character of the fit, but how do we know if the fit is `optimal' or `best'? After performing a fit we can perform sanity checks on
 \begin{enumerate}
-\item does the assumed error PDF match the resulting PDF?
-\item does the error correlation structure match our assumptions?
-\item does the assumed acceleration PDF match the resulting PDF?
+\item the error PDF,
+\item the autocorrelation sequence of the errors,
+\item and the acceleration PDF.
 \end{enumerate}
+We could actually go further than simple sanity checks and \emph{demand} that the assumed error PDF match the resulting error PDF. This is the essence of the idea in Teanby (and de Boor?) where $\gamma$ is adjusted until the fit matches the expected $\chi^2$ distribution. If the error PDF is well understood, this is an advisable direction. One could adjust $\gamma$ to optimize for the Kolmogorov-Smirnov test. However, it is often the case that in practice the error PDF is not known. The approach taken here to make sure that the assumed PDF has the same characteristics as the resulting PDF.
 
-Fundamentally we have two parameters that we're trying to vary, the error in the position and the rms acceleration. The chi squared statistics mentioned earlier is just part of the idea of trying to find a parameter that forces the expected error PDF to match the PDF that we get out. Of course, we might also try to match the acceleration PDF as well. So the question is then which do we match, the error PDF, the acceleration PDF, or both?
+In de Boor it was suggested that a good fit would have a large number of zero crossings, where the position errors cross the model fit. This idea can be generalized by asking that the autocorrelation sequence for lags $\geq 1$ be near zero. Formally the Ljung-Box tests for significance agains the null hypothesis that the errors are correlated. Of course, there may be reasons to suspect that some of the GPS errors are correlated. If some of the horizon is consistently obscured between measurements, then it's reasonable to expect that some of the outliers are consistently in one direction.
 
-The answer is somewhat philosophical. If the practitioner is highly certain that the errors follow a particular PDF, then it might be advisable to match the error PDFs. On the other hand, perhaps the measurement errors aren't well understood, but the underlying physical process is fairly well understood. In this case you might want to match the more physical metric, the acceleration PDF in this example.
+Finally, the acceleration PDF (or velocity, or any other physical property) should match our expectations. Again, we could dogmatically require that the input PDF match the output PDF, but it is our feeling that assumes too much about the underlying physics. The pragmatic view is that the assumed Gaussian PDF simply serves to eliminate physically unrealistic outliers.
 
-For our purposes its fair to say that we have a much stronger handle on a reasonable range of accelerations. 
+%%%%%%%%%%%%%%%%%%%%%%
+\section{Gaussian errors}
+%%%%%%%%%%%%%%%%%%%%%%
 
+\begin{figure}
+  \centerline{\includegraphics[width=19pc,angle=0]{gaussianacf}}
+  \caption{The autocorrelation function corresponding to the high tension (black line) and low tension (gray line) model fits with Gaussian errors.}
+  \label{gaussianacf}
+\end{figure}
 
-But, we're trying to match both of these distributions. So on some level we'd want both to to do well. So we should maximize the joint pdf.
+Figure XX shows the results of fitting to the observations assuming the errors are Gaussian. The error $\sigma$ is taken to be $50$ meters, a compromise between the documented GPS errors in (ref) and the obvious observed outliers. Of course, there is really only one adjustable parameter so this choice is basically irrelevant as we choose to adjust $a_{\textrm{rms}}$.  A reasonable estimate for a physically realistic acceleration can be found by noting that the largest signal is inertial, with $u \approx 0.1$ m/s, which implies that $a \approx u f_0$, or $a \approx 8 \cdot 10^{-6}$ m$^2$/s. Figure XX shows two fits, one with relatively low tension (high $a_{\textrm{rms}}$) and one with relatively high tension (low $a_{\textrm{rms}}$).
 
-When fitting using the Student t-distribution we look for two things, 1) does the autocorrelation sequence look flat and 2) does the acceleration PDF match expectations. We find that if we go to $\sigma=4$, then the matching acceleration PDF (with the same variance) no longer appears to be Gaussian. We want to have the minimum restriction possible on the positions, so setting $\sigma=20$ isn't ideal because we think GPS errors should be smaller than that.
+Increasing tension (by decreasing $a_{\textrm{rms}}$) reduces the variance in the resulting acceleration PDF because the model fits with large accelerations are considered unlikely. The has the effect of `pulling' the model fit further away from the observation points that would have otherwise resulted in larger accelerations. This also means that if the tension is increased too much, several successive points will be missed and there will now be correlation in errors.
 
-So use the KS statistic to determine when the acceleration PDF looks Gaussian, assuming that we're matching the variance of the distributions.
+On the other hand, while decreasing the tension will improve our error correlation metric, it will also eventually result in physical outliers---regions where the model fit makes large excursion that are unphysical.
+
+The problem with using a Gaussian PDF for the errors is that there are no outliers. Values more than 4 or 5 $\sigma$ from the mean are effectively impossible. The solution is then to use some other distribution which will treat data points beyond a certain distance as outliers.
+
+%%%%%%%%%%%%%%%%%%%%%%
+\section{Non-Gaussian errors}
+%%%%%%%%%%%%%%%%%%%%%%
+
+A reasonable starting point is the Student t-distribution. The pdf of the $t$-distribution is
+\begin{equation}
+p_t\left(\epsilon |\nu,\sigma_t^2\right) = \frac{\Gamma\left( \frac{\nu + 1}{2} \right)}{\sigma_t \sqrt{\nu \pi} \Gamma\left(\frac{\nu}{2}\right)} \left( 1 + \frac{\epsilon^2}{\sigma_t^2 \nu} \right)^{-\frac{\nu+1}{2}}
+\end{equation}
+where the $\sigma_t$ parameter scales the distribution width and the $\nu$ parameter sets the number of degrees of freedom. The variance is $\textrm{var}(X)=\sigma_t^2 \frac{\nu}{\nu-2}$ and only exists for $\nu > 2$.
+
+This distribution is now used instead of the Gaussian distribution in equation \ref{gaussian-max-likelihood}
 
 %\begin{acknowledgment} 
 %Start acknowledgments here.

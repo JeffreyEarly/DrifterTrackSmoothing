@@ -29,6 +29,11 @@ nu = 2.00; sigma = 8;
 a = 0.8e-5; % input acceleration variances matches output
 a= 1.1994e-05; % Ljung-Box minimum
 
+nu = 2.00; sigma = 10.0; a = 1.2317e-05;
+nu = 2.00; sigma = 5.0; a = 1.1272e-05;
+nu = 2.00; sigma = 1.25; a = 7.2975e-06;
+nu = 2.00; sigma = 1.25; a = 6.9e-06;
+
 position_pdf_big = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
 w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
 
@@ -38,6 +43,8 @@ velocity_cdf_big = @(z) 0.5*(1 + erf(z/(a*sqrt(2))));
 ACx_big = zeros(maxlag+1,1);
 ACy_big = zeros(maxlag+1,1);
 a_big = [];
+ax_big = [];
+ay_big = [];
 error_big = zeros(2*Nall,1);
 iEpsilon = 1;
 for iDrifter = 1:Ndrifters
@@ -57,6 +64,8 @@ for iDrifter = 1:Ndrifters
     end
     
     a_big = [a_big; squeeze(Bq(:,:,3))*m_x; squeeze(Bq(:,:,3))*m_y];
+    ax_big = [ax_big; squeeze(Bq(:,:,3))*m_x];
+    ay_big = [ay_big; squeeze(Bq(:,:,3))*m_y];
     
     X = squeeze(B(:,:,1));
     error_x_big = X*m_x - x;
@@ -98,6 +107,12 @@ nu = 2.0; sigma = 1.7; a = 9.3254e-06;
 % Nudge down the acceleration to reject outliers.
 nu = 2.0; sigma = 1.7; a = 8e-06;
 
+% Optimal for the Ljung-Box test
+nu = 2.0; sigma = 2.5; a = 9e-06;
+
+% Nudge down the acceleration to reject outliers.
+nu = 2.0; sigma = 2.5; a = 8e-06;
+
 
 position_pdf_small = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
 w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
@@ -107,6 +122,8 @@ velocity_cdf_small = @(z) 0.5*(1 + erf(z/(a*sqrt(2))));
 ACx_small = zeros(maxlag+1,1);
 ACy_small = zeros(maxlag+1,1);
 a_small = [];
+ax_small = [];
+ay_small = [];
 error_small = zeros(2*Nall,1);
 iEpsilon = 1;
 for iDrifter = 1:Ndrifters
@@ -127,6 +144,8 @@ for iDrifter = 1:Ndrifters
     end
     
     a_small = [a_small; squeeze(Bq(:,:,3))*m_x; squeeze(Bq(:,:,3))*m_y];
+    ax_small = [ax_small; squeeze(Bq(:,:,3))*m_x];
+    ay_small = [ay_small; squeeze(Bq(:,:,3))*m_y];
     
     X = squeeze(B(:,:,1));
     error_x_small = X*m_x - x;
@@ -175,6 +194,39 @@ ylabel('y (km)')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
+% Position fit figure
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+FigureSize = [50 50 figure_width_2col+8 150*scaleFactor];
+
+fig1 = figure('Units', 'points', 'Position', FigureSize)
+set(gcf,'PaperPositionMode','auto')
+set(gcf, 'Color', 'w');
+fig1.PaperUnits = 'points';
+fig1.PaperPosition = FigureSize;
+fig1.PaperSize = [FigureSize(3) FigureSize(4)];
+
+plot(tq/3600,s*x_fit_small, 'LineWidth', 0.5*scaleFactor, 'Color',0.4*[1.0 1.0 1.0]), hold on
+plot(tq/3600,s*x_fit_big, 'LineWidth', 0.5*scaleFactor, 'Color',0.0*[1.0 1.0 1.0])
+scatter(drifters.t{choiceDrifter}/3600,s*drifters.x{choiceDrifter},(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
+xlabel('t (hours)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
+ylabel('x (km)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
+
+xlim([124 149])
+ylim([4.4 8.0])
+
+% packfig(2,2)
+fig1 = tightfig;
+fig1.Position = FigureSize;
+fig1.PaperPosition = FigureSize;
+fig1.PaperSize = [FigureSize(3) FigureSize(4)];
+fig1.PaperPositionMode = 'auto';
+
+print('-depsc2', 'figures/tdistributionfit.eps')
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
 % Position error histogram
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -182,20 +234,20 @@ ylabel('y (km)')
 figure
 
 subplot(2,2,1)
-plot_hist_with_pdf( error_big, position_pdf_big, 50, 50 )
+plot_hist_with_pdf( error_big, position_pdf_big, 10, 50 )
 
 subplot(2,2,2)
 plot_hist_with_pdf( error_small, position_pdf_small, 10, 50 )
 
 subplot(2,2,3)
-plot_hist_with_pdf( a_big, velocity_pdf_big, 5e-5, 50 )
+plot_hist_with_pdf( a_big, velocity_pdf_big, 10e-5, 50 )
 
 subplot(2,2,4)
 plot_hist_with_pdf( a_small, velocity_pdf_small, 10e-5, 50 )
 
 figure
 subplot(1,2,1)
-plot_hist_with_cdf( a_big, velocity_cdf_big, 5e-5, 50 )
+plot_hist_with_cdf( a_big, velocity_cdf_big, 10e-5, 50 )
 
 subplot(1,2,2)
 plot_hist_with_cdf( a_small, velocity_cdf_small, 10e-5, 50 )
