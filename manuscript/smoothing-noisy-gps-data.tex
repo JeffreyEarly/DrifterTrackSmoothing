@@ -329,7 +329,26 @@ p_t(\epsilon|\sigma_g) = \frac{e^{-\frac{1}{2}\frac{\epsilon^2}{\sigma_g^2}} }{\
 \end{equation}
 in equation \ref{gaussian-max-likelihood}. In practice it is challenging to use the Student t-distribution directly because it does not result in a linear solution for the coefficients like equation \ref{solution}. One method around this issue to use a minimum search algorithm to directly look for the maximum values. Alternatively, one can use the iteratively reweighted least squares (IRLS) method to find the maximum likelihood.
 
-The idea with IRLS to reweight the coefficients of the Gaussian, $\sigma_g$ in equation \ref{gaussian_pdf}, so that the resulting distribution looks like the desired distribution, e.g., equation \ref{student_pdf}. Recalling that $\epsilon_i \equiv x_i - x(t_i,\mathbf{\xi})$, the 
+The idea with IRLS to reweight the coefficients of the Gaussian, $\sigma_g$ in equation \ref{gaussian_pdf}, so that the resulting distribution looks like the desired distribution, e.g., equation \ref{student_pdf}. Recalling that $\epsilon_i \equiv x_i - x(t_i,\mathbf{\xi})$, the minimization condition that $\frac{d p_g}{d\xi}=0$, implies that
+\begin{equation}
+\frac{\epsilon_i}{\sigma_g^2} \frac{\partial x(t_i,\mathbf{x})}{\partial \mathbf{\xi}} = 0
+\end{equation}
+for the Gaussian distribution, whereas for the t-distribution this implies that,
+\begin{equation}
+ \frac{\epsilon_i}{\sigma_t^2} \frac{\nu+1}{\nu} \left( 1 + \frac{\epsilon_i^2}{\nu \sigma_t^2} \right)^{-1}  \frac{\partial x(t_i,\mathbf{x})}{\partial \mathbf{\xi}}  = 0.
+\end{equation}
+This means that you can set
+\begin{equation}
+\sigma_g^2 =  \frac{3}{4} \sigma_t^2  \left( 1 + \frac{\epsilon_i^2}{3 \sigma_t^2} \right)
+\label{sigma_reweighted}
+\end{equation}
+to get a matching distribution. Of course, that's only true if $\epsilon_i$ is already known, which initially it is not. So the method becomes iterative in that you start with $\epsilon_i$ determined from the Gaussian fit, then determine a new $\epsilon_i$ after reweighting $\sigma_g$. This method iterates until $\sigma_g$ stops changing. We can rewrite equation \ref{sigma_reweighted} as a function of $\epsilon_i$,
+\begin{equation}
+\label{t-weight}
+w_t(\epsilon_i) = \sigma_t^2 \frac{\nu  + \frac{\epsilon_i^2}{\sigma_t^2}}{\nu+1}.
+\end{equation}
+
+From equation \ref{t-weight} it is clear that if $\epsilon_i < \sigma_t$ then it will be reweighted to a smaller value, essentially making the observation point more strongly weighted. On the other hand, if $\epsilon_i > \sigma_t$, then its relatively weighting will decrease, and it will be treated more as an outlier.
 
 %\begin{acknowledgment} 
 %Start acknowledgments here.

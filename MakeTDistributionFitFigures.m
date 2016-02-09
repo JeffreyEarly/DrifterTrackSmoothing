@@ -43,7 +43,16 @@ nu = 2.00; sigma = 1.25; a = 6.9e-06;
 nu = 2.00; sigma = 4; a = 4e-09;
 
 S = 4; K = S+1;
-nu = 2.0; sigma = 4.0; a = 9e-06;
+nu = 2.0; sigma = 4.0; T=2; a = 9e-06;
+
+S = 5; K = S+1;
+nu = 2.0; sigma = 4.0; T=3; a = 1.3e-09;
+
+% S = 5; K = S+1;
+% nu = 2.0; sigma = 4.0; T=4; a = 2*1.3e-12;
+
+% S = 6; K = S+1;
+% nu = 2.0; sigma = 4.0; T=5; a = 1.4e-15;
 
 position_pdf_big = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
 w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
@@ -68,7 +77,7 @@ for iDrifter = 1:Ndrifters
     dx = ones(size(x))*sigma;
     dy = ones(size(y))*sigma;
     tension = zeros(S,1);
-    tension(2) = 1/a^2;
+    tension(T) = 1/a^2;
     [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,tension, w);
     
     Xq = squeeze(Bq(:,:,1));
@@ -77,9 +86,9 @@ for iDrifter = 1:Ndrifters
         y_fit_big = Xq*m_y;
     end
     
-    a_big = [a_big; squeeze(Bq(:,:,3))*m_x; squeeze(Bq(:,:,3))*m_y];
-    ax_big = [ax_big; squeeze(Bq(:,:,3))*m_x];
-    ay_big = [ay_big; squeeze(Bq(:,:,3))*m_y];
+    a_big = [a_big; squeeze(Bq(:,:,T+1))*m_x; squeeze(Bq(:,:,T+1))*m_y];
+    ax_big = [ax_big; squeeze(Bq(:,:,T+1))*m_x];
+    ay_big = [ay_big; squeeze(Bq(:,:,T+1))*m_y];
     
     X = squeeze(B(:,:,1));
     error_x_big = X*m_x - x;
@@ -143,8 +152,8 @@ S = 3; K = S+1;
 nu = 2.0; sigma = 4.0; a = 7e-06;
 
 % Super high order spline, lets us lower the tolerance on a
-S = 20; K = S+1;
-nu = 2.0; sigma = 4.0; a = 9e-06;
+% S = 20; K = S+1;
+% nu = 2.0; sigma = 4.0; a = 9e-06;
 
 % ACF experiment
 % nu = 2.0; sigma = 4.0; a = 3e-06;
@@ -291,6 +300,7 @@ figure
 
 subplot(2,2,1)
 plot_hist_with_pdf( error_big, position_pdf_big, 20, 50 )
+plot_hist_with_pdf( error_big, gaussian_pdf_small, 20, 50 )
 
 subplot(2,2,2)
 plot_hist_with_pdf( error_small, position_pdf_small, 20, 50 )
