@@ -316,11 +316,20 @@ The problem with using a Gaussian PDF for the errors is that there are no outlie
 
 A reasonable starting point is the Student t-distribution. The pdf of the $t$-distribution is
 \begin{equation}
+\label{student_pdf}
 p_t\left(\epsilon |\nu,\sigma_t^2\right) = \frac{\Gamma\left( \frac{\nu + 1}{2} \right)}{\sigma_t \sqrt{\nu \pi} \Gamma\left(\frac{\nu}{2}\right)} \left( 1 + \frac{\epsilon^2}{\sigma_t^2 \nu} \right)^{-\frac{\nu+1}{2}}
 \end{equation}
 where the $\sigma_t$ parameter scales the distribution width and the $\nu$ parameter sets the number of degrees of freedom. The variance is $\textrm{var}(X)=\sigma_t^2 \frac{\nu}{\nu-2}$ and only exists for $\nu > 2$.
 
-This distribution is now used instead of the Gaussian distribution in equation \ref{gaussian-max-likelihood}
+
+This distribution is now used instead of the Gaussian distribution,
+\begin{equation}
+\label{gaussian_pdf}
+p_t(\epsilon|\sigma_g) = \frac{e^{-\frac{1}{2}\frac{\epsilon^2}{\sigma_g^2}} }{\sigma_g \sqrt{ 2 \pi}}
+\end{equation}
+in equation \ref{gaussian-max-likelihood}. In practice it is challenging to use the Student t-distribution directly because it does not result in a linear solution for the coefficients like equation \ref{solution}. One method around this issue to use a minimum search algorithm to directly look for the maximum values. Alternatively, one can use the iteratively reweighted least squares (IRLS) method to find the maximum likelihood.
+
+The idea with IRLS to reweight the coefficients of the Gaussian, $\sigma_g$ in equation \ref{gaussian_pdf}, so that the resulting distribution looks like the desired distribution, e.g., equation \ref{student_pdf}. Recalling that $\epsilon_i \equiv x_i - x(t_i,\mathbf{\xi})$, the 
 
 %\begin{acknowledgment} 
 %Start acknowledgments here.
