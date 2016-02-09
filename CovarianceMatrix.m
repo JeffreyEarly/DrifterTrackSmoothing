@@ -1,20 +1,30 @@
 t=(0:10)';
 N = length(t);
 
-% 2nd order 2nd derivative matrix, with 
-D2 = FiniteDifferenceMatrix(2,t,2,2,2);
+a = [];
+for S=1:5
 
-Sigma=zeros(size(D2));
+% 2nd order 2nd derivative matrix, with 
+% S = 4;20
+D2 = FiniteDifferenceMatrixNoBoundary(S,t,1);
+
+Sigma=zeros(N-S,N-S);
 for i=1:size(Sigma,1)
-    for j=1:size(Sigma,2)
+    for j=1:size(Sigma,1)
         Sigma(i,j) = sum(D2(i,:).*D2(j,:));
     end
 end
 
+a = [a;Sigma(1,1)];
+
+end
+
+return;
+
 dx = ones(size(t));
 
 % 2nd order 2nd derivative matrix, no boundary terms
-D2 = FiniteDifferenceMatrix(2,t,2,2,2);
+D2 = FiniteDifferenceMatrixNoBoundary(2,t,2);
 D2 = D2(2:(N-1),:);
 
 Sigma=zeros(N-2,N-2);

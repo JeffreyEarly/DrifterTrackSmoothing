@@ -8,7 +8,7 @@
 dt = 1;
 t=(0:dt:100)'; % seconds
 a_true = 0;
-u_true = 1; % meters/second
+u_true = 0; % meters/second
 
 path = @(t) a_true*(t.*t) + u_true.*t;
 speed = @(t) 2*a_true.*t + u_true*ones(size(t));
@@ -31,16 +31,70 @@ S=3;
 t_knot = t;
 N = length(t);
 
-v = 1e-3;
-gamma = (N)./(v*v*(t(end)-t(1)));
-[m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = drifter_fit_bspline(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot,gamma,w);
-x_fit_low_tension = squeeze(Bq(:,:,1))*m_x;
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Same tension order, increasing spline order
+% fitFig = figure;
+% acfFig = figure;
+% v = sigma/dt;
+% for S=1:4
+%     gamma = zeros(S,1);
+%     gamma(1) = 1/v^2;
+%     [m_x,Cm_x,B,Bq,tq] = bspline_fit_with_tension(t,x,ones(size(x))*sigma,S,gamma,w);
+%     x_fit_low_tension = squeeze(Bq(:,:,1))*m_x;
+%     
+%     x_error = x - squeeze(B(:,:,1))*m_x;
+%     AC = Autocorrelation(x_error,10);
+%     
+%     figure(fitFig)
+%     subplot(4,1,S)
+%     plot(t,x_true), hold on
+%     plot(tq,x_fit_low_tension,'g')
+%     scatter(t,x,5)
+%     
+%     figure(acfFig)
+%     subplot(4,1,S)
+%     plot(AC)
+% end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% same spline order, increasing tension order
+fitFig = figure;
+acfFig = figure;
+
+twiddle_factor = [2;6;20;70;252];
+for S=1:4
+    
+    gamma = zeros(4,1);
+    
+    v = sqrt(twiddle_factor(S))*sigma/dt^S;
+    gamma(S) = 1/v^2;
+    [m_x,Cm_x,B,Bq,tq] = bspline_fit_with_tension(t,x,ones(size(x))*sigma,4,gamma,w);
+    x_fit_low_tension = squeeze(Bq(:,:,1))*m_x;
+    
+    x_error = x - squeeze(B(:,:,1))*m_x;
+    AC = Autocorrelation(x_error,10);
+    
+    figure(fitFig)
+    subplot(4,1,S)
+    plot(t,x_true), hold on
+    plot(tq,x_fit_low_tension,'g')
+    scatter(t,x,5)
+    
+    figure(acfFig)
+    subplot(4,1,S)
+    plot(AC)
+end
+
+return
 
 % range = 10.^linspace(-5,-1,10);
 
 % for i=1:length(range)
-v = 1*sigma/dt;
-a = 0.1*sqrt(2)*sigma/(dt*dt);
+v = 10*sigma/dt;
+a = 10*sqrt(2)*sigma/(dt*dt);
 gamma_v = (N)./(v*v*(t(end)-t(1)));
 gamma_a = (N)./(a*a*(t(end)-t(1)));
 gamma = [gamma_v;0*gamma_a];
