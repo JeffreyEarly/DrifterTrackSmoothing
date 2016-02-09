@@ -12,7 +12,7 @@ S = 3; % order of the spline
 K = S+1;
 
 shouldDiscardOutliersInACF = 0;
-shouldUseSignedACF = 1;
+shouldUseSignedACF = 0;
 
 maxlag = 30;
 
@@ -28,6 +28,10 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+S = 4; % order of the spline
+K = S+1;
+
+
 nu = 2.00; sigma = 8;
 a = 0.8e-5; % input acceleration variances matches output
 a= 1.1994e-05; % Ljung-Box minimum
@@ -36,6 +40,10 @@ nu = 2.00; sigma = 10.0; a = 1.2317e-05;
 nu = 2.00; sigma = 5.0; a = 1.1272e-05;
 nu = 2.00; sigma = 1.25; a = 7.2975e-06;
 nu = 2.00; sigma = 1.25; a = 6.9e-06;
+nu = 2.00; sigma = 4; a = 4e-09;
+
+S = 4; K = S+1;
+nu = 2.0; sigma = 4.0; a = 9e-06;
 
 position_pdf_big = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
 w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
@@ -59,7 +67,9 @@ for iDrifter = 1:Ndrifters
     
     dx = ones(size(x))*sigma;
     dy = ones(size(y))*sigma;
-    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,[0; 1/a^2; 0], w);
+    tension = zeros(S,1);
+    tension(2) = 1/a^2;
+    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,tension, w);
     
     Xq = squeeze(Bq(:,:,1));
     if (iDrifter == choiceDrifter)
@@ -106,6 +116,9 @@ log10(std(a_big)/a)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+S = 3; % order of the spline
+K = S+1;
+
 
 % Very good set of parameters
 nu = 2.0; sigma = 4;
@@ -125,8 +138,13 @@ nu = 2.0; sigma = 1.7; a = 8e-06;
 % Optimal for the Ljung-Box test
 nu = 2.0; sigma = 2.5; a = 9e-06;
 
-% Nudge down the acceleration to reject outliers.
+% Nudge down the acceleration to reject outliers. %% Current favorite!!!
+S = 3; K = S+1;
 nu = 2.0; sigma = 4.0; a = 7e-06;
+
+% Super high order spline, lets us lower the tolerance on a
+S = 20; K = S+1;
+nu = 2.0; sigma = 4.0; a = 9e-06;
 
 % ACF experiment
 % nu = 2.0; sigma = 4.0; a = 3e-06;
@@ -158,7 +176,9 @@ for iDrifter = 1:Ndrifters
     
     dx = ones(size(x))*sigma;
     dy = ones(size(y))*sigma;
-    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq2] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,[0; 1/a^2; 0], w);
+    tension = zeros(S,1);
+    tension(2) = 1/a^2;
+    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq2] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,tension, w);
     
     Xq = squeeze(Bq(:,:,1));
     if (iDrifter == choiceDrifter)
@@ -270,7 +290,7 @@ print('-depsc2', 'figures/tdistributionfit.eps')
 figure
 
 subplot(2,2,1)
-plot_hist_with_pdf( error_big, position_pdf_big, 10, 50 )
+plot_hist_with_pdf( error_big, position_pdf_big, 20, 50 )
 
 subplot(2,2,2)
 plot_hist_with_pdf( error_small, position_pdf_small, 20, 50 )

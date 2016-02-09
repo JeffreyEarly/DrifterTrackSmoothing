@@ -34,6 +34,8 @@ N = length(t);
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % Same tension order, increasing spline order
+% Doesn't seem to make a difference.
+%
 % fitFig = figure;
 % acfFig = figure;
 % v = sigma/dt;
@@ -61,6 +63,9 @@ N = length(t);
 %%%%%%%%%%%%%%%%%%%%%%%%%
 %
 % same spline order, increasing tension order
+% This also doesn't seem to make a difference
+% 
+%
 fitFig = figure;
 acfFig = figure;
 
@@ -69,7 +74,7 @@ for S=1:4
     
     gamma = zeros(4,1);
     
-    v = sqrt(twiddle_factor(S))*sigma/dt^S;
+    v = 0.01*sqrt(twiddle_factor(S))*sigma/dt^S;
     gamma(S) = 1/v^2;
     [m_x,Cm_x,B,Bq,tq] = bspline_fit_with_tension(t,x,ones(size(x))*sigma,4,gamma,w);
     x_fit_low_tension = squeeze(Bq(:,:,1))*m_x;
