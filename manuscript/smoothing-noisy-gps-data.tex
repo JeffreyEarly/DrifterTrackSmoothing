@@ -339,7 +339,7 @@ for the Gaussian distribution, whereas for the t-distribution this implies that,
 \end{equation}
 This means that you can set
 \begin{equation}
-\sigma_g^2 =  \frac{3}{4} \sigma_t^2  \left( 1 + \frac{\epsilon_i^2}{3 \sigma_t^2} \right)
+\sigma_g^2 =   \sigma_t^2 \frac{\nu}{\nu+1} \left( 1 + \frac{\epsilon_i^2}{\nu \sigma_t^2} \right)
 \label{sigma_reweighted}
 \end{equation}
 to get a matching distribution. Of course, that's only true if $\epsilon_i$ is already known, which initially it is not. So the method becomes iterative in that you start with $\epsilon_i$ determined from the Gaussian fit, then determine a new $\epsilon_i$ after reweighting $\sigma_g$. This method iterates until $\sigma_g$ stops changing. We can rewrite equation \ref{sigma_reweighted} as a function of $\epsilon_i$,
@@ -349,6 +349,8 @@ w_t(\epsilon_i) = \sigma_t^2 \frac{\nu  + \frac{\epsilon_i^2}{\sigma_t^2}}{\nu+1
 \end{equation}
 
 From equation \ref{t-weight} it is clear that if $\epsilon_i < \sigma_t$ then it will be reweighted to a smaller value, essentially making the observation point more strongly weighted. On the other hand, if $\epsilon_i > \sigma_t$, then its relatively weighting will decrease, and it will be treated more as an outlier.
+
+Algorithm. We choose $\nu$ and $\sigma_t$ by optimizing the KS test against the motionless GPS data. We then adjust the tension, by optimizing the KS test with the real data, but only within the 99.99\% region. We then \emph{discard} the data points that were outside of the 99.99\% region and re-optimize for the final time, but this time across all values of the cdf. We discard the outliers to reduce the degrees of freedom given to the spline. Given the way we've chosen knots, this means there's a region essentially unsupported by data points. Alternatively, one could just remove some knot points.
 
 %\begin{acknowledgment} 
 %Start acknowledgments here.

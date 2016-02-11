@@ -10,6 +10,7 @@ Ndrifters = length(drifters.x);
 
 S = 3; % order of the spline
 K = S+1;
+sigma_gps = 1.75;
 
 shouldDiscardOutliersInACF = 0;
 shouldUseSignedACF = 0;
@@ -18,7 +19,7 @@ maxlag = 30;
 
 % How many data points do we have total
 Nall = 0;
-for iDrifter = 1:9
+for iDrifter = 1:Ndrifters
     Nall = Nall + length(drifters.x{iDrifter});
 end
 
@@ -28,9 +29,9 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-S = 4; % order of the spline
+S = 3; % order of the spline
 K = S+1;
-
+T = 2; % order at which tension is applied
 
 nu = 2.00; sigma = 8;
 a = 0.8e-5; % input acceleration variances matches output
@@ -40,19 +41,36 @@ nu = 2.00; sigma = 10.0; a = 1.2317e-05;
 nu = 2.00; sigma = 5.0; a = 1.1272e-05;
 nu = 2.00; sigma = 1.25; a = 7.2975e-06;
 nu = 2.00; sigma = 1.25; a = 6.9e-06;
-nu = 2.00; sigma = 4; a = 4e-09;
 
-S = 4; K = S+1;
-nu = 2.0; sigma = 4.0; T=2; a = 9e-06;
+nu = 2.00; sigma = 4; a = 9.2956e-06; % sigma_gps = 1.75 min in the KS test
+% nu = 2.00; sigma = 4; a = 5.1614e-06; % sigma_gps = 4 min in the KS test
+% nu = 2.00; sigma = 3*sigma_gps; a =1.29e-05; % sigma_gps = 1.75 min in the KS test
 
-S = 5; K = S+1;
-nu = 2.0; sigma = 4.0; T=3; a = 1.3e-09;
+% S = 4; K = S+1;
+% nu = 2.0; sigma = 4.0; T=2; a = 9e-06;
+% 
+% S = 5; K = S+1;
+% nu = 2.0; sigma = 4.0; T=3; a = 3*1.3e-09;
 
 % S = 5; K = S+1;
 % nu = 2.0; sigma = 4.0; T=4; a = 2*1.3e-12;
 
 % S = 6; K = S+1;
 % nu = 2.0; sigma = 4.0; T=5; a = 1.4e-15;
+
+S = 4; K = S+1;
+nu = 10.0; sigma = sigma_gps; T=3; a = 5.9113e-09;
+
+S = 10; K = S+1;
+nu = 10.0; sigma = sigma_gps; T=2; a = 5.16e-06;
+
+S = 3; K = S+1;
+nu = 5.0; sigma = sigma_gps; T=2; a = 5e-06;
+
+S = 3; K = S+1; sigma_gps = 6.0;
+nu = 6.0; sigma = sigma_gps; T=2; a = 5.3462e-06;
+
+gaussian_pdf_big = @(z) exp(-(z.*z)/(2*sigma_gps*sigma_gps))/(sigma_gps*sqrt(2*pi));
 
 position_pdf_big = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
 w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
@@ -66,8 +84,12 @@ a_big = [];
 ax_big = [];
 ay_big = [];
 n_acf_big = 0;
-error_big = zeros(2*Nall,1);
+% error_big = zeros(2*Nall,1);
+% dist_error_big  = zeros(Nall,1);
+error_big = [];
+dist_error_big = [];
 iEpsilon = 1;
+iDistError = 1;
 for iDrifter = 1:Ndrifters
     x = drifters.x{iDrifter};
     y = drifters.y{iDrifter};
@@ -80,10 +102,24 @@ for iDrifter = 1:Ndrifters
     tension(T) = 1/a^2;
     [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,tension, w);
     
+    X = squeeze(B(:,:,1));
+    error_x_big = X*m_x - x;
+    error_y_big = X*m_y - y;
+    dist_error = sqrt( error_x_big.*error_x_big + error_y_big.*error_y_big );
+    badNuts = dist_error > 50;
+    
+    t(badNuts) = [];
+    x(badNuts) = [];
+    y(badNuts) = [];
+    
+    sprintf('Decreased points by %d\n',sum(badNuts))
+    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,ones(size(x))*sigma,ones(size(x))*sigma,S, 2*tension, w);
+    
     Xq = squeeze(Bq(:,:,1));
     if (iDrifter == choiceDrifter)
         x_fit_big = Xq*m_x;
         y_fit_big = Xq*m_y;
+        tq_big = tq;
     end
     
     a_big = [a_big; squeeze(Bq(:,:,T+1))*m_x; squeeze(Bq(:,:,T+1))*m_y];
@@ -93,8 +129,13 @@ for iDrifter = 1:Ndrifters
     X = squeeze(B(:,:,1));
     error_x_big = X*m_x - x;
     error_y_big = X*m_y - y;
-    error_big(iEpsilon:(iEpsilon+2*N-1)) = [error_x_big;error_y_big];
-    iEpsilon = iEpsilon + 2*N + 1;
+%     error_big(iEpsilon:(iEpsilon+2*N-1)) = [error_x_big;error_y_big];
+%     dist_error_big(iDistError:(iDistError+N-1)) = sqrt( error_x_big.*error_x_big + error_y_big.*error_y_big );
+%     iEpsilon = iEpsilon + 2*N;
+%     iDistError = iDistError + N;
+    
+    error_big = [error_big; error_x_big; error_y_big];
+    dist_error_big = [dist_error_big; sqrt( error_x_big.*error_x_big + error_y_big.*error_y_big )];
     
     if shouldUseSignedACF == 1
         error_x_big = sign(error_x_big);
@@ -151,6 +192,21 @@ nu = 2.0; sigma = 2.5; a = 9e-06;
 S = 3; K = S+1;
 nu = 2.0; sigma = 4.0; a = 7e-06;
 
+S = 3; K = S+1;
+nu = 2.00; sigma = 4; a = 9.2956e-06; % sigma_gps = 1.75 min in the KS test
+nu = 2.00; sigma = 4; a = 5.1614e-06; % sigma_gps = 4 min in the KS test
+nu = 2.00; sigma = 3*sigma_gps; a =1.29e-05; % sigma_gps = 1.75 min in the KS test
+nu = 5; sigma=sigma_gps; a = 4.1839e-06;
+
+sigma_gps = 1.0;
+nu = 6; sigma=sigma_gps; a = 2.2412e-06;
+
+S = 3; K = S+1; sigma_gps = 6.0;
+nu = 6.0; sigma = sigma_gps; T=2; a = 5.3462e-06;
+
+% nu = 10; sigma=sigma_gps; a = 4.7653e-06;
+
+
 % Super high order spline, lets us lower the tolerance on a
 % S = 20; K = S+1;
 % nu = 2.0; sigma = 4.0; a = 9e-06;
@@ -159,7 +215,7 @@ nu = 2.0; sigma = 4.0; a = 7e-06;
 % nu = 2.0; sigma = 4.0; a = 3e-06;
 
 
-sigma_gps = 1.75;
+
 gaussian_pdf_small = @(z) exp(-(z.*z)/(2*sigma_gps*sigma_gps))/(sigma_gps*sqrt(2*pi));
 
 position_pdf_small = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
@@ -204,7 +260,7 @@ for iDrifter = 1:Ndrifters
     error_x_small = X*m_x - x;
     error_y_small = X*m_y - y;
     error_small(iEpsilon:(iEpsilon+2*N-1)) = [error_x_small;error_y_small];
-    iEpsilon = iEpsilon + 2*N + 1;
+    iEpsilon = iEpsilon + 2*N;
     
     if shouldUseSignedACF == 1
         error_x_small = sign(error_x_small);
@@ -245,14 +301,14 @@ ylabel('y (km)')
 
 subplot(2,2,2)
 plot(tq/3600,s*x_fit_small,'b'), hold on
-plot(tq/3600,s*x_fit_big,'k')
+plot(tq_big/3600,s*x_fit_big,'k')
 scatter(drifters.t{choiceDrifter}/3600,s*drifters.x{choiceDrifter},5)
 xlabel('t (hours)')
 ylabel('x (km)')
 
 subplot(2,2,4)
 plot(tq/3600,s*y_fit_small,'b'), hold on
-plot(tq/3600,s*y_fit_big,'k')
+plot(tq_big/3600,s*y_fit_big,'k')
 scatter(drifters.t{choiceDrifter}/3600,s*drifters.y{choiceDrifter},5)
 xlabel('t (hours)')
 ylabel('y (km)')
@@ -273,7 +329,7 @@ fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
 plot(tq/3600,s*x_fit_small, 'LineWidth', 0.5*scaleFactor, 'Color',0.4*[1.0 1.0 1.0]), hold on
-plot(tq/3600,s*x_fit_big, 'LineWidth', 0.5*scaleFactor, 'Color',0.0*[1.0 1.0 1.0])
+plot(tq_big/3600,s*x_fit_big, 'LineWidth', 0.5*scaleFactor, 'Color',0.0*[1.0 1.0 1.0])
 scatter(drifters.t{choiceDrifter}/3600,s*drifters.x{choiceDrifter},(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 xlabel('t (hours)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 ylabel('x (km)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
@@ -299,12 +355,12 @@ print('-depsc2', 'figures/tdistributionfit.eps')
 figure
 
 subplot(2,2,1)
-plot_hist_with_pdf( error_big, position_pdf_big, 20, 50 )
-plot_hist_with_pdf( error_big, gaussian_pdf_small, 20, 50 )
+plot_hist_with_pdf( error_big, position_pdf_big, 60, 100 )
+% plot_hist_with_pdf( error_big, gaussian_pdf_big, 60, 100 )
 
 subplot(2,2,2)
-plot_hist_with_pdf( error_small, position_pdf_small, 20, 50 )
-plot_hist_with_pdf( error_small, gaussian_pdf_small, 20, 50 )
+plot_hist_with_pdf( error_small, position_pdf_small, 60, 100 )
+% plot_hist_with_pdf( error_small, gaussian_pdf_small, 20, 100 )
 
 subplot(2,2,3)
 plot_hist_with_pdf( a_big, velocity_pdf_big, 10e-5, 50 )

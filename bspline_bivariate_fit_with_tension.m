@@ -1,4 +1,4 @@
-function [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,p, weight_function)
+function [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,p, weight_function, t_knot)
 % drifter_fit_bspline    Find the maximum likelihood fit
 %
 % t         independent variable (time), length N
@@ -39,7 +39,9 @@ end
 
 K = S+1;
 
-t_knot = NaturalKnotsForSpline( t, K );
+if nargin < 9
+    t_knot = NaturalKnotsForSpline( t, K );
+end
 B = bspline(t,t_knot,K);
 X = squeeze(B(:,:,1));
 N = size(X,1); % number of data points ;
