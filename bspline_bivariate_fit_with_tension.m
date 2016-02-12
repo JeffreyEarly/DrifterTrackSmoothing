@@ -85,14 +85,14 @@ while (rel_error > 0.01)
     end
 end
 
-dx=X*m_x - x;
-dy=X*m_y - y;
-a=dx'*Wx*dx/N;
-b=dy'*Wy*dy/N;
-chi = 2/(a+b);
-sigma2 = sum(dx.*dx + dy.*dy)/(2*N);
-w_rms = median(sqrt(1./[diag(Wx);diag(Wy)]));
-fprintf('sum(dx/sigma)^2=%f, sum(dy/sigma)^2=%f, chi=%f, sigma = %f, w_rms=%f\n',a,b,chi,sqrt(sigma2),w_rms);
+% dx=X*m_x - x;
+% dy=X*m_y - y;
+% a=dx'*Wx*dx/N;
+% b=dy'*Wy*dy/N;
+% chi = 2/(a+b);
+% sigma2 = sum(dx.*dx + dy.*dy)/(2*N);
+% w_rms = median(sqrt(1./[diag(Wx);diag(Wy)]));
+% fprintf('sum(dx/sigma)^2=%f, sum(dy/sigma)^2=%f, chi=%f, sigma = %f, w_rms=%f\n',a,b,chi,sqrt(sigma2),w_rms);
 
 
 end
