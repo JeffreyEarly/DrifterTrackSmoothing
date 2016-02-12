@@ -127,4 +127,4 @@ x = x_interp;
 y = y_interp;
 t = t_interp;
 
-save('smoothed_interpolated_rho1_drifters.mat', 't', 'x', 'y', 'u', 'v', 'ax', 'ay', 'x_raw', 'y_raw', 't_raw', 'x_error', 'y_error', 'x_error_despiked', 'y_error_despiked', 'S', 'nu', 'sigma', 'T')
+save('smoothed_interpolated_rho1_drifters_reoptimized.mat', 't', 'x', 'y', 'u', 'v', 'ax', 'ay', 'x_raw', 'y_raw', 't_raw', 'x_error', 'y_error', 'x_error_despiked', 'y_error_despiked', 'S', 'nu', 'sigma', 'T', 'a')

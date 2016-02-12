@@ -19,7 +19,8 @@ maxlag = 30;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % How many data points do we have total
-drifters_big = load('smoothed_interpolated_rho1_drifters');
+drifters_big = load('smoothed_interpolated_rho1_drifters')
+load('smoothed_interpolated_rho1_drifters');
 Ndrifters = length(drifters_big.x);
 
 gaussian_pdf_big = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
@@ -71,7 +72,7 @@ ACx_big = ACx_big/Ndrifters;
 ACy_big = ACy_big/Ndrifters;
 AC_big = (ACx_big + ACy_big)/2;
 
-log10(std(a_big)/a)
+% log10(std(a_big)/a)
 
 
 
@@ -81,7 +82,8 @@ log10(std(a_big)/a)
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-drifters_small = load('smoothed_interpolated_rho1_drifters_weak');
+drifters_small = load('smoothed_interpolated_rho1_drifters_reoptimized');
+load('smoothed_interpolated_rho1_drifters_reoptimized')
 Ndrifters = length(drifters_small.x);
 
 gaussian_pdf_small = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
@@ -136,7 +138,7 @@ ACx_small = ACx_small/Ndrifters;
 ACy_small = ACy_small/Ndrifters;
 AC_small = (ACx_small + ACy_small)/2;
 
-log10(std(a_small)/a)
+% log10(std(a_small)/a)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
