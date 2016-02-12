@@ -1,5 +1,5 @@
 % load('sample_data/motionless_gps.mat')
-load('sample_data/motionless_garmin_edge_705.mat')
+% load('sample_data/motionless_garmin_edge_705.mat')
 load('sample_data/motionless_garmin_epix.mat')
 
 % The GPS was motionless, so its position is the errors, but we should

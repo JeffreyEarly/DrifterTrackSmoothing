@@ -177,7 +177,7 @@ ylabel('y (km)')
 
 FigureSize = [50 50 figure_width_2col+8 150*scaleFactor];
 
-fig1 = figure('Units', 'points', 'Position', FigureSize)
+fig1 = figure('Units', 'points', 'Position', FigureSize);
 set(gcf,'PaperPositionMode','auto')
 set(gcf, 'Color', 'w');
 fig1.PaperUnits = 'points';

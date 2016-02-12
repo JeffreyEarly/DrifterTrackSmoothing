@@ -5,7 +5,7 @@ if nargin < 5
 end
 
 binwidth = histwidth/nbins;
-edges = [-histwidth*10;((-histwidth/2+binwidth):binwidth:(histwidth/2-binwidth))';histwidth*10];
+edges = [-histwidth*1000;((-histwidth/2+binwidth):binwidth:(histwidth/2-binwidth))';histwidth*1000];
 binleft = linspace((-histwidth/2),(histwidth/2-binwidth),nbins)';
 
 xi_left = linspace(-histwidth/2,-histwidth/2+binwidth,10)';
@@ -14,7 +14,7 @@ xi_right = linspace(histwidth/2-binwidth,histwidth/2,10)';
 xi = [xi_left;xi_mid;xi_right];
 
 
-edgedensity = integral(pdf,(histwidth/2-binwidth),2*histwidth)/binwidth;
+edgedensity = integral(pdf,(histwidth/2-binwidth),20*histwidth)/binwidth;
 denfunc = edgedensity*ones(size(xi));
 denfunc(11:110) = pdf(xi_mid);
 count = histcounts(data,edges)';
