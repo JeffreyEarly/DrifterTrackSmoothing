@@ -25,7 +25,7 @@ end
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-sigma = 50; a = 1e-5;
+sigma = 10; a = 2e-6;
 
 position_pdf_big = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
 w = @(z)(sigma*sigma);
@@ -80,8 +80,8 @@ AC_big = (ACx_big + ACy_big)/2;
 % Small error, small tension case
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-sigma = 50; % error in meters
-a = 1e-4;
+sigma = 10; % error in meters
+a = 2e-5;
 
 % optimal total error, both parameters free
 % sigma = 80;
@@ -202,7 +202,7 @@ xlabel('t (hours)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 ylabel('x (km)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 
 xlim([124 149])
-ylim([4.4 8.0])
+ylim([5.58 9.18])
 
 % packfig(2,2)
 fig1 = tightfig;
@@ -251,10 +251,10 @@ print('-depsc2', 'figures/gaussianacf.eps')
 figure
 
 subplot(2,2,1)
-plot_hist_with_pdf( error_big, position_pdf_big, 300, 50 )
+plot_hist_with_pdf( error_big, position_pdf_big, 60, 100 )
 
 subplot(2,2,2)
-plot_hist_with_pdf( error_small, position_pdf_small, 300, 50 )
+plot_hist_with_pdf( error_small, position_pdf_small, 60, 100 )
 
 subplot(2,2,3)
 plot_hist_with_pdf( a_big, velocity_pdf_big, 1e-4, 50 )
