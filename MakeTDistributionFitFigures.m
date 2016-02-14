@@ -1,13 +1,17 @@
 % AMS figure widths, given in picas, converted to points (1 pica=12 points)
 scaleFactor = 1;
 LoadFigureDefaults
+addpath('support')
 
 % Drifter to highlight in the final plots
 choiceDrifter = 6;
 
+shouldSaveFigures = 1;
+
 % How many data points do we have total
-drifters = load('smoothed_interpolated_rho1_drifters_reoptimized')
-load('smoothed_interpolated_rho1_drifters_reoptimized');
+drifters = load('smoothed_interpolated_rho1_drifters_T2');
+load('smoothed_interpolated_rho1_drifters_T2');
+sigma_t = sigma;
 Ndrifters = length(drifters.x);
 
 t_pdf = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
@@ -36,7 +40,12 @@ for iDrifter = 1:Ndrifters
     y_error = drifters.y_error{iDrifter};
     
     error = [error; x_error; y_error];
-    dist_error = [dist_error; sqrt( x_error.*x_error + y_error.*y_error )];
+    dist = sqrt( x_error.*x_error + y_error.*y_error );
+    dist_error = [dist_error; dist];
+    
+    if iDrifter == choiceDrifter
+        rejectedPointIndices = find(dist > outlierCut);
+    end
     
     x_error = drifters.x_error_despiked{iDrifter};
     y_error = drifters.y_error_despiked{iDrifter};
@@ -44,6 +53,8 @@ for iDrifter = 1:Ndrifters
     error_despiked = [error_despiked; x_error; y_error];
     dist_error_despiked = [dist_error_despiked; sqrt( x_error.*x_error + y_error.*y_error )];
 end
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -60,7 +71,9 @@ fig1.PaperUnits = 'points';
 fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
+s = 1/1000; % scale
 plot(drifters.t{choiceDrifter}/3600,s*drifters.x{choiceDrifter}, 'LineWidth', 0.5*scaleFactor, 'Color',0.4*[1.0 1.0 1.0]), hold on
+scatter(drifters.t_raw{choiceDrifter}(rejectedPointIndices)/3600,s*drifters.x_raw{choiceDrifter}(rejectedPointIndices),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
 scatter(drifters.t_raw{choiceDrifter}/3600,s*drifters.x_raw{choiceDrifter},(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 xlabel('t (hours)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 ylabel('x (km)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
@@ -74,7 +87,9 @@ fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 fig1.PaperPositionMode = 'auto';
 
-% print('-depsc2', 'figures/tdistributionfit.eps')
+if shouldSaveFigures == 1
+print('-depsc2', 'figures/tdistributionfit.eps')
+end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -105,6 +120,16 @@ edges = [-histwidth*100;((-histwidth/2+binwidth):binwidth:(histwidth/2-binwidth)
 binleft = linspace((-histwidth/2),(histwidth/2-binwidth),nbins)';
 
 % plot the data
+
+% This is the data that includes the outliers
+if 0
+    countRaw = histcounts(error,edges)';
+    % countRaw(2:end-1) = 0;
+    g = bar(binleft, countRaw/(length(error)*binwidth), 'histc'); hold on;
+    g.FaceColor = 0.2*[1.0 1.0 1.0];
+end
+
+% this is the data that doesn't
 count = histcounts(data,edges)';
 g = bar(binleft, count/(length(data)*binwidth), 'histc'); hold on;
 g.FaceColor = 0.8*[1.0 1.0 1.0];
@@ -125,6 +150,7 @@ plot(xi,denfunc,'LineWidth',2*scaleFactor,'Color',0.0*[1.0 1.0 1.0])
 xlabel('meters', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 set( gca, 'FontSize', figure_axis_tick_size);
 xlim([min(xi) max(xi)])
+ylim([0 0.065])
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -137,7 +163,80 @@ fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 fig1.PaperPositionMode = 'auto';
 
-% print('-depsc2', 'figures/tfit_error.eps')
+if shouldSaveFigures == 1
+print('-depsc2', 'figures/tfit_error.eps')
+end
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Error distance distribution figures
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+FigureSize = [50 50 figure_width_1col+4 150*scaleFactor];
+
+fig1 = figure('Units', 'points', 'Position', FigureSize);
+set(gcf,'PaperPositionMode','auto')
+set(gcf, 'Color', 'w');
+fig1.PaperUnits = 'points';
+fig1.PaperPosition = FigureSize;
+fig1.PaperSize = [FigureSize(3) FigureSize(4)];
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Error PDF plot
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+r=linspace(0,100,1000);
+pdf1d = tdistpdf(r/sigma_t,nu)/sigma_t;
+r(end+1)=1000; pdf1d(end+1) = 0.0;
+t2d_pdf = @(z) interp1(r,pdf1d,z);
+
+cdf_2d = cumtrapz(r,pdf1d);
+t2d_cdf = @(z) interp1(r,cdf_2d,z);
+cdf_2d(end+1) = 1.0; % so the interpolation algorithm has something to hang its hat on.
+
+data =  dist_error_despiked;
+histwidth = 50;
+nbins = 100;
+
+% Create the bins for the data
+binwidth = histwidth/nbins;
+edges = [(0:binwidth:(histwidth-binwidth))';histwidth*10];
+binleft = edges(1:end-1);
+
+% plot the data
+count = histcounts(data,edges)';
+g = bar(binleft, count/(length(data)*binwidth), 'histc'); hold on;
+g.FaceColor = 0.8*[1.0 1.0 1.0];
+
+% create bins for the analytical pdf
+xi_mid = linspace(0,histwidth-binwidth,100)';
+xi_right = linspace(histwidth-binwidth,histwidth,10)';
+xi = [xi_mid;xi_right];
+
+% plot the analytical pdf
+pdf = t2d_pdf;
+edgedensity = integral(pdf,(histwidth-binwidth),20*histwidth)/binwidth;
+denfunc = edgedensity*ones(size(xi));
+denfunc(1:100) = pdf(xi_mid);
+plot(xi,denfunc,'LineWidth',2*scaleFactor,'Color',0.0*[1.0 1.0 1.0])
+
+v95 = interp1(t2d_cdf(r),r, 0.95);
+plot([v95 v95],get(gca,'ylim'), 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
+
+xlabel('meters', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
+set( gca, 'FontSize', figure_axis_tick_size);
+
+fig1 = tightfig;
+fig1.Position = FigureSize;
+fig1.PaperPosition = FigureSize;
+fig1.PaperSize = [FigureSize(3) FigureSize(4)];
+fig1.PaperPositionMode = 'auto';
+
+if shouldSaveFigures == 1
+print('-depsc2', 'figures/tfit_distance_error.eps')
+end
 
 return
 

@@ -4,10 +4,9 @@
 %
 % the range allows you to restrict the range (in meters) over which the
 % test is applied.
-function totalError = KolmogorovSmirnovErrorFor2DTDistribution( sigma, nu, a, cut, drifters, r, cdf, shouldDisplay)
+function totalError = KolmogorovSmirnovErrorFor2DTDistribution( sigma, nu, a, T, S, cut, drifters, r, cdf, shouldDisplay)
 
 a = 10^(a);
-S = 3; % order of the spline
 w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
 Ndrifters = length(drifters.x);
 
@@ -18,7 +17,7 @@ for iDrifter = 1:Ndrifters
     t = drifters.t{iDrifter};
     
     tension = zeros(S,1);
-    tension(2) = 1/a^2;
+    tension(T) = 1/a^2;
     [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,ones(size(x))*sigma,ones(size(x))*sigma,S,tension, w);
     
     X = squeeze(B(:,:,1));

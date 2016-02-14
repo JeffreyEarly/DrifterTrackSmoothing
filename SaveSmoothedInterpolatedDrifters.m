@@ -1,11 +1,15 @@
-shouldReoptimizeAfterDespiking = 1;
+shouldReoptimizeAfterDespiking = 0;
 
 drifters = load('sample_data/projected_ungridded_rho1_drifters.mat');
 
 Ndrifters = length(drifters.x);
 
-S = 3; K = S+1; sigma_gps = 8.0;
-nu = 5.5; sigma = sigma_gps; T=2;
+% Tension order
+T = 2; a_start = log10(4.26e-6);
+% T = 3; a_start = log10(2.99e-9);
+% T = 4; a_start = log10(1.96e-12);
+S = T+1; K = S+1;
+nu = 5.5; sigma =  8.0;
 
 w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
 
@@ -14,11 +18,11 @@ fprintf('Generating the 2D student t-distribution...\n')
 [r, pdf1d] = TwoDimStudentTProbabilityDistributionFunction( sigma, nu, 150, 3001 );
 cdf_2d = cumtrapz(r,pdf1d);
 r(end+1)=20000; cdf_2d(end+1) = 1.0; % so the interpolation algorithm has something to hang its hat on.
-cut = interp1(cdf_2d,r, 0.9999);
+outlierCut = interp1(cdf_2d,r, 0.9999);
 
-fprintf('Seaching for the optimal tension parameter using distances less than %f...\n', cut)
-errorFunction = @(a) KolmogorovSmirnovErrorFor2DTDistribution( sigma, nu, a, cut, drifters, r, cdf_2d, 1);
-optimalAcceleration = fminsearch( errorFunction, log10(0.4e-5), optimset('TolFun', 0.2) );
+fprintf('Seaching for the optimal tension parameter using distances less than %f...\n', outlierCut)
+errorFunction = @(a) KolmogorovSmirnovErrorFor2DTDistribution( sigma, nu, a, T, S, outlierCut, drifters, r, cdf_2d, 1);
+optimalAcceleration = fminsearch( errorFunction, a_start, optimset('TolFun', 1.0) );
 fprintf('Optimal acceleration tension is %g\n', 10^(optimalAcceleration(1)) );
 a = 10^(optimalAcceleration(1));
 
@@ -32,14 +36,14 @@ for iDrifter = 1:Ndrifters
     t = drifters.t{iDrifter};
     
     tension = zeros(S,1);
-    tension(2) = 1/a^2;
+    tension(T) = 1/a^2;
     [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,ones(size(x))*sigma,ones(size(x))*sigma,S,tension, w);
     
     X = squeeze(B(:,:,1));
     error_x_big = X*m_x - x;
     error_y_big = X*m_y - y;
     dist_error = sqrt( error_x_big.*error_x_big + error_y_big.*error_y_big );
-    goodDrifters = dist_error < cut;
+    goodDrifters = dist_error < outlierCut;
     
     despikedDrifters.x{iDrifter} = x(goodDrifters);
     despikedDrifters.y{iDrifter} = y(goodDrifters);
@@ -50,11 +54,13 @@ end
 
 if shouldReoptimizeAfterDespiking == 1
     fprintf('Seaching for a new optimal tension parameter...\n')
-    errorFunction = @(a) KolmogorovSmirnovErrorFor2DTDistribution( sigma, nu, a, 1000, despikedDrifters, r, cdf_2d, 1);
+    errorFunction = @(a) KolmogorovSmirnovErrorFor2DTDistribution( sigma, nu, a, T, S, 1000, despikedDrifters, r, cdf_2d, 1);
     optimalAcceleration = fminsearch( errorFunction, log10(a), optimset('TolFun', 0.2) );
     fprintf('Optimal acceleration tension is %g\n', 10^(optimalAcceleration(1)) );
     a = 10^(optimalAcceleration(1));
 end
+
+S=2;
 
 fprintf('Performing final fit and gridding the output...\n')
 x_interp = cell(Ndrifters,1);
@@ -78,7 +84,7 @@ for iDrifter = 1:Ndrifters
     dy = ones(size(y))*sigma;
     tension = zeros(S,1);
     tension(T) = 1/a^2;
-    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,tension, w);
+    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,0*tension, w);
     
     X = squeeze(B(:,:,1));
     x_error_despiked{iDrifter} = X*m_x - x;
@@ -95,7 +101,7 @@ for iDrifter = 1:Ndrifters
     
     % Now create a grid that will coincide for all drifters, using the fact
     % that zero coincides for all them. But also include the end points.
-    res = 5;
+    res = 5*60;
     tq = res*( ceil(min(t)/res):1:floor(max(t)/res) )';
     if min(t) < min(tq)
         tq = [min(t); tq];
@@ -127,4 +133,10 @@ x = x_interp;
 y = y_interp;
 t = t_interp;
 
-save('smoothed_interpolated_rho1_drifters_reoptimized.mat', 't', 'x', 'y', 'u', 'v', 'ax', 'ay', 'x_raw', 'y_raw', 't_raw', 'x_error', 'y_error', 'x_error_despiked', 'y_error_despiked', 'S', 'nu', 'sigma', 'T', 'a')
+f0 = drifters.f0;
+lastDeployment = drifters.lastDeployment;
+lat0 = drifters.lat0;
+lon0 = drifters.lon0;
+maxExperimentLength = drifters.maxExperimentLength;
+
+save(sprintf('smoothed_interpolated_rho1_drifters_T%d_NoTension.mat',T),'f0','lat0','lon0','maxExperimentLength', 't', 'x', 'y', 'u', 'v', 'ax', 'ay', 'x_raw', 'y_raw', 't_raw', 'x_error', 'y_error', 'x_error_despiked', 'y_error_despiked', 'S', 'nu', 'sigma', 'T', 'a', 'outlierCut')

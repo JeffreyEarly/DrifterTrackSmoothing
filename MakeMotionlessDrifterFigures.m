@@ -1,6 +1,7 @@
 % AMS figure widths, given in picas, converted to points (1 pica=12 points)
 scaleFactor = 1;
 LoadFigureDefaults
+addpath('support')
 
 load('sample_data/motionless_garmin_epix.mat')
 
@@ -34,10 +35,19 @@ rayleigh_pdf = @(z) (z/sigma_g^2) .* exp( -z.*z/(2*sigma_g^2));
 t_pdf = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma_t*gamma(nu/2)*(1+(z.*z)/(nu*sigma_t*sigma_t)).^((nu+1)/2));
 t_cdf = @(z) tcdf(z/sigma_t,nu);
 
-% used 20001 points for figure, but it took ~3 hours or so.
-[r, pdf1d] = TwoDimStudentTProbabilityDistributionFunction( sigma_t, nu, 100, 2001 );
-r(end+1)=1000; pdf1d(end+1) = 0.0;
-t2d_pdf = @(z) interp1(r,pdf1d,z);
+if 0
+    % used 20001 points for figure, but it took ~3 hours or so.
+    [r, pdf1d] = TwoDimStudentTProbabilityDistributionFunction( sigma_t, nu, 100, 2001 );
+    r(end+1)=1000; pdf1d(end+1) = 0.0;
+    t2d_pdf = @(z) interp1(r,pdf1d,z);
+else
+    r=linspace(0,100,1000);
+    pdf1d = tdistpdf(r/sigma_t,nu)/sigma_t;
+    r(end+1)=1000; pdf1d(end+1) = 0.0;
+    t2d_pdf = @(z) interp1(r,pdf1d,z);
+end
+
+
 cdf_2d = cumtrapz(r,pdf1d);
 t2d_cdf = @(z) interp1(r,cdf_2d,z);
 

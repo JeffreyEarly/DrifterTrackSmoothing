@@ -53,7 +53,7 @@ Global positioning system receivers (now commonly referred to as `a GPS') are us
 
 The data shown here was collected from from oceanic surface \emph{drifters}, floating buoys with drogues tethered 15-30 meters below the ocean surface, depending on the particular experiment. In the past, these drifters have used Argos positioning system which has significantly poorer temporal coverage and position accuracy (cite elipot), but recently more surface drifters have employed GPS receivers and transmitted their data back through Argos or Iridium satellites. The GPS receiver sits on the surface buoy and collects position data, but because of atmospheric conditions or ocean waves, the receivers are sometimes unable to obtain a position, or when they do, it is highly inaccurately. Thus, despite nominal accuracies of a few meters, it is often the case that some positions are off by more than 1000 meters.
 
-In addition to correcting the position errors, it is also important to interpolate the data to a regular grid. Although the sampling period of a GPS receiver can be fixed, because of missing data and time to to acquire signals, the sampling can be quite irregular. Because many analysis techniques require regular sampling (e.g., a Fourier transform), it is necessary to interpolate the signal onto a regular grid. So the approach taken here is not to simply discard poor data, but also to interpolate the position.
+In addition to correcting the position errors, it is also important to interpolate the data to a regular grid. Although the sampling period of a GPS receiver can be fixed, because of missing data and time to to acquire signals, the sampling can be quite irregular.  Many analysis techniques require regular sampling (e.g., a Fourier transform) and so it is necessary to interpolate the signal onto a regular grid. The approach taken here is not to simply discard poor data, but also to interpolate the position.
 
 For this particular note we will consider nine surface drifters that were deployed in the Sargasso Sea in the summer of 2011. These particular drifters were part of the LatMix experiment (cite BAMs) and recorded data at approximately 30 minute intervals over the course of a week before being retrieved.
 
@@ -74,7 +74,7 @@ The drifter positions are bivariate time series data given as either projected c
 
 Assume for the moment that we are given $N$ observations of a particle position $(t_i,x_i)$ with no errors. The simplest possible form of interpolation would be a nearest neighbor method that assigns the position of the particle to the nearest observations in time. The resulting interpolated function $x(t)$ is a polynomial of \emph{order} $K=1$ (piecewise constant), shown in the top row of figure \ref{interpolation}. The next level of sophistication is to assume a constant velocity between any two observations and use that to interpolate positions between observations, second row of figure \ref{interpolation}. This also means that we now have a piecewise constant function $\frac{dx}{dt}$ that represents the velocity of the particle, shown in the second row, second column of figure  \ref{interpolation}. This is a polynomial function of order $K=2$.
 
-It is slightly less obvious how to proceed to a polynomial of order $K=3$. Clearly we want a piecewise constant acceleration (the second derivative), but where to place $\emph{knot points}$ that define the boundaries of the regions  and how to maintain continuity is slightly less clear. The approach taken here is to use B-splines.
+It is slightly less obvious how to proceed to a polynomial of order $K=3$. With $N$ data points we can construct a piecewise constant acceleration (the second derivative) using the $N-2$ independent accelerations, but where to place $\emph{knot points}$ that define the boundaries of the regions and how to maintain continuity is slightly less clear. The approach taken here is to use B-splines.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \subsection{B-Splines}
@@ -105,7 +105,7 @@ X^K_m(t) \equiv \frac{t - t_m}{t_{m+K-1} - t_m} X^{K-1}_m(t) + \frac{t_{m+K}-t}{
 \end{equation}
 This recursion formula takes two neighboring lower order splines and ramps the left one up over its nonzero domain and ramps the right one down over its nonzero domain. The result of this process is to create splines that span across one additional knot point at each order, and maintain continuity across one more derivatives. Examples are shown in figure \ref{bsplines}.
 
-Any knot points that are repeated $T$ times will result in an a total of $T-1$ splines of order one that are everywhere zero. This has the effect of introducing discontinuities in the derivatives for higher order splines. For our purposes, we will only use this feature to prevent higher order splines from cross the boundaries. For $K=2$ order splines we will use $N+2$ knot points at locations,
+Any knot points that are repeated $T$ times will result in an a total of $T-1$ splines of order one that are everywhere zero. This has the effect of introducing discontinuities in the derivatives for higher order splines. For our purposes, we will only use this feature to prevent higher order splines from crossing the boundaries. For $K=2$ order splines we will use $N+2$ knot points at locations,
 \begin{equation}
 \tau_m = \begin{cases}
 t_1      	& \text{$m \leq 2$}, \\
@@ -160,7 +160,7 @@ Conceptually we have two major pieces that we need to solve this problem:
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
-\subsection{Error PDF}
+\subsection{GPS Error PDF}
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
@@ -282,7 +282,7 @@ The implication of this result is that adding tension to the penalty function is
 \begin{figure*}[t]
   \centerline{\includegraphics[width=39pc,angle=0]{gaussianfit}}
   
-  \caption{An example of model fits assuming Gaussian errors with $\sigma=50$ meters. The black line shows a fit with high tension ($a_{\textrm{rms}}=1 \cdot 10^{-5}$ m$^2$/s), while the gray line shows a fit with  low tension ($a_{\textrm{rms}}=1 \cdot 10^{-4}$ m$^2$/s).}
+  \caption{An example of model fits assuming Gaussian errors with $\sigma=10$ meters. The black line shows a fit with high tension ($a_{\textrm{rms}}=2 \cdot 10^{-5}$ m$^2$/s), while the gray line shows a fit with  low tension ($a_{\textrm{rms}}=2 \cdot 10^{-4}$ m$^2$/s).}
   \label{gaussianfit}
 \end{figure*}
 
@@ -319,7 +319,7 @@ If we assume that the position errors are independent and all described by Gauss
  x_k \   X\indices{^k_j}.
 \label{scalar-solution}
 \end{equation}
-where $\gamma = \frac{N \sigma^2}{Q a_{\textrm{rms}}^2}$. There is exactly one free tunable parameter, , for this model.
+where $\gamma = \frac{N \sigma^2}{Q a_{\textrm{rms}}^2}$. There is exactly one free tunable parameter, $\gamma$, for this model.
 
 We can adjust $\gamma$ to change the character of the fit, but how do we know if the fit is `optimal' or `best'? After performing a fit we can perform sanity checks on
 \begin{enumerate}
@@ -343,7 +343,13 @@ Finally, the acceleration PDF (or velocity, or any other physical property) shou
   \label{gaussianacf}
 \end{figure}
 
-Figure \ref{gaussianfit} shows the results of fitting to the observations assuming the errors are Gaussian. The error $\sigma$ is taken to be $50$ meters, a compromise between the documented GPS errors in (ref) and the obvious observed outliers. Of course, there is really only one adjustable parameter so this choice is  irrelevant as we choose to fix $\sigma$ and adjust $a_{\textrm{rms}}$.  A reasonable estimate for a physically realistic acceleration can be found by noting that the largest signal is inertial, so if we take with $u \approx 0.1$ m/s this implies  that $a \approx u f_0$, or $a \approx 8 \cdot 10^{-6}$ m$^2$/s. Figure \ref{gaussianfit} shows two fits, one with relatively low tension (high $a_{\textrm{rms}}=1 \cdot 10^{-5}$ m$^2$/s) and one with relatively high tension (low $a_{\textrm{rms}}=1 \cdot 10^{-6}$ m$^2$/s).
+Figure \ref{gaussianfit} shows the results of fitting to the observations assuming the errors are Gaussian. The error $\sigma$ is taken to be $10$ meters, as found in the analysis of GPS errors. Of course, there is really only one adjustable parameter so this choice is  irrelevant as we choose to fix $\sigma$ and adjust $a_{\textrm{rms}}$.  A reasonable estimate for a physically realistic acceleration can be found by noting that the largest signal is inertial, so if we take with $u \approx 0.1$ m/s this implies  that $a \approx u f_0$, or $a \approx 8 \cdot 10^{-6}$ m$^2$/s. Figure \ref{gaussianfit} shows two fits, one with relatively low tension (high $a_{\textrm{rms}}=2 \cdot 10^{-5}$ m$^2$/s) and one with relatively high tension (low $a_{\textrm{rms}}=2 \cdot 10^{-6}$ m$^2$/s).
+\begin{figure*}[t]
+  \centerline{\includegraphics[width=39pc,angle=0]{tdistributionfit}}
+  
+  \caption{An example of model fits assuming errors following a t-distribution.}
+  \label{tdistributionfit}
+\end{figure*}
 
 Increasing tension (by decreasing $a_{\textrm{rms}}$) reduces the variance in the resulting acceleration PDF because the model fits with large accelerations are considered unlikely. The has the effect of `pulling' the model fit further away from the observation points that would have otherwise resulted in larger accelerations. This also means that if the tension is increased too much, several successive points will be missed and there will now be correlation in errors. This is evident in figure \ref{gaussianfit} where the black line (high tension) fit stays to one side of the data for several successive points. On the other hand, decreasing the tension will improves the error correlation metric. The gray line (low tension) fit in figure \ref{gaussianfit} shows far more zero crossings. However, the low tension case also results in physical outliers---regions where the model fit makes large excursion that are clearly unphysical.
 
@@ -355,18 +361,7 @@ The problem with using a Gaussian PDF for the errors is that there are no outlie
 \section{Non-Gaussian errors}
 %%%%%%%%%%%%%%%%%%%%%%
 
-A reasonable starting point is the Student t-distribution. The pdf of the $t$-distribution is
-\begin{equation}
-p_t\left(\epsilon |\nu,\sigma_t^2\right) = \frac{\Gamma\left( \frac{\nu + 1}{2} \right)}{\sigma_t \sqrt{\nu \pi} \Gamma\left(\frac{\nu}{2}\right)} \left( 1 + \frac{\epsilon^2}{\sigma_t^2 \nu} \right)^{-\frac{\nu+1}{2}}
-\end{equation}
-where the $\sigma_t$ parameter scales the distribution width and the $\nu$ parameter sets the number of degrees of freedom. The variance is $\textrm{var}(X)=\sigma_t^2 \frac{\nu}{\nu-2}$ and only exists for $\nu > 2$.
-
-
-This distribution is now used instead of the Gaussian distribution,
-\begin{equation}
-p_t(\epsilon|\sigma_g) = \frac{e^{-\frac{1}{2}\frac{\epsilon^2}{\sigma_g^2}} }{\sigma_g \sqrt{ 2 \pi}}
-\end{equation}
-in equation \ref{gaussian-max-likelihood}. In practice it is challenging to use the Student t-distribution directly because it does not result in a linear solution for the coefficients like equation \ref{solution}. One method around this issue to use a minimum search algorithm to directly look for the maximum values. Alternatively, one can use the iteratively reweighted least squares (IRLS) method to find the maximum likelihood.
+In practice it is challenging to use the Student t-distribution directly because it does not result in a linear solution for the coefficients like equation \ref{solution}. One method around this issue to use a search algorithm to directly look for the maximum values. Alternatively, one can use the iteratively reweighted least squares (IRLS) method to find the maximum likelihood.
 
 The idea with IRLS to reweight the coefficients of the Gaussian, $\sigma_g$ in equation \ref{gaussian_pdf}, so that the resulting distribution looks like the desired distribution, e.g., equation \ref{student_pdf}. Recalling that $\epsilon_i \equiv x_i - x(t_i,\mathbf{\xi})$, the minimization condition that $\frac{d p_g}{d\xi}=0$, implies that
 \begin{equation}
@@ -389,7 +384,16 @@ w_t(\epsilon_i) = \sigma_t^2 \frac{\nu  + \frac{\epsilon_i^2}{\sigma_t^2}}{\nu+1
 
 From equation \ref{t-weight} it is clear that if $\epsilon_i < \sigma_t$ then it will be reweighted to a smaller value, essentially making the observation point more strongly weighted. On the other hand, if $\epsilon_i > \sigma_t$, then its relatively weighting will decrease, and it will be treated more as an outlier.
 
-Algorithm. We choose $\nu$ and $\sigma_t$ by optimizing the KS test against the motionless GPS data. We then adjust the tension, by optimizing the KS test with the real data, but only within the 99.99\% region. We then \emph{discard} the data points that were outside of the 99.99\% region and re-optimize for the final time, but this time across all values of the cdf. We discard the outliers to reduce the degrees of freedom given to the spline. Given the way we've chosen knots, this means there's a region essentially unsupported by data points. Alternatively, one could just remove some knot points.
+The algorithm proceeds as follows. First, using the values of $\nu$ and $\sigma_t$ found in section XX, we  adjust the tension of the spline until we find the optimal value of the KS test, but only within the 99.99\% region. Meaning that we do not include points that are more than 95 meters away from the model fit. The restricted region is used to avoid fitting to the outliers that do not conform to the model of the motionless GPS. In the second step, we then discard the data points outside the 99.99\% of the t-distribution. The tension parameter is then reoptimized, but this time over the entire distribution. In practice, discarding the outlier and reoptimizing the tension makes little difference to the resulting the path, but in the few regions where it does make a difference, it helps.
+
+\begin{figure}
+  \centerline{\includegraphics[width=19pc,angle=0]{tfit_error}}
+  \centerline{\includegraphics[width=19pc,angle=0]{tfit_distance_error}} 
+  \caption{The top panel shows the position error distribution of the motionless GPS. The black line is the best fit t-distribution and the gray line is the best fit Gaussian distribution. The bottom panel shows the distance error distribution with the corresponding expected distributions from the Gaussian and t-distribution. The vertical line in the bottom panel shows the 95\% error of the t-distribution at about 29 meters.}
+  \label{tfit_error}
+\end{figure}
+
+Major problems. Tension splines reduce variance. That's all they can do.
 
 %\begin{acknowledgment} 
 %Start acknowledgments here.

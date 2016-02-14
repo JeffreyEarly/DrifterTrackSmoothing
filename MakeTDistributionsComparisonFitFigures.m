@@ -3,7 +3,7 @@ scaleFactor = 1;
 LoadFigureDefaults
 
 % Drifter to highlight in the final plots
-choiceDrifter = 6;
+choiceDrifter = 7;
 
 
 shouldDiscardOutliersInACF = 0;
@@ -19,8 +19,8 @@ maxlag = 30;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % How many data points do we have total
-drifters_big = load('smoothed_interpolated_rho1_drifters')
-load('smoothed_interpolated_rho1_drifters');
+drifters_big = load('smoothed_interpolated_rho1_drifters_T2');
+load('smoothed_interpolated_rho1_drifters_T2');
 Ndrifters = length(drifters_big.x);
 
 gaussian_pdf_big = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
@@ -51,7 +51,15 @@ for iDrifter = 1:Ndrifters
     y_error = drifters_big.y_error{iDrifter};
 
     error_big = [error_big; x_error; y_error];
-    dist_error_big = [dist_error_big; sqrt( x_error.*x_error + y_error.*y_error )];
+    dist = sqrt( x_error.*x_error + y_error.*y_error );
+    dist_error_big = [dist_error_big; dist];
+    
+    if iDrifter == choiceDrifter
+        rejectedPointIndices = find(dist > outlierCut);
+        x_error_choice = x_error;
+        y_error_choice = y_error;
+        dist_choice = dist;
+    end
     
     if shouldUseSignedACF == 1
         x_error = sign(x_error);
@@ -74,7 +82,9 @@ AC_big = (ACx_big + ACy_big)/2;
 
 % log10(std(a_big)/a)
 
-
+a = std(a_big);
+velocity_pdf_big = @(z) exp(-(z.*z)/(2*a*a))/(a*sqrt(2*pi));
+velocity_cdf_big = @(z) 0.5*(1 + erf(z/(a*sqrt(2))));    
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -82,15 +92,14 @@ AC_big = (ACx_big + ACy_big)/2;
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-drifters_small = load('smoothed_interpolated_rho1_drifters_reoptimized');
-load('smoothed_interpolated_rho1_drifters_reoptimized')
+drifters_small = load('smoothed_interpolated_rho1_drifters_T2_NoTension');
+load('smoothed_interpolated_rho1_drifters_T2_NoTension');
 Ndrifters = length(drifters_small.x);
 
 gaussian_pdf_small = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
 position_pdf_small = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
 w = @(z)((nu/(nu+1))*sigma^2*(1+z.^2/(nu*sigma^2)));
 
-velocity_pdf_small = @(z) exp(-(z.*z)/(2*a*a))/(a*sqrt(2*pi));
 exponential_pdf_small = @(z) exp(-(abs(z))/(a))/(2*a);
 velocity_cdf_small = @(z) 0.5*(1 + erf(z/(a*sqrt(2))));    
 
@@ -112,8 +121,8 @@ for iDrifter = 1:Ndrifters
     ax_small = [ax_small; drifters_small.ax{iDrifter}];
     ay_small = [ay_small; drifters_small.ay{iDrifter}];
     
-    x_error = drifters_small.x_error{iDrifter};
-    y_error = drifters_small.y_error{iDrifter};
+    x_error = drifters_small.x_error_despiked{iDrifter};
+    y_error = drifters_small.y_error_despiked{iDrifter};
     
     error_small = [error_small; x_error; y_error];
     dist_error_small = [dist_error_small; sqrt( x_error.*x_error + y_error.*y_error )];
@@ -138,6 +147,9 @@ ACx_small = ACx_small/Ndrifters;
 ACy_small = ACy_small/Ndrifters;
 AC_small = (ACx_small + ACy_small)/2;
 
+a = std(a_small);
+velocity_pdf_small = @(z) exp(-(z.*z)/(2*a*a))/(a*sqrt(2*pi));
+
 % log10(std(a_small)/a)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -153,6 +165,7 @@ subplot(2,2,[1 3])
 s = 1/1000;
 plot(s*drifters_small.x{choiceDrifter},s*drifters_small.y{choiceDrifter},'b'), hold on
 plot(s*drifters_big.x{choiceDrifter},s*drifters_big.y{choiceDrifter},'k')
+scatter(s*drifters_big.x_raw{choiceDrifter}(rejectedPointIndices),s*drifters_big.y_raw{choiceDrifter}(rejectedPointIndices),(10)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
 scatter(s*drifters_big.x_raw{choiceDrifter},s*drifters_big.y_raw{choiceDrifter},5)
 xlabel('x (km)')
 ylabel('y (km)')
@@ -160,6 +173,7 @@ ylabel('y (km)')
 subplot(2,2,2)
 plot(drifters_small.t{choiceDrifter}/3600,s*drifters_small.x{choiceDrifter},'b'), hold on
 plot(drifters_big.t{choiceDrifter}/3600,s*drifters_big.x{choiceDrifter},'k')
+scatter(drifters_big.t_raw{choiceDrifter}(rejectedPointIndices)/3600,s*drifters_big.x_raw{choiceDrifter}(rejectedPointIndices),(10)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
 scatter(drifters.t_raw{choiceDrifter}/3600,s*drifters.x_raw{choiceDrifter},5)
 xlabel('t (hours)')
 ylabel('x (km)')
@@ -167,6 +181,7 @@ ylabel('x (km)')
 subplot(2,2,4)
 plot(drifters_small.t{choiceDrifter}/3600,s*drifters_small.y{choiceDrifter},'b'), hold on
 plot(drifters_big.t{choiceDrifter}/3600,s*drifters_big.y{choiceDrifter},'k')
+scatter(drifters_big.t_raw{choiceDrifter}(rejectedPointIndices)/3600,s*drifters_big.y_raw{choiceDrifter}(rejectedPointIndices),(10)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
 scatter(drifters.t_raw{choiceDrifter}/3600,s*drifters.y_raw{choiceDrifter},5)
 xlabel('t (hours)')
 ylabel('y (km)')
@@ -220,10 +235,10 @@ plot_hist_with_pdf( error_small, position_pdf_small, 60, 100 )
 % plot_hist_with_pdf( error_small, gaussian_pdf_small, 20, 100 )
 
 subplot(2,2,3)
-plot_hist_with_pdf( a_big, velocity_pdf_big, 10e-5, 50 )
+plot_hist_with_pdf( a_big, velocity_pdf_big, 10e-5, 100 )
 
 subplot(2,2,4)
-plot_hist_with_pdf( a_small, velocity_pdf_small, 10e-5, 50 )
+plot_hist_with_pdf( a_small, velocity_pdf_small, 10e-5, 100 )
 % plot_hist_with_pdf( a_small, exponential_pdf_small, 10e-5, 50 )
 
 
