@@ -1,5 +1,5 @@
 clear
-drifters = load('smoothed_interpolated_rho1_drifters_T4.mat');
+drifters = load('smoothed_interpolated_rho1_drifters_S1_NoTension.mat');
 
 NDrifters = 9;
 maxT = [];
@@ -29,4 +29,4 @@ lat0 = drifters.lat0;
 lon0 = drifters.lon0;
 f0 = drifters.f0;
 
-save('smoothedGriddedRho1DriftersT4.mat', 't', 'x', 'y', 'lat0', 'lon0', 'f0');
+save('smoothedGriddedRho1DriftersS1NoTension.mat', 't', 'x', 'y', 'lat0', 'lon0', 'f0');

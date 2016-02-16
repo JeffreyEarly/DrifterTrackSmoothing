@@ -28,7 +28,7 @@ end
 % If we were only given one tension value, assume it's for the end.
 if length(p) == 1
    pin = p;
-   p = zeros(S-1,1);
+   p = zeros(S,1);
    p(end) = pin;
 end
 

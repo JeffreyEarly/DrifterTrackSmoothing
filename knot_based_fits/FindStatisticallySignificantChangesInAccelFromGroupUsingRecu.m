@@ -71,7 +71,7 @@ while (min_z_score < z_threshold)
     t_error = (t_knot(1:end-1) + t_knot(2:end))/2;
     B_error = bspline(t_error,t_knot,S+1);
     group2.value = squeeze(B_error(:,:,S+1))*m_x;
-    group2.sigma2 = squeeze(B_error(:,:,S+1))*Cm_x*squeeze(B_error(:,:,S+1)).';
+    group2.sigma2 = squeeze(B_error(:,:,S+1))*Cm_x*squeeze(B_error(:,:,S+1))';
     
     da = diff(group2.value);
     tolerance = zeros(size(da));

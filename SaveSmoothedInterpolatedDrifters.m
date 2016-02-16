@@ -22,7 +22,7 @@ outlierCut = interp1(cdf_2d,r, 0.9999);
 
 fprintf('Seaching for the optimal tension parameter using distances less than %f...\n', outlierCut)
 errorFunction = @(a) KolmogorovSmirnovErrorFor2DTDistribution( sigma, nu, a, T, S, outlierCut, drifters, r, cdf_2d, 1);
-optimalAcceleration = fminsearch( errorFunction, a_start, optimset('TolFun', 1.0) );
+optimalAcceleration = fminsearch( errorFunction, a_start, optimset('TolX', 0.1, 'TolFun', 0.1) );
 fprintf('Optimal acceleration tension is %g\n', 10^(optimalAcceleration(1)) );
 a = 10^(optimalAcceleration(1));
 
@@ -55,12 +55,10 @@ end
 if shouldReoptimizeAfterDespiking == 1
     fprintf('Seaching for a new optimal tension parameter...\n')
     errorFunction = @(a) KolmogorovSmirnovErrorFor2DTDistribution( sigma, nu, a, T, S, 1000, despikedDrifters, r, cdf_2d, 1);
-    optimalAcceleration = fminsearch( errorFunction, log10(a), optimset('TolFun', 0.2) );
+    optimalAcceleration = fminsearch( errorFunction, log10(a), optimset('TolX', 0.1, 'TolFun', 0.1) );
     fprintf('Optimal acceleration tension is %g\n', 10^(optimalAcceleration(1)) );
     a = 10^(optimalAcceleration(1));
 end
-
-S=2;
 
 fprintf('Performing final fit and gridding the output...\n')
 x_interp = cell(Ndrifters,1);
@@ -84,7 +82,7 @@ for iDrifter = 1:Ndrifters
     dy = ones(size(y))*sigma;
     tension = zeros(S,1);
     tension(T) = 1/a^2;
-    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,0*tension, w);
+    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,tension, w);
     
     X = squeeze(B(:,:,1));
     x_error_despiked{iDrifter} = X*m_x - x;
@@ -139,4 +137,4 @@ lat0 = drifters.lat0;
 lon0 = drifters.lon0;
 maxExperimentLength = drifters.maxExperimentLength;
 
-save(sprintf('smoothed_interpolated_rho1_drifters_T%d_NoTension.mat',T),'f0','lat0','lon0','maxExperimentLength', 't', 'x', 'y', 'u', 'v', 'ax', 'ay', 'x_raw', 'y_raw', 't_raw', 'x_error', 'y_error', 'x_error_despiked', 'y_error_despiked', 'S', 'nu', 'sigma', 'T', 'a', 'outlierCut')
+save(sprintf('smoothed_interpolated_rho1_drifters.mat',S),'f0','lat0','lon0','maxExperimentLength', 't', 'x', 'y', 'u', 'v', 'ax', 'ay', 'x_raw', 'y_raw', 't_raw', 'x_error', 'y_error', 'x_error_despiked', 'y_error_despiked', 'S', 'nu', 'sigma', 'T', 'a', 'outlierCut')

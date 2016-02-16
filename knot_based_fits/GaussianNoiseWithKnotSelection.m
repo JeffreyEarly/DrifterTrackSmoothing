@@ -120,9 +120,11 @@ w = @(z)(sigma*sigma);
 % 
 % t_knot = [t(1); mean( [t(v_indices(left(2:(end-1)))), t(v_indices(right(2:(end-1))))],2 ); t(end)];
 
+z_threshold = 3;
+
 Sigma = sigma*ones(size(t));
 S = 0;
-[t_knot0, group0] = FindStatisticallySignificantChangesInPosition(t,x,Sigma,3.0);
+[t_knot0, group0] = FindStatisticallySignificantChangesInPosition(t,x,Sigma,z_threshold);
 [m_x0,Cm_x0,B0] = bspline_fit_no_tension(t,x,Sigma,S,t_knot0,w);
 
 tq0 = linspace(t(1),t(end),10*N)';
@@ -139,7 +141,7 @@ x_fit0 = squeeze(Bq0(:,:,1))*m_x0;
 x_error0 = x - squeeze(B0(:,:,1))*m_x0;
 mean_x_error0 = sqrt(mean((path(tq0) - x_fit0).^2));
 
-[t_knot1, group1] = FindStatisticallySignificantChangesInVelocityFromGroupUsingRecu(group0,t,x,Sigma,3.0,w);
+[t_knot1, group1] = FindStatisticallySignificantChangesInVelocityFromGroupUsingRecu(group0,t,x,Sigma,z_threshold,w);
 
 S = 1;
 
@@ -156,7 +158,7 @@ mean_x_error1 = sqrt(mean((path(tq1) - x_fit1).^2));
 v_fit1 = squeeze(Bq1(:,:,2))*m_x1;
 mean_v_error1 = sqrt(mean((speed(tq1) - v_fit1).^2));
 
-[t_knot2, group2] = FindStatisticallySignificantChangesInAccelFromGroupUsingRecu(group1,t,x,Sigma,3.0,w);
+[t_knot2, group2] = FindStatisticallySignificantChangesInAccelFromGroupUsingRecu(group1,t,x,Sigma,z_threshold,w);
 
 S = 2;
 [m_x2,m_y2,Cm_x2,Cm_y2,B2,Bq2,tq2] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot2,w);

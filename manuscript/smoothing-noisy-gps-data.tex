@@ -89,7 +89,7 @@ X^1_m(t) \equiv \begin{cases}
 0     & \text{otherwise}.
 \end{cases}
 \end{equation}
-This is the rectangle function as shown in the first row, first column of figure \ref{bsplines}. If we are given $P$ knot points, then we can construction $P-1$ B-splines of order $K=1$, although notice that if a knot point is repeated this will result in a splines that is zero everywhere. To represent an interpolating function $x(t)$ for the $N$ observations of a particle position $(t_i,x_i)$ we define $N+1$ knot points as,
+This is the rectangle function as shown in the first row, first column of figure \ref{bsplines}. If we are given $P$ knot points, then we can construct $P-1$ B-splines of order $K=1$, although notice that if a knot point is repeated this will result in a splines that is zero everywhere. To represent an interpolating function $x(t)$ for the $N$ observations of a particle position $(t_i,x_i)$ we define $N+1$ knot points as,
 \begin{equation}
 \tau_m = \begin{cases}
 t_1      & \text{$m=1$}, \\
@@ -393,7 +393,7 @@ The algorithm proceeds as follows. First, using the values of $\nu$ and $\sigma_
   \label{tfit_error}
 \end{figure}
 
-Major problems. Tension splines reduce variance. That's all they can do.
+This is all crap. There are major problems. Tension splines reduce variance. That's all they can do.
 
 %\begin{acknowledgment} 
 %Start acknowledgments here.
