@@ -1,3 +1,5 @@
+addpath('./support');
+
 % AMS figure widths, given in picas, converted to points (1 pica=12 points)
 scaleFactor = 1;
 LoadFigureDefaults
@@ -71,6 +73,14 @@ T=2; a = 0.15e-05;
 S = 2; K = S+1; sigma_gps = 1.0;
 nu = 5.5; sigma = sigma_gps; 
 
+
+T = 2; a = 4.26e-6;
+% T = 3; a = 2.99e-9;
+S = T+1; K = S+1;
+nu = 5.5; sigma =  8.0;
+
+
+
 gaussian_pdf_big = @(z) exp(-(z.*z)/(2*sigma_gps*sigma_gps))/(sigma_gps*sqrt(2*pi));
 
 position_pdf_big = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
@@ -125,7 +135,7 @@ for iDrifter = 1:Ndrifters
     error_x_big = X*m_x - x;
     error_y_big = X*m_y - y;
     dist_error = sqrt( error_x_big.*error_x_big + error_y_big.*error_y_big );
-    badNuts = dist_error > 300;
+    badNuts = dist_error > 92;
     
     % Crude acceleration dumping technique
 %     A = squeeze(B(:,:,3));
@@ -138,16 +148,17 @@ for iDrifter = 1:Ndrifters
     x(badNuts) = [];
     y(badNuts) = [];
     
-    sprintf('Decreased points by %d\n',sum(badNuts))
-    S2 = 2;
+    fprintf('Decreased points by %d\n',sum(badNuts))
+    S2 = S;
     tension = zeros(S2,1);
     tension(T) = 1/a^2;
-    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,ones(size(x))*sigma,ones(size(x))*sigma,S2, 0.5*tension, w);
+    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,ones(size(x))*sigma,ones(size(x))*sigma,S2, 0.02*tension, w);
     
     Xq = squeeze(Bq(:,:,1));
     Vq = squeeze(Bq(:,:,2));
     Aq = squeeze(Bq(:,:,3));
     if (iDrifter == choiceDrifter)
+        choiceBadNuts = badNuts;
         x_fit_big = Xq*m_x;
         y_fit_big = Xq*m_y;
         u_fit_big = Vq*m_x;
@@ -160,9 +171,11 @@ for iDrifter = 1:Ndrifters
         fy_fit_big = ay_fit_big + drifters.f0*u_fit_big;
     end
     
-    a_big = [a_big; squeeze(Bq(:,:,T+1))*m_x; squeeze(Bq(:,:,T+1))*m_y];
-    ax_big = [ax_big; squeeze(Bq(:,:,T+1))*m_x];
-    ay_big = [ay_big; squeeze(Bq(:,:,T+1))*m_y];
+    Q = T+1;
+    Q = 3;
+    a_big = [a_big; squeeze(Bq(:,:,Q))*m_x; squeeze(Bq(:,:,Q))*m_y];
+    ax_big = [ax_big; squeeze(Bq(:,:,Q))*m_x];
+    ay_big = [ay_big; squeeze(Bq(:,:,Q))*m_y];
     
     X = squeeze(B(:,:,1));
     error_x_big = X*m_x - x;
@@ -241,6 +254,10 @@ nu = 6; sigma=sigma_gps; a = 2.2412e-06;
 
 S = 3; K = S+1; sigma_gps = 8.0;
 nu = 5.5; sigma = sigma_gps; T=2; a = 4e-06;
+
+T = 2; a = 4.26e-6;
+S = T+1; K = S+1;
+nu = 5.5; sigma =  8.0;
 
 % nu = 10; sigma=sigma_gps; a = 4.7653e-06;
 
@@ -333,6 +350,7 @@ subplot(2,2,[1 3])
 s = 1/1000;
 plot(s*x_fit_small,s*y_fit_small,'b'), hold on
 plot(s*x_fit_big,s*y_fit_big,'k')
+scatter(s*drifters.x{choiceDrifter}(choiceBadNuts),s*drifters.y{choiceDrifter}(choiceBadNuts),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
 scatter(s*drifters.x{choiceDrifter},s*drifters.y{choiceDrifter},5)
 xlabel('x (km)')
 ylabel('y (km)')
@@ -340,6 +358,7 @@ ylabel('y (km)')
 subplot(2,2,2)
 plot(tq/3600,s*x_fit_small,'b'), hold on
 plot(tq_big/3600,s*x_fit_big,'k')
+scatter(drifters.t{choiceDrifter}(choiceBadNuts)/3600,s*drifters.x{choiceDrifter}(choiceBadNuts),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
 scatter(drifters.t{choiceDrifter}/3600,s*drifters.x{choiceDrifter},5)
 xlabel('t (hours)')
 ylabel('x (km)')
@@ -347,6 +366,7 @@ ylabel('x (km)')
 subplot(2,2,4)
 plot(tq/3600,s*y_fit_small,'b'), hold on
 plot(tq_big/3600,s*y_fit_big,'k')
+scatter(drifters.t{choiceDrifter}(choiceBadNuts)/3600,s*drifters.y{choiceDrifter}(choiceBadNuts),(6.5*scaleFactor)^2, 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'w')
 scatter(drifters.t{choiceDrifter}/3600,s*drifters.y{choiceDrifter},5)
 xlabel('t (hours)')
 ylabel('y (km)')
@@ -407,10 +427,28 @@ subplot(2,2,4)
 plot_hist_with_pdf( a_small, velocity_pdf_small, 10e-5, 50 )
 % plot_hist_with_pdf( a_small, exponential_pdf_small, 10e-5, 50 )
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Autocorrelation sequence
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+figure
+subplot(2,1,1)
+plot(AC_small), hold on
+plot(AC_big)
+subplot(2,1,2)
+[p1, Q1] = LjungBoxTest(AC_small, n_acf_small);
+[p2, Q2] = LjungBoxTest(AC_big, n_acf_big);
+plot(p1), hold on
+plot(p2)
+
+return
+
 figure
 plot_hist_with_pdf( [error_ax; error_ay], acceleration_tpdf, 10e-5, 50 )
 
-return
+
 
 figure
 subplot(1,2,1)
@@ -431,18 +469,3 @@ lambda = (sqrt(n) + 0.12 + 0.11/sqrt(n))*D;
 j=1:25;
 p = sum(2*((-1).^(j-1)).*exp(-2*j.*j*lambda*lambda))
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% Autocorrelation sequence
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-figure
-subplot(2,1,1)
-plot(AC_small), hold on
-plot(AC_big)
-subplot(2,1,2)
-[p1, Q1] = LjungBoxTest(AC_small, n_acf_small);
-[p2, Q2] = LjungBoxTest(AC_big, n_acf_big);
-plot(p1), hold on
-plot(p2)

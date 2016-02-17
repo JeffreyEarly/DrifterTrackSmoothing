@@ -3,7 +3,7 @@ function y = StudentTNoise( sigma, nu, n)
 if nu < 2
     binEdges = sigma*linspace(-50,50,2001)';
 else
-    binEdges = sigma*linspace(-10,10,2001)';
+    binEdges = sigma*linspace(-100,100,20001)';
 end
 binWidths = diff(binEdges);
 

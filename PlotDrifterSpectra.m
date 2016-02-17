@@ -2,9 +2,9 @@ addpath('./support');
 
 
 % Choose which drifters to analyze.
-load('smoothedGriddedRho1DriftersNoFinalTension.mat');
+load('smoothedGriddedRho2DriftersLowFinalTension.mat');
 % load('smoothedGriddedRho1Drifters.mat');
-load('griddedRho1Drifters.mat');
+% load('griddedRho1Drifters.mat');
 
 % AMS figure widths, given in picas, converted to points (1 pica=12 points)
 scaleFactor = 2;
@@ -41,7 +41,7 @@ f_p=omega_p*86400/(2*pi);
 reps = 100;
 sigma = 8.0;
 nu = 5.5;
-t_noise = t(1:1:end);
+t_noise = t(1:2:end);
 dt_noise = t_noise(2)-t_noise(1);
 u_noise = reshape(StudentTNoise( sigma, nu, reps*length(t_noise)), [length(t_noise) reps]);
 v_noise = reshape(StudentTNoise( sigma, nu, reps*length(t_noise)), [length(t_noise) reps]);

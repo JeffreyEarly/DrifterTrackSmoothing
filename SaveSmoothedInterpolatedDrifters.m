@@ -1,6 +1,6 @@
 shouldReoptimizeAfterDespiking = 0;
 
-drifters = load('sample_data/projected_ungridded_rho1_drifters.mat');
+drifters = load('sample_data/projected_ungridded_rho2_drifters.mat');
 
 Ndrifters = length(drifters.x);
 
@@ -82,7 +82,7 @@ for iDrifter = 1:Ndrifters
     dy = ones(size(y))*sigma;
     tension = zeros(S,1);
     tension(T) = 1/a^2;
-    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,tension, w);
+    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,0.02*tension, w);
     
     X = squeeze(B(:,:,1));
     x_error_despiked{iDrifter} = X*m_x - x;
@@ -137,4 +137,4 @@ lat0 = drifters.lat0;
 lon0 = drifters.lon0;
 maxExperimentLength = drifters.maxExperimentLength;
 
-save(sprintf('smoothed_interpolated_rho1_drifters.mat',S),'f0','lat0','lon0','maxExperimentLength', 't', 'x', 'y', 'u', 'v', 'ax', 'ay', 'x_raw', 'y_raw', 't_raw', 'x_error', 'y_error', 'x_error_despiked', 'y_error_despiked', 'S', 'nu', 'sigma', 'T', 'a', 'outlierCut')
+save(sprintf('smoothed_interpolated_rho2_drifters_LowFinalTension.mat'),'f0','lat0','lon0','maxExperimentLength', 't', 'x', 'y', 'u', 'v', 'ax', 'ay', 'x_raw', 'y_raw', 't_raw', 'x_error', 'y_error', 'x_error_despiked', 'y_error_despiked', 'S', 'nu', 'sigma', 'T', 'a', 'outlierCut')
