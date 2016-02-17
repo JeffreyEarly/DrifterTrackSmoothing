@@ -1,28 +1,15 @@
-sigma = 1;
-nu = 1;
+reps = 100;
+sigma = 300;
+nu = 3.8;
+t_noise = (0:2*60*60:20*86400)';
+dt_noise = t_noise(2)-t_noise(1);
+u_noise = reshape(StudentTNoise( sigma, nu, reps*length(t_noise)), [length(t_noise) reps]);
+v_noise = reshape(StudentTNoise( sigma, nu, reps*length(t_noise)), [length(t_noise) reps]);
+cv_noise = (diff(u_noise,1,1) + sqrt(-1)*diff(v_noise,1,1))/dt_noise;
+[psi,lambda]=sleptap(size(cv_noise,1),taper_bandwidth);
+[omega_noise,spp_noise,snn_noise,spn_noise]=mspec(dt_noise,cv_noise,psi);
+f_noise=omega_noise*86400/(2*pi);
 
-gaussian_pdf = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
-studentt_pdf = @(z) gamma((nu+1)/2)./(sqrt(pi*nu)*sigma*gamma(nu/2)*(1+(z.*z)/(nu*sigma*sigma)).^((nu+1)/2));
-
-n = 1000;
-binEdges = linspace(-10,10,201)';
-binMids = binEdges(2:end)-(binEdges(2)-binEdges(1))/2;
-binWidths = diff(binEdges);
-p = studentt_pdf(binMids).*binWidths;
-sum(p)
-
-[~, edges, bin] = histcounts(rand(n,1),[0; cumsum(p)]);
-bin(bin==0 | bin == length(binWidths+1)) = [];
-y = binEdges(bin) + rand(length(bin),1).*binWidths(bin);
-
-figure, histogram(y)
-
-return
-
-% http://www.mathworks.com/matlabcentral/newsreader/view_thread/46607
-k = 10;
-p = [.1 .2 .3 .4];
-binEdges = [0 1 3 6 10];
-binWdths = diff(binEdges);
-[dum, bin] = histc(rand(1,k),[0 cumsum(p)]);
-y = binEdges(bin) + rand(1,k).*binWdths(bin);
+figure
+plot(f_noise,vmean(spp_noise,2), 'black', 'LineWidth', 4), ylog, hold on,
+plot(-f_noise,vmean(snn_noise,2), 'black', 'LineWidth', 4)
