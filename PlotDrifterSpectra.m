@@ -2,7 +2,7 @@ addpath('./support');
 
 
 % Choose which drifters to analyze.
-load('smoothedGriddedRho2DriftersLowFinalTension.mat');
+load('smoothedGriddedRho1DriftersNoFinalTension.mat');
 % load('smoothedGriddedRho1Drifters.mat');
 % load('griddedRho1Drifters.mat');
 

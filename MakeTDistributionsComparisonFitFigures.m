@@ -3,7 +3,7 @@ scaleFactor = 1;
 LoadFigureDefaults
 
 % Drifter to highlight in the final plots
-choiceDrifter = 7;
+choiceDrifter = 1;
 
 
 shouldDiscardOutliersInACF = 0;
@@ -19,8 +19,8 @@ maxlag = 30;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % How many data points do we have total
-drifters_big = load('smoothed_interpolated_rho1_drifters_T2');
-load('smoothed_interpolated_rho1_drifters_T2');
+drifters_big = load('smoothed_interpolated_rho1_drifters_PowerOptimizedFinalTension');
+load('smoothed_interpolated_rho1_drifters_PowerOptimizedFinalTension');
 Ndrifters = length(drifters_big.x);
 
 gaussian_pdf_big = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
@@ -92,8 +92,8 @@ velocity_cdf_big = @(z) 0.5*(1 + erf(z/(a*sqrt(2))));
 %
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-drifters_small = load('smoothed_interpolated_rho1_drifters_T2_NoTension');
-load('smoothed_interpolated_rho1_drifters_T2_NoTension');
+drifters_small = load('smoothed_interpolated_rho1_drifters_NoTension');
+load('smoothed_interpolated_rho1_drifters_NoTension');
 Ndrifters = length(drifters_small.x);
 
 gaussian_pdf_small = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
@@ -186,37 +186,6 @@ scatter(drifters.t_raw{choiceDrifter}/3600,s*drifters.y_raw{choiceDrifter},5)
 xlabel('t (hours)')
 ylabel('y (km)')
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%
-% Position fit figure
-%
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-FigureSize = [50 50 figure_width_2col+8 150*scaleFactor];
-
-fig1 = figure('Units', 'points', 'Position', FigureSize);
-set(gcf,'PaperPositionMode','auto')
-set(gcf, 'Color', 'w');
-fig1.PaperUnits = 'points';
-fig1.PaperPosition = FigureSize;
-fig1.PaperSize = [FigureSize(3) FigureSize(4)];
-
-plot(drifters.t{choiceDrifter}/3600,s*drifters.x{choiceDrifter}, 'LineWidth', 0.5*scaleFactor, 'Color',0.4*[1.0 1.0 1.0]), hold on
-scatter(drifters.t_raw{choiceDrifter}/3600,s*drifters.x_raw{choiceDrifter},(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
-xlabel('t (hours)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
-ylabel('x (km)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
-
-xlim([124 149])
-ylim([5.58 9.18])
-
-% packfig(2,2)
-fig1 = tightfig;
-fig1.Position = FigureSize;
-fig1.PaperPosition = FigureSize;
-fig1.PaperSize = [FigureSize(3) FigureSize(4)];
-fig1.PaperPositionMode = 'auto';
-
-print('-depsc2', 'figures/tdistributionfit.eps')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %

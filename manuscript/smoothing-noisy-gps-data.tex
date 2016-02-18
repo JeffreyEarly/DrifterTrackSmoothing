@@ -384,7 +384,13 @@ w_t(\epsilon_i) = \sigma_t^2 \frac{\nu  + \frac{\epsilon_i^2}{\sigma_t^2}}{\nu+1
 
 From equation \ref{t-weight} it is clear that if $\epsilon_i < \sigma_t$ then it will be reweighted to a smaller value, essentially making the observation point more strongly weighted. On the other hand, if $\epsilon_i > \sigma_t$, then its relatively weighting will decrease, and it will be treated more as an outlier.
 
-The algorithm proceeds as follows. First, using the values of $\nu$ and $\sigma_t$ found in section XX, we  adjust the tension of the spline until we find the optimal value of the KS test, but only within the 99.99\% region. Meaning that we do not include points that are more than 95 meters away from the model fit. The restricted region is used to avoid fitting to the outliers that do not conform to the model of the motionless GPS. In the second step, we then discard the data points outside the 99.99\% of the t-distribution. The tension parameter is then reoptimized, but this time over the entire distribution. In practice, discarding the outlier and reoptimizing the tension makes little difference to the resulting the path, but in the few regions where it does make a difference, it helps.
+%%%%%%%%%%%%%%%%%%%%%%
+\section{Removing Outliers}
+%%%%%%%%%%%%%%%%%%%%%%
+
+The first step is to remove the outliers---points that do not appear to be of the known error distribution for the GPS receiver. These points are obviously bad just looking at the data, they are jumps hundreds of meters and even several kilometers away. Errors of this size are consistent with the noise analysis of the preceding section, so the goal here is to first eliminate point associated with this uncharacterized noise. Interestingly, in the nine drifters we are analyzing here, one drifter shows absolutely no obvious outliers, suggesting the issue may be related to how the antenna is configured.
+
+To remove the outliers we use the values of $\nu$ and $\sigma_t$ found in section XX and adjust the tension of the spline until we find the optimal value of the KS test, but only within the 99.99\% region. This means that we do not include points that are more than 95 meters away from the model fit in order to avoid fitting to the outliers that do not conform to the model of the motionless GPS. Once the tension value is optimized, we then discard the data points outside the 99.99\% of the t-distribution. Optimizing the KS test and forcing the errors to match the distribution of the motionless GPS will result in a spline that is over smoothed. That's okay for these purposes.
 
 \begin{figure}
   \centerline{\includegraphics[width=19pc,angle=0]{tfit_error}}
@@ -393,7 +399,20 @@ The algorithm proceeds as follows. First, using the values of $\nu$ and $\sigma_
   \label{tfit_error}
 \end{figure}
 
-This is all crap. There are major problems. Tension splines reduce variance. That's all they can do.
+%%%%%%%%%%%%%%%%%%%%%%
+\section{Tension Parameter}
+%%%%%%%%%%%%%%%%%%%%%%
+
+If we adjust the final tension parameter to so that the resulting error distribution matches the error distribution of the motionless GPS, this will result in an overly smoothed signal. The reason for this is that expected error distribution will depend on the speed of the GPS device.
+
+Show two plots?
+
+The final tension parameter is chosen to preserve the total energy of the signal.
+
+$\epsilon_i \equiv x_i - x(t_i)$
+
+We then need to talk about determining the covariance matrix of the velocity and acceleration process.
+
 
 %\begin{acknowledgment} 
 %Start acknowledgments here.
