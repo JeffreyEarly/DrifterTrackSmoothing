@@ -1,5 +1,5 @@
 clear
-drifters = load('smoothed_interpolated_rho1_drifters_PowerOptimizedFinalTension.mat');
+drifters = load('sample_data/rho1_drifters_smoothed_interpolated.mat');
 
 %%%% Watching this manual setting!!!
 NDrifters = 9;
@@ -30,4 +30,4 @@ lat0 = drifters.lat0;
 lon0 = drifters.lon0;
 f0 = drifters.f0;
 
-save('smoothedGriddedRho1DriftersPowerOptimizedFinalTension.mat', 't', 'x', 'y', 'lat0', 'lon0', 'f0');
+save('smoothedGriddedRho1Drifters.mat', 't', 'x', 'y', 'lat0', 'lon0', 'f0');

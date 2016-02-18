@@ -1,7 +1,7 @@
 addpath('./support');
 
-drifters = load('sample_data/rho1_drifters_projected_ungridded.mat');
-output = sprintf('rho1_drifters_smoothed_interpolated.mat');
+drifters = load('sample_data/rho2_drifters_projected_ungridded.mat');
+output = sprintf('sample_data/rho2_drifters_smoothed_interpolated.mat');
 
 Ndrifters = length(drifters.x);
 
