@@ -16,6 +16,8 @@ reducedIndices = indices(1:3:length(indices));
 t = drifters.t{1}(reducedIndices);
 x = zeros(length(t),NDrifters);
 y = zeros(length(t),NDrifters);
+u = zeros(length(t),NDrifters);
+v = zeros(length(t),NDrifters);
 
 for iDrifter = 1:NDrifters
     indices = find(drifters.t{iDrifter} >=0 & drifters.t{iDrifter} <= lastTime);
@@ -24,10 +26,12 @@ for iDrifter = 1:NDrifters
 %     drifters.t{iDrifter}(reducedIndices(1))
     x(:,iDrifter) = drifters.x{iDrifter}(reducedIndices);
     y(:,iDrifter) = drifters.y{iDrifter}(reducedIndices);
+    u(:,iDrifter) = drifters.u{iDrifter}(reducedIndices);
+    v(:,iDrifter) = drifters.v{iDrifter}(reducedIndices);
 end
 
 lat0 = drifters.lat0;
 lon0 = drifters.lon0;
 f0 = drifters.f0;
 
-save('smoothedGriddedRho1Drifters.mat', 't', 'x', 'y', 'lat0', 'lon0', 'f0');
+save('smoothedGriddedRho1Drifters.mat', 't', 'x', 'y', 'u', 'v', 'lat0', 'lon0', 'f0');
