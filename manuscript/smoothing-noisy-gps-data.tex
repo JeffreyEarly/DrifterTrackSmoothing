@@ -37,7 +37,7 @@
 
 \email{jearly@nwra.com}
 
-\abstract{We develop a technique for smoothing noisy GPS data using B-splines with tension. We show how the tension condition routinely employed in smoothing splines can be restated as a maximum likelihood problem and then how the tension parameter can be chosen based on physical reasoning. The GPS errors appear to be non-Gaussian, so we use a t-distribution in the maximum likelihood.  }
+\abstract{We develop a technique for smoothing and interpolating noisy GPS data using B-splines with tension. We show how the tension condition routinely employed in smoothing splines can be restated as a maximum likelihood problem and then how the tension parameter can be chosen based on physical reasoning. The GPS errors appear to be non-Gaussian, so we use a t-distribution in the maximum likelihood.  }
 
 \usepackage{tensor}
 
@@ -403,13 +403,24 @@ To remove the outliers we use the values of $\nu$ and $\sigma_t$ found in sectio
 \section{Tension Parameter}
 %%%%%%%%%%%%%%%%%%%%%%
 
-If we adjust the final tension parameter to so that the resulting error distribution matches the error distribution of the motionless GPS, this will result in an overly smoothed signal. The reason for this is that expected error distribution will depend on the speed of the GPS device.
+If we adjust the final tension parameter to so that the resulting error distribution matches the error distribution of the motionless GPS, this will result in an overly smoothed signal. We argue that the tension should vary based on the relative size of the measurement errors to the speed of motion. For example, if the position errors are only $1$ meter, but particle typically travels $10$ meters between measurements, then it is hardly justifiable to increase the tension so that the smoothing spline misses the observation points by $1$ meter. There is not enough statistical evidence to argue that the true particle didn't go right through the observation point. On the other hand, if the position errors are  $1$ meter, but particle typically travels $10$ centimeters between measurements, nearby measurements are providing more information about the particle's true position during that time, so our estimate of the particles true position is closer to a mean of the nearby observations.
 
-Show two plots?
+This idea can be made more rigorous by defining an interpolation condition $\Gamma$ as
+\begin{equation}
+\Gamma_x = \frac{\sigma_x}{u_{\textrm{rms}}\Delta t}
+\end{equation}
+where $\sigma_x$ is the standard deviation of positioning noise, $u_{\textrm{rms}}$ is the typical particle velocity and $\Delta t$ is the typical time between observations. If $\Gamma<1$ then we are in the interpolation regime where the particle typical moves farther than the measurement noise between observations, and if $\Gamma >1$ we are in the high data density regime where each observation is providing similar information to nearby observations. Loosely speaking, if $\Gamma=10$, then you've sampled then the data is over sampled by about a factor of 10. $\Gamma_x$ can be generalized to higher order derivatives so that,
+\begin{equation}
+\Gamma_{x^{(n-1)}} = \frac{ \mathcal{D}^{(n-1)} \sigma_x }{x^{(n)}_{\textrm{rms}} \Delta t }
+\end{equation}
+where $\mathcal{D}^{(n-1)} \sigma_x$ is the measurement noise of the of $(n-1)$-th derivative of the position error and $x^{(n)}_{\textrm{rms}}$ is the typical velocity, acceleration, jerk, etc.
 
-The final tension parameter is chosen to preserve the total energy of the signal.
+The final tension parameter is chosen to preserve the total power of the signal. If the total power of the true uncontaminated signal is $\sum x(t_i)^2$ and the total power of the of the noise is $\sum \epsilon_i^2$, then the total power of the measured signal will be
+\begin{equation}
+ \sum x_i^2 = \sum \epsilon_i^2 + \sum x(t_i)^2.
+\end{equation}
+This means that the tension can be set so that the difference in power between the observed signal and the smoothed signal matches the expected power in the noise.
 
-$\epsilon_i \equiv x_i - x(t_i)$
 
 We then need to talk about determining the covariance matrix of the velocity and acceleration process.
 
