@@ -76,8 +76,23 @@ xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figu
 ylabel('power (m^2/s)', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 
 
+indices = 1:1:length(t);
+x_obs = x(indices) + epsilon_x(indices);
+y_obs = y(indices) + epsilon_y(indices);
+t_obs = t(indices);
+sigma = position_error;
+S = 6;
+T = 2;
+[m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t_obs,x_obs,y_obs,sigma,S,T);
 
+D_obs = FiniteDifferenceMatrixNoBoundary(1,t_obs,1);
+X = squeeze(B(:,:,1));
+cv_tension = D_obs*(X*m_x + sqrt(-1)*X*m_y);
+[psi,lambda]=sleptap(size(cv_tension,1));
+[f,spp,snn,spn]=mspec(t_obs(2)-t_obs(1),cv_tension,psi);
+plot(f*timescale,vmean([snn, spp],2), 'g')
 
+figure, plot(t_obs,X*m_x, 'g'), hold on, plot(t,x,'k')
 
 % packfig(maxK,maxD)
 fig1 = tightfig;

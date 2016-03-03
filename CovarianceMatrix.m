@@ -4,7 +4,7 @@ t=(0:10)';
 N = length(t);
 
 a = [];
-for S=1:5
+for S=1:7
 
 % 2nd order 2nd derivative matrix, with 
 % S = 4;20

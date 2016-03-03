@@ -128,7 +128,7 @@ for iDrifter = 1:Ndrifters
     dy = ones(size(y))*sigma;
     tension = zeros(S,1);
     tension(T) = 1/a^2;
-    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,0.1*tension, w);
+    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = bspline_bivariate_fit_with_tension(t,x,y,dx,dy,S,tension, w);
     
     X = squeeze(B(:,:,1));
     x_error_despiked{iDrifter} = X*m_x - x;
