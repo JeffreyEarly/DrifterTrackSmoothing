@@ -751,7 +751,7 @@ We can keep going to higher and higher derivatives, and what should happen, is t
 \begin{equation}
 \Gamma_{x^{(n-1)}} = \frac{ \sqrt{n!} \sigma_x}{x^{(n)}_{\textrm{rms}} (\Delta t)^n }
 \end{equation}
-where $x^{(n)}$ is the $n$-th derivative of $x$. Eventually $\Gamma$ will increase above 1?
+where $x^{(n)}$ is the $n$-th derivative of $x$. Eventually $\Gamma$ will increase above 1? This is incorrect, the factor $\sqrt{n!}$ should be replaced with $\sqrt{A_n}$ where $A_n=\{2,6,20,70,252,..\}$. These values can be found from summing the square of the columns of the differentiation matrices.
 
 I think we can also look at this just by saying that if we keep taking derivatives of the data, eventually it'll look like white noise.
 

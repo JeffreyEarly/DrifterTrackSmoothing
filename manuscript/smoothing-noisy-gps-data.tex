@@ -403,26 +403,43 @@ To remove the outliers we use the values of $\nu$ and $\sigma_t$ found in sectio
 \section{Tension Parameter}
 %%%%%%%%%%%%%%%%%%%%%%
 
-If we adjust the final tension parameter to so that the resulting error distribution matches the error distribution of the motionless GPS, this will result in an overly smoothed signal. We argue that the tension should vary based on the relative size of the measurement errors to the speed of motion. For example, if the position errors are only $1$ meter, but particle typically travels $10$ meters between measurements, then it is hardly justifiable to increase the tension so that the smoothing spline misses the observation points by $1$ meter. There is not enough statistical evidence to argue that the true particle didn't go right through the observation point. On the other hand, if the position errors are  $1$ meter, but particle typically travels $10$ centimeters between measurements, nearby measurements are providing more information about the particle's true position during that time, so our estimate of the particles true position is closer to a mean of the nearby observations.
+If we adjust the final tension parameter to so that the resulting error distribution matches the error distribution of the motionless GPS, this will result in an overly smoothed signal. We argue that the tension should vary based on the relative size of the measurement errors to the speed of motion. For example, if the position errors are only $1$ meter, but particle typically travels $10$ meters between measurements, then it is hardly justifiable to increase the tension so that the smoothing spline misses the observation points by $1$ meter. There is not enough statistical evidence to suggest that the true particle didn't go right through the observation point. On the other hand, if the position errors are  $1$ meter, but particle typically travels $10$ centimeters between measurements, nearby measurements are providing more information about the particle's true position during that time, so our estimate of the particles true position is closer to a mean of the nearby observations.
 
-This idea can be made more rigorous by defining an interpolation condition $\Gamma$ as
+This idea can be made more rigorous by noting that there is a qualitative shift from smoothing to interpolating when the change in position, $\Delta x$, exceeds the position errors, $\sigma_x$. Assuming the physical process has a characteristic velocity scale, $u_{\textrm{rms}}$, we use this concept to define an interpolation condition $\Gamma$ as
 \begin{equation}
-\Gamma_x = \frac{\sigma_x}{u_{\textrm{rms}}\Delta t}
+\Gamma_x \equiv \frac{\sigma_x}{u_{\textrm{rms}}\Delta t}
 \end{equation}
-where $\sigma_x$ is the standard deviation of positioning noise, $u_{\textrm{rms}}$ is the typical particle velocity and $\Delta t$ is the typical time between observations. If $\Gamma<1$ then we are in the interpolation regime where the particle typical moves farther than the measurement noise between observations, and if $\Gamma >1$ we are in the high data density regime where each observation is providing similar information to nearby observations. Loosely speaking, if $\Gamma=10$, then you've sampled then the data is over sampled by about a factor of 10. $\Gamma_x$ can be generalized to higher order derivatives so that,
+where $\sigma_x$ is the standard deviation of positioning noise, $u_{\textrm{rms}}$ is the typical particle velocity and $\Delta t$ is the typical time between observations. If $\Gamma<1$ then we are in the interpolation regime where the particle moves farther than the measurement noise between observations, and if $\Gamma >1$ we are in the smoothing regime where each observation is providing similar information to nearby observations. Loosely speaking, if $\Gamma=10$, then there are approximately 10 degrees of freedom that can be used to estimate the true position of the particle, assuming uncorrelated errors.
+
+$\Gamma_x$ can be generalized to higher order derivatives so that,
 \begin{equation}
-\Gamma_{x^{(n-1)}} = \frac{ \mathcal{D}^{(n-1)} \sigma_x }{x^{(n)}_{\textrm{rms}} \Delta t }
+\Gamma_{x^{(n-1)}} = \frac{  \sigma_{x^{(n-1)}} }{x^{(n)}_{\textrm{rms}} \Delta t }
 \end{equation}
-where $\mathcal{D}^{(n-1)} \sigma_x$ is the measurement noise of the of $(n-1)$-th derivative of the position error and $x^{(n)}_{\textrm{rms}}$ is the typical velocity, acceleration, jerk, etc.
+where $\sigma_{x^{(n-1)}}$ is the measurement noise of the of $(n-1)$-th derivative of the position error and $x^{(n)}_{\textrm{rms}}$ is the characteristic velocity, acceleration, jerk, etc. The interpretation is similar for each $n$. For example, at $n=2$, the interpolation condition occurs when changes in particle velocity exceed the velocity measurement noise.
 
-The final tension parameter is chosen to preserve the total power of the signal. If the total power of the true uncontaminated signal is $\sum x(t_i)^2$ and the total power of the of the noise is $\sum \epsilon_i^2$, then the total power of the measured signal will be
+This condition has a direct interpretation in terms of the total power of the physical process and the noise. Assume that the physical process has true value $x(t_i)$ at time $t_i$ and is stationary, but we observe value $x_i$ given by $x_i = x(t_i) + \epsilon_i$ where $\epsilon_i$ given by uncorrelated Gaussian noise with variance $\sigma_x$. Then the total power of the measured signal will be
 \begin{equation}
- \sum x_i^2 = \sum \epsilon_i^2 + \sum x(t_i)^2.
+ \frac{1}{N} \sum x_i^2 = \frac{1}{N} \sum \epsilon_i^2 + \frac{1}{N} \sum x(t_i)^2
 \end{equation}
-This means that the tension can be set so that the difference in power between the observed signal and the smoothed signal matches the expected power in the noise.
+and similarly,
+\begin{equation}
+ \frac{1}{N} \sum u_i^2 = \frac{1}{N} \sum \left(\mathcal{D} \epsilon_i\right)^2 + \frac{1}{N} \sum u(t_i)^2
+\end{equation}
+where $u(t_i)$ and $u_i$ are the true and measured velocities of the process, respectively. This statement remains true for all higher order derivatives. Because the process is assumed to be stationary, the quantity describing the power of the process $\frac{1}{N} \sum u(t_i)^2$ is just $u_{\textrm{rms}}^2$. The power of the noise can be directly computed,
+\begin{equation}
+\frac{1}{N} \sum \left(\mathcal{D} \epsilon_i\right)^2 = \frac{2 \sigma_x^2}{(\Delta t)^2}
+\end{equation}
+where $\mathcal{D}$ is the first-order finite difference matrix and we've assumed sampling at even intervals $\Delta t$. This means that the square-root of the ratio of the total power of the noise to the total power of the signal is given by,
+\begin{equation}
+\tilde{\Gamma}_x \equiv \frac{\sqrt{2} \sigma_x}{u_{\textrm{rms}}\Delta t}.
+\end{equation}
+Once again this can be generalized to higher orders,
+\begin{equation}
+\tilde{\Gamma}_{x^{(n-1)}} = \frac{ \sqrt{\gamma_n} \sigma_x}{x^{(n)}_{\textrm{rms}} (\Delta t)^n }
+\end{equation}
+where $\gamma_n=\{2,6,20,70,252,..\}$ and is determined from the covariance structure of the finite differenced noise process.
 
-
-We then need to talk about determining the covariance matrix of the velocity and acceleration process.
+The tension should be set so that the difference in power between the observed signal and the smoothed signal matches the expected power in the noise.
 
 
 %\begin{acknowledgment} 

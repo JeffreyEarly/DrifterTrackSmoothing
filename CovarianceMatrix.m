@@ -1,3 +1,5 @@
+addpath('support');
+
 t=(0:10)';
 N = length(t);
 
@@ -18,6 +20,9 @@ end
 a = [a;Sigma(1,1)];
 
 end
+
+% D1 = FiniteDifferenceMatrixNoBoundary(1,t,1);
+% D1(1:8,1:9)*D1(1:9,1:10)*D1
 
 return;
 
