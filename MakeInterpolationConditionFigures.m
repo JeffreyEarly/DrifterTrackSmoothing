@@ -53,9 +53,9 @@ cepsilon = D*(epsilon_x + sqrt(-1)*epsilon_y);
 ylimit = [1e-4 4e2];
 
 subplot(2,1,2)
-plot(f*timescale,vmean([snn, spp],2), 'k')
+plot(f*timescale,vmean([snn, spp],2), 'k', 'LineWidth', 2)
 hold on
-plot(f*timescale,vmean([snn_e, spp_e],2), 'r')
+plot(f*timescale,vmean([snn_e, spp_e],2), 'r', 'LineWidth', 2)
 xlog, ylog
 xlim([min(f*timescale) max(f*timescale)])
 ylim(ylimit)
@@ -76,21 +76,24 @@ xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figu
 ylabel('power (m^2/s)', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 
 
-indices = 1:1:length(t);
+indices = 1:10:floor(length(t));
 x_obs = x(indices) + epsilon_x(indices);
 y_obs = y(indices) + epsilon_y(indices);
 t_obs = t(indices);
 sigma = position_error;
-S = 6;
-T = 2;
+S = 2;
+T = 1;
 [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t_obs,x_obs,y_obs,sigma,S,T);
 
 D_obs = FiniteDifferenceMatrixNoBoundary(1,t_obs,1);
 X = squeeze(B(:,:,1));
 cv_tension = D_obs*(X*m_x + sqrt(-1)*X*m_y);
+cepsilon_tension = D_obs*( (x_obs-X*m_x) + sqrt(-1)*(y_obs-X*m_y));
 [psi,lambda]=sleptap(size(cv_tension,1));
 [f,spp,snn,spn]=mspec(t_obs(2)-t_obs(1),cv_tension,psi);
-plot(f*timescale,vmean([snn, spp],2), 'g')
+[f,spp_e,snn_e,spn_e]=mspec(dt,cepsilon_tension,psi);
+plot(f*timescale,vmean([snn, spp],2), 'g', 'LineWidth', 2)
+plot(f*timescale,vmean([snn_e, spp_e],2), 'b', 'LineWidth', 2)
 
 figure, plot(t_obs,X*m_x, 'g'), hold on, plot(t,x,'k')
 

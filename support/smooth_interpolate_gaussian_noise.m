@@ -80,11 +80,13 @@ dbstop if warning
 
 % fprintf('Seaching for a new optimal tension parameter to preserve total variance...\n')
 % errorFunction = @(a) TotalPowerRatio(  X, Bq, sigma, x, y, a, T, D, N, Q, observed_rms_power^2, noise_rms_power^2 );
-% optimalAcceleration = fminsearch( errorFunction, log10(a), optimset('TolX', 0.1, 'TolFun', 0.01) );
+% optimalAcceleration = fminsearch( errorFunction, log10(a), optimset('TolX', 0.01, 'TolFun', 0.01) );
 % fprintf('Optimal acceleration tension is %g\n', 10^(optimalAcceleration(1)) );
 % a = 10^(optimalAcceleration(1));
 
-a = 0.0021;
+a = 0.2;
+% a = 0.0021;
+% a = 0.5*4.175e-04;
 
 tension(T) = 1/a^2;
 gamma = tension*N/Q;
