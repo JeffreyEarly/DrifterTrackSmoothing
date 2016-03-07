@@ -1,4 +1,4 @@
-function [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t,x,y,sigma,S,T)
+function [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t,x,y,sigma,S,T,a_in)
 % drifter_fit_bspline    Find the maximum likelihood fit
 %
 % t         independent variable (time), length N
@@ -44,19 +44,23 @@ if (noise_rms_power > observed_rms_power)
    disp('The total assumed noise variance is greater than the observed signal.');
    a = observed_rms_power;
 else
-   a = sqrt( observed_rms_power.*observed_rms_power - noise_rms_power.*noise_rms_power );
+   a = sqrt( observed_rms_power.*observed_rms_power - noise_rms_power.*noise_rms_power )/sqrt(2);
+   fprintf('The deduced value of the tension is %g\n', a);
 end
 
 tension = zeros(S,1);
 tension(T) = 1/a^2;
 
-Gamma = noise_rms_power/a;
-if round(Gamma/2) > 1
-    DF = round(Gamma/2);
-    fprintf('Reducing the total number of knot points. Setting DF=%d.\n',DF);
-else
-    DF = 1;
-end
+% Don't want to base this on the highest derivative, honestly
+% Gamma = noise_rms_power/a;
+% if round(Gamma/2) > 1
+%     DF = round(Gamma/2);
+%     fprintf('Reducing the total number of knot points. Setting DF=%d.\n',DF);
+% else
+%     DF = 1;
+% end
+
+DF = 1;
 
 K = S+1;
 t_knot = NaturalKnotsForSpline( t, K, DF );
@@ -71,22 +75,26 @@ Bq = bspline(tq,t_knot,K);
 
 dbstop if warning
 
-% fprintf('Seaching for a maximum tension parameter to preserve total variance...\n')
-% errorFunction = @(a) TotalPositionErrorRatio(  X, Bq, sigma, x, y, a, T, N, Q );
-% optimalAcceleration = fminsearch( errorFunction, log10(a), optimset('TolX', 0.01, 'TolFun', 0.01) );
-% fprintf('Optimal acceleration tension is %g\n', 10^(optimalAcceleration(1)) );
-% a = 10^(optimalAcceleration(1));
-
-
-% fprintf('Seaching for a new optimal tension parameter to preserve total variance...\n')
-% errorFunction = @(a) TotalPowerRatio(  X, Bq, sigma, x, y, a, T, D, N, Q, observed_rms_power^2, noise_rms_power^2 );
-% optimalAcceleration = fminsearch( errorFunction, log10(a), optimset('TolX', 0.01, 'TolFun', 0.01) );
-% fprintf('Optimal acceleration tension is %g\n', 10^(optimalAcceleration(1)) );
-% a = 10^(optimalAcceleration(1));
-
-a = 0.2;
-% a = 0.0021;
-% a = 0.5*4.175e-04;
+if nargin < 7
+    
+    fprintf('Seaching for a maximum tension parameter to preserve total variance...\n')
+    errorFunction = @(a) TotalPositionErrorRatio(  X, Bq, sigma, x, y, a, T, N, Q );
+    optimalAcceleration = fminsearch( errorFunction, log10(a), optimset('TolX', 0.01, 'TolFun', 0.01) );
+    a = 10^(optimalAcceleration(1));
+    fprintf('Optimal acceleration tension is %g\n', a );  
+    
+    % fprintf('Seaching for a new optimal tension parameter to preserve total variance...\n')
+    % errorFunction = @(a) TotalPowerRatio(  X, Bq, sigma, x, y, a, T, D, N, Q, observed_rms_power^2, noise_rms_power^2 );
+    % optimalAcceleration = fminsearch( errorFunction, log10(a), optimset('TolX', 0.01, 'TolFun', 0.01) );
+    % fprintf('Optimal acceleration tension is %g\n', 10^(optimalAcceleration(1)) );
+    % a = 10^(optimalAcceleration(1));
+    
+    %a = 0.2;
+    % a = 0.0021;
+    % a = 0.5*4.175e-04;
+else
+    a = a_in;
+end
 
 tension(T) = 1/a^2;
 gamma = tension*N/Q;

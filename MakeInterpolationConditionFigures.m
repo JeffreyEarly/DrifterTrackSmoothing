@@ -13,7 +13,7 @@ range = indices(1:10:end);
 
 FigureSize = [50 50 figure_width_large+7 300*scaleFactor];
 
-figure('Units', 'points', 'Position', FigureSize)
+fig1 = figure('Units', 'points', 'Position', FigureSize)
 set(gcf,'PaperPositionMode','auto')
 set(gcf, 'Color', 'w');
 fig1.PaperUnits = 'points';
@@ -76,7 +76,7 @@ xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figu
 ylabel('power (m^2/s)', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 
 
-indices = 1:10:floor(length(t));
+indices = 1:1:floor(length(t)/5);
 x_obs = x(indices) + epsilon_x(indices);
 y_obs = y(indices) + epsilon_y(indices);
 t_obs = t(indices);
@@ -95,7 +95,7 @@ cepsilon_tension = D_obs*( (x_obs-X*m_x) + sqrt(-1)*(y_obs-X*m_y));
 plot(f*timescale,vmean([snn, spp],2), 'g', 'LineWidth', 2)
 plot(f*timescale,vmean([snn_e, spp_e],2), 'b', 'LineWidth', 2)
 
-figure, plot(t_obs,X*m_x, 'g'), hold on, plot(t,x,'k')
+fig1 = figure, plot(t_obs,X*m_x, 'g'), hold on, plot(t,x,'k')
 
 % packfig(maxK,maxD)
 fig1 = tightfig;
@@ -105,3 +105,14 @@ fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 fig1.PaperPositionMode = 'auto';
 
 % print('-depsc2', 'figures/interpolation.eps')
+
+a_vals = 10.^(linspace(-2,1,15))';
+rms_error = zeros(size(a_vals));
+for i = 1:length(a_vals)
+   [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t_obs,x_obs,y_obs,sigma,S,T,a_vals(i));
+   X = squeeze(B(:,:,1));
+   rms_error(i) = std( (x(indices)-X*m_x) + sqrt(-1)*(y(indices)-X*m_y) );   
+end
+
+figure
+scatter(a_vals, rms_error);

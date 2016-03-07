@@ -1205,6 +1205,36 @@ The other thing, is that the the two samples might covary in some way. So we nee
 
 The expected PDF will not a $\chi^2$ distribution.
 
+Assume that the physical process has true value $x(t_i)$ at time $t_i$ and is stationary, but we observe value $x_i$ given by $x_i = x(t_i) + \epsilon_i$ where $\epsilon_i$ given by uncorrelated Gaussian noise with variance $\sigma_x$. Then the total power of the measured signal will be
+\begin{equation}
+ \frac{1}{N} \sum x_i^2 = \frac{1}{N} \sum \epsilon_i^2 + \frac{1}{N} \sum x(t_i)^2
+\end{equation}
+and similarly,
+\begin{equation}
+ \frac{1}{N} \sum u_i^2 = \frac{1}{N} \sum \left(\mathcal{D} \epsilon_i\right)^2 + \frac{1}{N} \sum u(t_i)^2
+\end{equation}
+where $u(t_i)$ and $u_i$ are the true and measured velocities of the process, respectively. This statement remains true for all higher order derivatives.
+
+This can all be rewritten as,
+\begin{equation}
+ \frac{1}{N}\sum \left( x_i^2 - x(t_i)^2 \right) = \frac{1}{N} \sum \epsilon_i^2
+\end{equation}
+and,
+\begin{equation}
+ \frac{1}{N} \sum \left( u_i^2 -  u(t_i)^2\right) = \frac{1}{N} \sum \left(\mathcal{D} \epsilon_i\right)^2
+\end{equation}
+which essentially just tell us that in fact, expected PDF should be treated as a $\chi^2$ distribution. Duh.
+
+Okay, so the first condition is really just that,
+\begin{equation}
+E \left(  \frac{1}{N}\sum \left( x_i^2 - x(t_i)^2 \right) \right) = \sigma_x^2
+\end{equation}
+
+We could treat the higher derivatives in the same manner, BUT they're actually telling us something more directly about the tension. In particular,
+\begin{equation}
+ \frac{1}{N} \sum u(t_i)^2   = \frac{1}{N} \sum \left( u_i^2 - \left(\mathcal{D} \epsilon_i\right)^2 \right)
+\end{equation}
+gives us the tension parameter for velocity, exactly.
 
 \section{References}
 
