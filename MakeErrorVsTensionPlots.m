@@ -75,6 +75,9 @@ xlog, ylog
 vlines(j_true,'g--')
 
 
+% Note that the rms errors reported below are for position, and not divided
+% by the necessary sqrt(2).
+%
 % Measured std-u=0.195264, measured std-a=0.00210827, measured std-j=0.000421435
 % Measured std-u=0.195264, measured std-a=2.1e-3, measured std-j=4.2e-4
 % S=2, T=1, stride=1, length/10, min-u=0.19, rms-error: 2.946
