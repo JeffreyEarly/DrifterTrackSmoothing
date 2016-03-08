@@ -28,28 +28,28 @@ if (abs(diff(diff(t))) > 1e-6)
    return;
 end
 
-dt = t(2)-t(1);
-D = FiniteDifferenceMatrixNoBoundary(T,t,1);
-u_signal = D*x;
-v_signal = D*y;
-observed_rms_power = sqrt( mean( u_signal.*u_signal + v_signal.*v_signal));
-fprintf('The rms value of the %d-th derivative of the signal is %g\n',T, observed_rms_power)
-
-% The extra sqrt 2 comes from combining both x and y directions
-noise_coefficients = [2;6;20;70;252;924;3432];
-noise_rms_power = sqrt(2) * sqrt(noise_coefficients(T))*sigma/dt^T;
-fprintf('The rms value of the of the noise is %g\n', noise_rms_power)
-
-if (noise_rms_power > observed_rms_power)
-   disp('The total assumed noise variance is greater than the observed signal.');
-   a = observed_rms_power;
-else
-   a = sqrt( observed_rms_power.*observed_rms_power - noise_rms_power.*noise_rms_power )/sqrt(2);
-   fprintf('The deduced value of the tension is %g\n', a);
-end
-
+% dt = t(2)-t(1);
+% D = FiniteDifferenceMatrixNoBoundary(T,t,1);
+% u_signal = D*x;
+% v_signal = D*y;
+% observed_rms_power = sqrt( mean( u_signal.*u_signal + v_signal.*v_signal));
+% fprintf('The rms value of the %d-th derivative of the signal is %g\n',T, observed_rms_power)
+% 
+% % The extra sqrt 2 comes from combining both x and y directions
+% noise_coefficients = [2;6;20;70;252;924;3432];
+% noise_rms_power = sqrt(2) * sqrt(noise_coefficients(T))*sigma/dt^T;
+% fprintf('The rms value of the of the noise is %g\n', noise_rms_power)
+% 
+% if (noise_rms_power > observed_rms_power)
+%    disp('The total assumed noise variance is greater than the observed signal.');
+%    a = observed_rms_power;
+% else
+%    a = sqrt( observed_rms_power.*observed_rms_power - noise_rms_power.*noise_rms_power )/sqrt(2);
+%    fprintf('The deduced value of the tension is %g\n', a);
+% end
+% 
 tension = zeros(S,1);
-tension(T) = 1/a^2;
+% tension(T) = 1/a^2;
 
 % Don't want to base this on the highest derivative, honestly
 % Gamma = noise_rms_power/a;
