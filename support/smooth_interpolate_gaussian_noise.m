@@ -1,4 +1,4 @@
-function [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t,x,y,sigma,S,T,a_in)
+function [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t,x,y,sigma,S,T,a_in, DF)
 % drifter_fit_bspline    Find the maximum likelihood fit
 %
 % t         independent variable (time), length N
@@ -60,7 +60,9 @@ tension = zeros(S,1);
 %     DF = 1;
 % end
 
-DF = 1;
+if nargin < 8
+    DF = 1;
+end
 
 K = S+1;
 t_knot = NaturalKnotsForSpline( t, K, DF );
