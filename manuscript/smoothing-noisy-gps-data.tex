@@ -441,6 +441,11 @@ where $\gamma_n=\{2,6,20,70,252,..\}$ and is determined from the covariance stru
 
 The tension should be set so that the difference in power between the observed signal and the smoothed signal matches the expected power in the noise.
 
+The tension parameter should be set based on the estimated size of the sample variance, using $\Gamma$ as the number of degrees of freedom,
+\begin{equation}
+\chi^2_{N-1} \sim (N-1) \frac{s^2}{\sigma_x^2}.
+\end{equation}
+(see `Distribution of Sample Variance' section in the wikipedia article on variance).
 
 %\begin{acknowledgment} 
 %Start acknowledgments here.
