@@ -1236,9 +1236,49 @@ We could treat the higher derivatives in the same manner, BUT they're actually t
 \end{equation}
 gives us the tension parameter for velocity, exactly.
 
-\section{References}
 
-Check out `The Rod-Spring approximation: An intuitive approach to the best-fit least-squares linear approximation'.
+\section{More on tension}
+
+Here are a few things that I've learned.
+
+\begin{enumerate}
+\item First note that the expected spectrum of the noise is white, but its amplitude is a function of sampling frequency. So $S(f) = \sigma^2 \Delta$ where $\sigma^2$ is the total variance of the signal and $\Delta$ is the sampling frequency. This makes sense on two levels 1) the total variance of the signal has to sum to $\sigma^2$, so going to higher frequencies is going to `spread' the signal out more and 2) the more we sample a given frequency, the more we expect its power to drop because we're increasing our degrees of freedom.
+\item Be careful interpreting the reduction of tension when going to more sparsely sampled processes. Specifically, because I've lumped the $\chi^2$ normalization and the acceleration normalization into one parameter, it could be that I'm simply getting the $\chi^2$ normalization incorrect. In fact, this appears to be largely the case. Renormalizing the output with the resulting $\chi^2$ value of the optimal fit gives nearly the correct (known) acceleration back out, although only within a factor of 2.
+\item The big question comes down to trying to figure out how to normalize the $\chi^2$ like term---in other words, how many degrees of freedom we have.
+\item Without question, the answer to the above depends on the signal itself.
+\end{enumerate}
+
+Consider a simple signal,
+\begin{equation}
+x(t) = A \cos( 2\pi f t)
+\end{equation}
+contaminated by Gaussian noise with variance $\sigma^2$ each time its sampled. The power spectrum of the signal and its derivatives is,
+\begin{equation}
+S_s(f) = \frac{A^2}{2} (2\pi f_0)^{2k} T \delta_f^{f_0}
+\end{equation}
+where $k$ is the number of derivatives and $T$ is length of the time series. The Fourier frequency is $f = \frac{1}{T}$. The noise has the following spectrum,
+\begin{equation}
+S_n(f) = \sigma^2 \frac{T}{N} (2\pi f)^{2k} 
+\end{equation}
+where $N$ is the number of samples taken.
+
+The signal to noise ratio is thus,
+\begin{equation}
+\frac{S_s(f)}{S_n(f)} = \frac{A^2 N}{2 \sigma^2}  \left( \frac{f_0}{f} \right)^{2k} \delta_f^{f_0}
+\end{equation}
+which is zero everywhere except at $f_0$. Interestingly the ratio is proportional to the number of samples taken, but is independent of the derivatives. This is not a good example, because in practice a physical process would have a broad band spectrum such that the spectral density wouldn't keep increasing as we zoom in.
+
+Okay, I also did this with the square wave with spectrum,
+\begin{equation}
+S(f) = \left(\frac{4 A}{n \pi} \right)^2 \frac{T}{2} \delta_f^{(2n-1)f_0}
+\end{equation}
+With this we know *exactly* the number of degrees of freedom when the signal to noise ratio is large. And the obvious conclusion is that the number of degrees of freedom is just the ratio of the Nyquist to the fundamental square wave frequency. Which, obviously just tells you how much you're sampling it. If the signal drops below the noise, we end up with $N$ degrees of freedom (or very nearly).
+
+Okay, current hypothesis is that we just need to take the ratio of the Nyquist frequency to the frequency where the noise equals the signal.
+
+%\section{References}
+%
+%Check out `The Rod-Spring approximation: An intuitive approach to the best-fit least-squares linear approximation'.
 
 %We proceed by picking a parametric model for $x(t), y(t)$, then actually go and compute how the coefficients need to be minimized. For example,
 %\begin{equation}

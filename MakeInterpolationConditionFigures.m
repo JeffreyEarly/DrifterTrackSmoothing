@@ -77,12 +77,13 @@ ylabel('power (m^2/s)', 'FontSize', figure_axis_label_size, 'FontName', figure_f
 
 
 indices = 1:1:floor(length(t)/5);
+indicesAll = 1:max(indices);
 x_obs = x(indices) + epsilon_x(indices);
 y_obs = y(indices) + epsilon_y(indices);
 t_obs = t(indices);
 sigma = position_error;
-S = 2;
-T = 1;
+S = 3;
+T = 2;
 [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t_obs,x_obs,y_obs,sigma,S,T);
 
 D_obs = FiniteDifferenceMatrixNoBoundary(1,t_obs,1);
