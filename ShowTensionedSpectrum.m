@@ -28,8 +28,8 @@ t_obs = t(indices);
 sigma = position_error;
 
 % Compute the spectrum
-D = FiniteDifferenceMatrixNoBoundary(2,t(indices),1);
-% D = eye(length(t(indices)));
+D = FiniteDifferenceMatrixNoBoundary(1,t(indices),1);
+%  D = eye(length(t(indices)));
 dt = t_obs(2)-t_obs(1);
 cv = D*(x(indices) + sqrt(-1)*y(indices));
 cepsilon = D*(epsilon_x(indices) + sqrt(-1)*epsilon_y(indices));

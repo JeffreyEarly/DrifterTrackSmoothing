@@ -16,7 +16,10 @@ result_chi2_a_est = zeros(size(result_stride));
 result_u_variance = zeros(size(result_stride));
 result_a = zeros(size(result_stride));
 result_dt = zeros(size(result_stride));
+result_n = zeros(size(result_stride));
 mean_standard_error = zeros(size(result_stride));
+results_ac = zeros( 31, length(result_stride) );
+results_ac_p = zeros( 30, length(result_stride) );
 for i=1:length(result_stride)
     stride = result_stride(i);
     
@@ -63,11 +66,14 @@ for i=1:length(result_stride)
     X = squeeze(B(:,:,1));
     
     dt = t(result_stride(i)+1) - t(1);
+    results_ac(:,i) = Autocorrelation(x_obs-X*m_x,30);
+    results_ac_p(:,i) =LjungBoxTest(results_ac(:,i),length(t_obs));
     result_rms_error(i) = std( (x(indicesAll)-X1*m_x) + sqrt(-1)*(y(indicesAll)-X1*m_y) );
     result_chi2_est(i) = (std( (x_obs-X*m_x) + sqrt(-1)*(y_obs-X*m_y) )/(position_error*sqrt(2)))^2;
     result_chi2_u_est(i) = ( std( D*((x_obs-X*m_x) + sqrt(-1)*(y_obs-X*m_y)) ) / ((sqrt(2)*position_error/dt)*sqrt(2)) )^2;
     result_chi2_a_est(i) = ( std( D2*((x_obs-X*m_x) + sqrt(-1)*(y_obs-X*m_y)) ) / ((sqrt(6)*position_error/dt^2)*sqrt(2)) )^2;
     result_u_variance(i) = std( U1*m_x + sqrt(-1)*U1*m_y )/sqrt(2);
+    result_n(i) = length(t_obs);
     result_a(i) = a;
     result_dt(i) = dt;
     mean_standard_error(i) = (mean((diag(X*Cm_x*X.'))) + mean((diag(X*Cm_y*X.'))))/2;
@@ -76,7 +82,7 @@ for i=1:length(result_stride)
 end
 gamma = position_error./(0.20*result_dt);
 
-save('SampleVarianceVsGammaData.mat','result_rms_error', 'result_chi2_est','result_u_variance','result_a','result_dt','mean_standard_error','gamma');
+save('SampleVarianceVsGammaData.mat','result_rms_error', 'result_chi2_est','result_u_variance','result_a','result_dt','mean_standard_error','gamma', 'result_n');
 
 gammaIndices = 1:24; gammaIndices(23) = [];
 [p,S,mu]=polyfit(1./gamma(gammaIndices),log(result_chi2_est(gammaIndices)),1);
