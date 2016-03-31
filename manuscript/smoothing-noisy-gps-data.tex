@@ -449,6 +449,13 @@ The tension parameter should be set based on the estimated size of the sample va
 
 To what degree are nearby measurements helping me estimate the local value. This falls off in some nonlinear fashion, because we expect a Gaussian distribution.
 
+Let's finish off by writing the following:
+1. You can estimate urms by by looking at the spectrum and summing the components above the noise.
+2. You get 1 DOF for estimating the mean and 2-3*$\Gamma$ additional DOF for estimating the variance of the noise. Going to $3 \sigma$ gives you a larger $\chi^2$ value, and is equivalent to increased smoothing---it's more conservative.
+3. We tested this by considering the matern, so we show some figures and give the results.
+
+
+
 %\begin{acknowledgment} 
 %Start acknowledgments here.
 %\end{acknowledgment}
