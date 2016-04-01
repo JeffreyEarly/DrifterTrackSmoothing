@@ -72,7 +72,7 @@ The drifter positions are bivariate time series data given as either projected c
   \label{interpolation}
 \end{figure*}
 
-Assume for the moment that we are given $N$ observations of a particle position $(t_i,x_i)$ with no errors. The simplest possible form of interpolation would be a nearest neighbor method that assigns the position of the particle to the nearest observations in time. The resulting interpolated function $x(t)$ is a polynomial of \emph{order} $K=1$ (piecewise constant), shown in the top row of figure \ref{interpolation}. The next level of sophistication is to assume a constant velocity between any two observations and use that to interpolate positions between observations, second row of figure \ref{interpolation}. This also means that we now have a piecewise constant function $\frac{dx}{dt}$ that represents the velocity of the particle, shown in the second row, second column of figure  \ref{interpolation}. This is a polynomial function of order $K=2$.
+Assume that we are given $N$ observations of a particle position $(t_i,x_i)$ with no errors. The simplest possible form of interpolation would be a nearest neighbor method that assigns the position of the particle to the nearest observations in time. The resulting interpolated function $x(t)$ is a polynomial of \emph{order} $K=1$ (piecewise constant), shown in the top row of figure \ref{interpolation}. The next level of sophistication is to assume a constant velocity between any two observations and use that to interpolate positions between observations, second row of figure \ref{interpolation}. This also means that we now have a piecewise constant function $\frac{dx}{dt}$ that represents the velocity of the particle, shown in the second row, second column of figure  \ref{interpolation}. This is a polynomial function of order $K=2$.
 
 It is slightly less obvious how to proceed to a polynomial of order $K=3$. With $N$ data points we can construct a piecewise constant acceleration (the second derivative) using the $N-2$ independent accelerations, but where to place $\emph{knot points}$ that define the boundaries of the regions and how to maintain continuity is slightly less clear. The approach taken here is to use B-splines.
 
@@ -242,7 +242,13 @@ The smoothing spline augments the penalty function by adding a global constraint
 \end{equation}
 If $\lambda_m \rightarrow 0$ then this reduces to the least-squares fit in equation \ref{least-squares}, but if $\lambda_m \rightarrow \infty$ then this forces the model to an $m$-th order polynomial (e.g., when $m=2$, the model will forced to be a straight line because it has no second derivative). 
 
-Assuming a Gaussian distribution in the errors, an appropriate choice for parameter $\lambda$ would reproduce the $\chi^2$-distribution (cite teanby). That is, to say that $\sum \epsilon_i^2/\sigma_i^2 \sim \chi^2_k$, or in the limit of large $N$,  $\frac{1}{N} \sum \epsilon_i^2/\sigma_i^2 \sim 1$.
+The one free parameter in this model, $\lambda_m$, is a relative weighting between the two terms in equation \ref{smoothing-spline}. There has been much discussion in past literature about how to choose this parameter.
+
+
+
+For example, Teanby (200x) and Reinch (1967)  argued an appropriate choice for parameter $\lambda$ would reproduce a $\chi^2$-distribution for the model errors. That is, to say that $\sum \epsilon_i^2/\sigma_i^2 \sim \chi^2_k$, or in the limit of large $N$,  $\frac{1}{N} \sum \epsilon_i^2/\sigma_i^2 \sim 1$. However, we will show here that this is not quite correct and that a nearly optimal parameter can be chosen from physical and statistical arguments. 
+
+Then there is also the cross validation method in Craven and Wahba (1979). This is compared with the Marginal Likelihood method in Kohn, Ansley and Tharm (1991) Then there's Hasti and Tibshirani with the degrees of freedom method.
 
 However, there is a very simple \emph{physical} interpretation for the parameter $\lambda_m$. Consider the case where $m=1$ so that the smoothing spline is a constraint on velocity. When averaged over the integration time, the integral produces the root mean square velocity, $u_{\textrm{rms}}$ so that the penalty function becomes
 \begin{equation}
