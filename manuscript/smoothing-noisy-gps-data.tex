@@ -248,7 +248,7 @@ The one free parameter in this model, $\lambda_m$, is a relative weighting betwe
 
 For example, Teanby (200x) and Reinch (1967)  argued an appropriate choice for parameter $\lambda$ would reproduce a $\chi^2$-distribution for the model errors. That is, to say that $\sum \epsilon_i^2/\sigma_i^2 \sim \chi^2_k$, or in the limit of large $N$,  $\frac{1}{N} \sum \epsilon_i^2/\sigma_i^2 \sim 1$. However, we will show here that this is not quite correct and that a nearly optimal parameter can be chosen from physical and statistical arguments. 
 
-Then there is also the cross validation method in Craven and Wahba (1979). This is compared with the Marginal Likelihood method in Kohn, Ansley and Tharm (1991) Then there's Hasti and Tibshirani with the degrees of freedom method.
+Then there is also the cross validation method in Craven and Wahba (1979). Does this result resemble what we get? This is compared with the Marginal Likelihood method in Kohn, Ansley and Tharm (1991). This method assumes knowledge of the process, or autocorrelation function, to increase your predictive ability. Then there's Hasti and Tibshirani with the degrees of freedom method.
 
 However, there is a very simple \emph{physical} interpretation for the parameter $\lambda_m$. Consider the case where $m=1$ so that the smoothing spline is a constraint on velocity. When averaged over the integration time, the integral produces the root mean square velocity, $u_{\textrm{rms}}$ so that the penalty function becomes
 \begin{equation}
