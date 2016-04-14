@@ -16,5 +16,5 @@ s_signal = ubar .* conj(ubar);
 
 s_noise = sigma*sigma*dt*f.*f;
 
-u2 = sum((s_signal > 1.5*s_noise) .* s_signal)*fourierFrequencyT;
+u2 = sum((s_signal > 3.0*s_noise) .* s_signal)*fourierFrequencyT;
 u_rms = sqrt(u2);
