@@ -49,15 +49,17 @@
 % MAIN BODY OF PAPER
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 \section{Introduction}
-Global positioning system receivers (now commonly referred to as `a GPS') are used in literally billions of devices around the the world to track positions. The quality of the position data can be quite good, with accuracies down to a few meters (cite gps.gov), but real world effects (such as atmospheric conditions sky blockages, to quote gps.gov) can significantly increase the errors. Kalman filters are often employed to reduce these errors because they can be run in real time (cite something). Here we consider an alternative approach using smoothing B-splines to control errors for data that has been collected and archived.
+Global positioning system receivers (now commonly referred to as `a GPS') are used in literally billions of devices around the the world to track positions. The quality of the position data can be quite good, with accuracies down to a few meters, but real world effects (such as atmospheric conditions sky blockages) can significantly increase the errors \citep{faa2016-report}. Kalman filters are often employed to reduce these errors because they can be run in real time \citep{brown1997-book}. Here we consider an  approach using smoothing B-splines to control errors for data that has been collected and archived.
 
-The data shown here was collected from from oceanic surface \emph{drifters}, floating buoys with drogues tethered 15-30 meters below the ocean surface, depending on the particular experiment. In the past, these drifters have used Argos positioning system which has significantly poorer temporal coverage and position accuracy (cite elipot), but recently more surface drifters have employed GPS receivers and transmitted their data back through Argos or Iridium satellites. The GPS receiver sits on the surface buoy and collects position data, but because of atmospheric conditions or ocean waves, the receivers are sometimes unable to obtain a position, or when they do, it is highly inaccurately. Thus, despite nominal accuracies of a few meters, it is often the case that some positions are off by more than 1000 meters.
+The data shown here was collected from from oceanic surface \emph{drifters}, floating buoys with drogues tethered 15-30 meters below the ocean surface, depending on the particular experiment. In the past, these drifters have used Argos positioning system which has significantly poorer temporal coverage and position accuracy \citep{elipot2016-jgr}, but recently more surface drifters have employed GPS receivers and transmitted their data back through Argos or Iridium satellites. The GPS receiver sits on the surface buoy and collects position data, but because of atmospheric conditions or ocean waves, the receivers are sometimes unable to obtain a position, or when they do, it is highly inaccurately. Thus, despite nominal accuracies of a few meters, it is often the case that some positions are off by more than 1000 meters.
 
 In addition to correcting the position errors, it is also important to interpolate the data to a regular grid. Although the sampling period of a GPS receiver can be fixed, because of missing data and time to to acquire signals, the sampling can be quite irregular.  Many analysis techniques require regular sampling (e.g., a Fourier transform) and so it is necessary to interpolate the signal onto a regular grid. The approach taken here is not to simply discard poor data, but also to interpolate the position.
 
-For this particular note we will consider nine surface drifters that were deployed in the Sargasso Sea in the summer of 2011. These particular drifters were part of the LatMix experiment (cite BAMs) and recorded data at approximately 30 minute intervals over the course of a week before being retrieved.
+The primary dataset considered here will be nine surface drifters that were deployed in the Sargasso Sea in the summer of 2011. These particular drifters were part of the LatMix experiment \citep{shcherbina2015-bams} and recorded data at approximately 30 minute intervals over the course of a week before being retrieved.
 
-The drifter positions are bivariate time series data given as either projected coordinates $(x_i, y_i)$ or longitude/latitude $(\phi_i, \theta_i$) at times $t_i$. The goal is to create a model of position $(x(t),y(t))$ that is continuous in $t$, and perhaps even continuous a higher derivative---such as velocity or acceleration---that best matches the data given an assumed set of errors. Conceptually this task can be divided into two parts, \emph{interpolating} the data to a continuous time series and \emph{smoothing} the data to remove the noise in the positions.
+The drifter positions are bivariate time series data given as either projected coordinates $(x_i, y_i)$ or longitude/latitude $(\phi_i, \theta_i$) at times $t_i$. The goal is to create a model of position $(x(t),y(t))$ that is continuous in $t$, and perhaps even continuous a higher derivative---such as velocity or acceleration---that best matches the data given an assumed set of errors.
+
+This manuscript is written to serve as a practical guide to smoothing noisy GPS data. As such, it begins by reviewing how to use B-splines \emph{interpolate} data to a continuous time series and then using maximum likelihood to \emph{smooth} the data in order to remove the noise in the positions. This is shown to be equivalent to using a tensioned smoothing spline. We demonstrate a new method for choosing an optimal smoothing parameter assuming Gaussian position errors. Finally, we show how the GPS errors are not Gaussian distributed, but t-distributed. We show how to implement our technique for this particular case.
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
@@ -80,7 +82,7 @@ It is slightly less obvious how to proceed to a polynomial of order $K=3$. With 
 \subsection{B-Splines}
 %%%%%%%%%%%%%%%%%%%%%%
 
-A B-spline (or basis spline) of \emph{order} $K$ (\emph{degree} $S=K-1$) is a piecewise polynomial that maintains nonzero continuity across $S$ knot points. The knot points are a nondecreasing collection of points in time that we will denote with $\tau_i$. The basic theory is well documented in (cite de Boor), but here we will present a reduced version specifically tailored to our needs.
+A B-spline (or basis spline) of \emph{order} $K$ (\emph{degree} $S=K-1$) is a piecewise polynomial that maintains nonzero continuity across $S$ knot points. The knot points are a nondecreasing collection of points in time that we will denote with $\tau_i$. The basic theory is well documented in \citet{deboor1978-book}, but here we will present a reduced version specifically tailored to our needs.
 
 The $m$-th B-spline of order $K=1$ is defined as,
 \begin{equation}
@@ -150,72 +152,26 @@ The knot points are chosen specifically to create $N$ splines for the $N$ data p
 
 Using B-splines we now have a mechanism for generating continuous paths given a set of observations, but each observation, $x_i$, differs from the true value, $x(t_i)$, by some noise, $\epsilon_i \equiv x_i - x(t_i)$. The goal now is to find a path $x(t)$ that is not contaminated by the noise.
 
-The approach taken here is to use maximum likelihood. The central idea of maximum likelihood is to ask ``Given a particular path $(x(t),y(t))$, what is the probability that this dataset $(t_i,x_i, y_i)$ could have occurred?'' (cite press et al). The goal is then to find the path that is most likely to have produced that dataset.
+The approach taken here is to use maximum likelihood. The central idea of maximum likelihood is to ask ``Given a particular path $(x(t),y(t))$, what is the probability that this dataset $(t_i,x_i, y_i)$ could have occurred?'' \citep{press1992-book}. The goal is then to find the path that is most likely to have produced that dataset.
 
 Conceptually we have two major pieces that we need to solve this problem:
 \begin{enumerate}
-\item we need to specify the probability distribution function (PDF) for the errors and
+\item we need to specify at least one probability distribution function (PDF) for some aspect of the signal or errors, and
 \item we need to specify the form of the path (model).
 \end{enumerate}
 
 %%%%%%%%%%%%%%%%%%%%%%
-%
-\subsection{GPS Error PDF}
-%
+\subsection{Error PDF}
 %%%%%%%%%%%%%%%%%%%%%%
 
-We characterize the the GPS errors by considering data from a motionless GPS receiver allowed to run for 12 hours. The specific GPS receiver used for this test was not the same as the one used for the drifters but should produce errors similar enough for this analysis. The errors documented in the FAA GPS accuracy report (cite) are less comparable because they use superior antennas.
-
-The position recorded by the motionless GPS are assumed to have isotropic errors with mean zero, which means that the positions themselves are the errors. The probability distribution function (PDF) of the combined $x$ and $y$ position errors are shown in figure \ref{motionless_error}.
-
-The error distribution is first fit to a Gaussian probability distribution function (PDF),
+A typical starting point is to establish the probability distribution function (PDF) of the errors, $\epsilon_i$. The canonical example in one-dimension is to assume that the error in our position measurements are Gaussian and are therefore represented by
 \begin{equation}
 \label{gaussian_pdf}
 p_g(\epsilon|\sigma_g) = \frac{e^{-\frac{1}{2}\frac{\epsilon^2}{\sigma_g^2}} }{\sigma_g \sqrt{ 2 \pi}}.
 \end{equation}
-The best fit is produced by compute the standard deviation of the sample (Adam, citation?), which is found to be $\sigma_g \approx 10$ meters and shown as the gray line in figure \ref{motionless_error}. However, it is clear the error distribution shows much longer tails than the Gaussian PDF.
+This alone places no assumptions on the signal itself, only on the structure of the noise.
 
-The Student t-distribution is a generalization of the Gaussian that produces longer tails where 
-\begin{equation}
-\label{student_pdf}
-p_t\left(\epsilon |\nu,\sigma_t^2\right) = \frac{\Gamma\left( \frac{\nu + 1}{2} \right)}{\sigma_t \sqrt{\nu \pi} \Gamma\left(\frac{\nu}{2}\right)} \left( 1 + \frac{\epsilon^2}{\sigma_t^2 \nu} \right)^{-\frac{\nu+1}{2}}
-\end{equation}
-where the $\sigma_t$ parameter scales the distribution width and the $\nu$ parameter sets the number of degrees of freedom. The variance is $\textrm{var}(X)=\sigma_t^2 \frac{\nu}{\nu-2}$ and only exists for $\nu > 2$. The t-distribution is equivalent to the Gaussian distribution when $\nu \rightarrow \infty$. We find the best fit t-distribution to the data by maximizing the Kolmogorov-Smirnoff test. The best fit with parameters $\sigma_t \approx 8$ meters and $\nu \approx 5.5$ is shown as the black line in figure \ref{motionless_error}.
-
-\begin{figure}
-  \centerline{\includegraphics[width=19pc,angle=0]{motionless_error}}
-  \centerline{\includegraphics[width=19pc,angle=0]{motionless_distance_error}} 
-  \caption{The top panel shows the position error distribution of the motionless GPS. The black line is the best fit t-distribution and the gray line is the best fit Gaussian distribution. The bottom panel shows the distance error distribution with the corresponding expected distributions from the Gaussian and t-distribution. The vertical line in the bottom panel shows the 95\% error of the t-distribution at about 29 meters.}
-  \label{motionless_error}
-\end{figure}
-
-The \emph{position} error distributions also imply a combined \emph{distance} error distribution by computing $\epsilon_d = \sqrt{\epsilon_x^2 + \epsilon_y^2}$ and is shown in the lower panel of figure  \label{motionless_error}. For two independent Gaussian distributions this results in a Rayleigh distribution,
-\begin{equation}
-\label{rayleigh_pdf}
-p_r(\epsilon_d|\sigma_g) = \frac{\epsilon_d}{\sigma_g^2 } e^{-\frac{1}{2}\frac{\epsilon_d^2}{\sigma_g^2}}.
-\end{equation}
-The distance distribution for two t-distributions is computed numerically.
-
-%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Model}
-%%%%%%%%%%%%%%%%%%%%%%
-
-The model used here will be an interpolating B-spline representation of the data at some order $K$ with knot points generated by equations \ref{even-knots} and \ref{odd-knots}. Of course, we've chosen our knot points such that the model intersects each observations and this certainly maximizes equation \ref{max-gaussian} (and minimize equation least-squares) because all the errors are zero, but the resulting distribution of errors (a delta function at zero) doesn't look anything like the assumed Gaussian distribution. Thus, if we want the error distribution that we get out to look like that which we assumed, it also necessary to \emph{constrain} the problem in some way. There are conceptually (at least) two ways of doing this, either 
-\begin{enumerate}
-\item specify a model with fewer degrees of freedom than data points, or
-\item specify an additional \emph{global} constraints on the model in the penalty function.
-\end{enumerate}
-These two may be equivalent. For example, you may decide the model is a straight line (with two degrees of freedom), or you could set a constraint that that the integral of the second derivative vanish.
-
-We could easily create a model with fewer degrees of freedom than data points by simply removing and rearranging  some of the knot points generated by equations \ref{even-knots} and \ref{odd-knots}. This is certainly worth doing if the data is \emph{oversampled}, where expected distance traversed ($u_{\textrm{rms}}\Delta t$) between observation times ($\Delta t$) is less than the expected error $\sigma_x$. For the cases considered here, we are in an \emph{under-sampled} regime where the drifters have traveled far beyond their the expected error in the time between observations.
-
-The other alternative, and the approach taken here, is to specify a global constraint on the model in the penalty function. In particular, we will use what is known as a smoothing spline.
-
-%%%%%%%%%%%%%%%%%%%%%%
-\subsection{Maximum Likelihood}
-%%%%%%%%%%%%%%%%%%%%%%
-
-The probability function is used to describe the errors in the position, $\epsilon_i$. The canonical example in one-dimension is to assume that the error in our position measurements are Gaussian and therefore the probability of the observed data given the model is,
+The probability of the observed data given some model $x(t)$ is,
 \begin{equation}
 \label{max-gaussian}
 P \sim \prod_{i=1}^{N}  \exp \left[ -\frac{1}{2} \left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 \right] \Delta x
@@ -230,27 +186,34 @@ Maximizing the probability function in equation \ref{max-gaussian} is also the s
 Stated in this way is plain to see that this is the same as asking for the `least-squares' fit of the errors.
 
 %%%%%%%%%%%%%%%%%%%%%%
+\subsection{Model}
+%%%%%%%%%%%%%%%%%%%%%%
+
+The model used here will be an interpolating B-spline representation of the data at some order $K$ with knot points generated by equations \ref{even-knots} and \ref{odd-knots}. Of course, we've chosen our knot points such that the model intersects each observations and this certainly maximizes equation \ref{max-gaussian} (and minimize equation least-squares) because all the errors are zero, but the resulting distribution of errors (a delta function at zero) doesn't look anything like the assumed Gaussian distribution. Thus, if we want the error distribution that we get out to look like that which we assumed, it also necessary to \emph{constrain} the problem in some way. There are conceptually (at least) two ways of doing this, either 
+\begin{enumerate}
+\item specify a model with fewer degrees of freedom than data points, or
+\item specify additional \emph{global} constraints on the model in the penalty function.
+\end{enumerate}
+These two may be equivalent. For example, you may decide the model is a straight line (with two degrees of freedom), or you could set a constraint that that the integral of the second derivative vanish.
+
+We could easily create a model with fewer degrees of freedom than data points by simply removing and rearranging  some of the knot points generated by equations \ref{even-knots} and \ref{odd-knots}. This is certainly worth doing if the data is \emph{oversampled}, where expected distance traversed ($u_{\textrm{rms}}\Delta t$) between observation times ($\Delta t$) is less than the expected error $\sigma_x$. For the cases considered here, we are in an \emph{under-sampled} regime where the drifters have traveled far beyond their the expected error in the time between observations.
+
+The other alternative, and the approach taken here, is to specify a global constraint on the model in the penalty function. In particular, we will use what is known as a smoothing spline.
+
+%%%%%%%%%%%%%%%%%%%%%%
 %
 \section{Smoothing Spline}
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
-The smoothing spline augments the penalty function by adding a global constraint on the $m$-th derivative of the resulting function (cite de boor),
+The smoothing spline augments the penalty function of equation \ref{least-squares} by adding a global constraint on the $m$-th derivative of the resulting function
 \begin{equation}
 \label{smoothing-spline}
 \phi =  \sum_{i=1}^{N} \left( \frac{x_i - x(t_i)}{\sigma_i} \right) ^2 + \lambda_m \int_{t_1}^{t_N} \left(\frac{d^m x}{dt^m}\right)^2 \, dt.
 \end{equation}
-If $\lambda_m \rightarrow 0$ then this reduces to the least-squares fit in equation \ref{least-squares}, but if $\lambda_m \rightarrow \infty$ then this forces the model to an $m$-th order polynomial (e.g., when $m=2$, the model will forced to be a straight line because it has no second derivative). 
+If $\lambda_m \rightarrow 0$ then this reduces to the least-squares fit in equation \ref{least-squares}, but if $\lambda_m \rightarrow \infty$ then this forces the model to an $m$-th order polynomial (e.g., when $m=2$, the model will forced to be a straight line because it has no second derivative). The smoothing spline was first introduced in modern form by \citet{reinsch1967-nm}, but according to \citet{deboor1978-book} the idea dates back to \citet{whittaker1923-pems}. The one free parameter in this model, $\lambda_m$, is a relative weighting between the two terms in equation \ref{smoothing-spline} and choosing its optimal value will be deferred to section \ref{optimal_parameter}.
 
-The one free parameter in this model, $\lambda_m$, is a relative weighting between the two terms in equation \ref{smoothing-spline}. There has been much discussion in past literature about how to choose this parameter.
-
-
-
-For example, Teanby (200x) and Reinch (1967)  argued an appropriate choice for parameter $\lambda$ would reproduce a $\chi^2$-distribution for the model errors. That is, to say that $\sum \epsilon_i^2/\sigma_i^2 \sim \chi^2_k$, or in the limit of large $N$,  $\frac{1}{N} \sum \epsilon_i^2/\sigma_i^2 \sim 1$. However, we will show here that this is not quite correct and that a nearly optimal parameter can be chosen from physical and statistical arguments. 
-
-Then there is also the cross validation method in Craven and Wahba (1979). Does this result resemble what we get? This is compared with the Marginal Likelihood method in Kohn, Ansley and Tharm (1991). This method assumes knowledge of the process, or autocorrelation function, to increase your predictive ability. Then there's Hasti and Tibshirani with the degrees of freedom method.
-
-However, there is a very simple \emph{physical} interpretation for the parameter $\lambda_m$. Consider the case where $m=1$ so that the smoothing spline is a constraint on velocity. When averaged over the integration time, the integral produces the root mean square velocity, $u_{\textrm{rms}}$ so that the penalty function becomes
+There is a very simple \emph{physical} interpretation for the parameter $\lambda_m$. Consider the case where $m=1$ so that the smoothing spline is a constraint on velocity. When averaged over the integration time, the integral produces the root mean square velocity, $u_{\textrm{rms}}$ so that the penalty function becomes
 \begin{equation}
 \label{smoothing-spline-velocity}
 \phi =  \sum_{i=1}^{N} \left( \frac{x_i - x(t_i)}{\sigma_i} \right) ^2 + \frac{N}{u_{\textrm{rms}}^2 T} \int_{t_1}^{t_N} u^2(t) \, dt.
@@ -316,8 +279,16 @@ The first matrix on the right hand side of equation \ref{solution} is $N\times N
 
 
 %%%%%%%%%%%%%%%%%%%%%%
-\section{Optimal parameters}
+\section{Optimal parameters} \label{optimal_parameter}
 %%%%%%%%%%%%%%%%%%%%%%
+
+The one free parameter in this model, $\lambda_m$, is a relative weighting between the two terms in equation \ref{smoothing-spline}. There has been much discussion in past literature about how to choose this parameter.
+
+
+
+For example, Teanby (200x) and Reinch (1967)  argued an appropriate choice for parameter $\lambda$ would reproduce a $\chi^2$-distribution for the model errors. That is, to say that $\sum \epsilon_i^2/\sigma_i^2 \sim \chi^2_k$, or in the limit of large $N$,  $\frac{1}{N} \sum \epsilon_i^2/\sigma_i^2 \sim 1$. However, we will show here that this is not quite correct and that a nearly optimal parameter can be chosen from physical and statistical arguments. 
+
+Then there is also the cross validation method in Craven and Wahba (1979). Does this result resemble what we get? This is compared with the Marginal Likelihood method in Kohn, Ansley and Tharm (1991). This method assumes knowledge of the process, or autocorrelation function, to increase your predictive ability. Then there's Hasti and Tibshirani with the degrees of freedom method.
 
 If we assume that the position errors are independent and all described by Gaussian PDFs with the same variance, then the covariance matrix $\Sigma\indices{^i_j}$ reduces to the scalar, $\sigma^2$. This means that the maximum likelihood solution reduces to
 \begin{equation}
@@ -362,6 +333,44 @@ Increasing tension (by decreasing $a_{\textrm{rms}}$) reduces the variance in th
 This autocorrelation sequence for the errors are shown in figure \ref{gaussianacf}. The high tension (black line) case shows a strong \emph{negative} correlation in the errors at lag 1, the opposite of what would be expected simply by looking at the correlation in the sign of the errors. This is because the autocorrelation sequence is weighted by variance and is therefore dominated by the effect of the outliers which do show a negative correlation with neighboring points. The low tension cause follows the same logic for lag 1, but shows a positive correlation at lag 2 where the spline `overshoots' the observed data.
 
 The problem with using a Gaussian PDF for the errors is that there are no outliers. Values more than 4 or 5 $\sigma$ from the mean are effectively impossible. The solution is then to use some other distribution which will treat data points beyond a certain distance as outliers.
+
+%%%%%%%%%%%%%%%%%%%%%%
+%
+\subsection{GPS Error PDF}
+%
+%%%%%%%%%%%%%%%%%%%%%%
+
+We characterize the the GPS errors by considering data from a motionless GPS receiver allowed to run for 12 hours. The specific GPS receiver used for this test was not the same as the one used for the drifters but should produce errors similar enough for this analysis. The errors documented in the FAA GPS accuracy report (cite) are less comparable because they use superior antennas.
+
+The position recorded by the motionless GPS are assumed to have isotropic errors with mean zero, which means that the positions themselves are the errors. The probability distribution function (PDF) of the combined $x$ and $y$ position errors are shown in figure \ref{motionless_error}.
+
+The error distribution is first fit to a Gaussian probability distribution function (PDF),
+\begin{equation}
+\label{gaussian_pdf}
+p_g(\epsilon|\sigma_g) = \frac{e^{-\frac{1}{2}\frac{\epsilon^2}{\sigma_g^2}} }{\sigma_g \sqrt{ 2 \pi}}.
+\end{equation}
+The best fit is produced by compute the standard deviation of the sample (Adam, citation?), which is found to be $\sigma_g \approx 10$ meters and shown as the gray line in figure \ref{motionless_error}. However, it is clear the error distribution shows much longer tails than the Gaussian PDF.
+
+The Student t-distribution is a generalization of the Gaussian that produces longer tails where 
+\begin{equation}
+\label{student_pdf}
+p_t\left(\epsilon |\nu,\sigma_t^2\right) = \frac{\Gamma\left( \frac{\nu + 1}{2} \right)}{\sigma_t \sqrt{\nu \pi} \Gamma\left(\frac{\nu}{2}\right)} \left( 1 + \frac{\epsilon^2}{\sigma_t^2 \nu} \right)^{-\frac{\nu+1}{2}}
+\end{equation}
+where the $\sigma_t$ parameter scales the distribution width and the $\nu$ parameter sets the number of degrees of freedom. The variance is $\textrm{var}(X)=\sigma_t^2 \frac{\nu}{\nu-2}$ and only exists for $\nu > 2$. The t-distribution is equivalent to the Gaussian distribution when $\nu \rightarrow \infty$. We find the best fit t-distribution to the data by maximizing the Kolmogorov-Smirnoff test. The best fit with parameters $\sigma_t \approx 8$ meters and $\nu \approx 5.5$ is shown as the black line in figure \ref{motionless_error}.
+
+\begin{figure}
+  \centerline{\includegraphics[width=19pc,angle=0]{motionless_error}}
+  \centerline{\includegraphics[width=19pc,angle=0]{motionless_distance_error}} 
+  \caption{The top panel shows the position error distribution of the motionless GPS. The black line is the best fit t-distribution and the gray line is the best fit Gaussian distribution. The bottom panel shows the distance error distribution with the corresponding expected distributions from the Gaussian and t-distribution. The vertical line in the bottom panel shows the 95\% error of the t-distribution at about 29 meters.}
+  \label{motionless_error}
+\end{figure}
+
+The \emph{position} error distributions also imply a combined \emph{distance} error distribution by computing $\epsilon_d = \sqrt{\epsilon_x^2 + \epsilon_y^2}$ and is shown in the lower panel of figure  \label{motionless_error}. For two independent Gaussian distributions this results in a Rayleigh distribution,
+\begin{equation}
+\label{rayleigh_pdf}
+p_r(\epsilon_d|\sigma_g) = \frac{\epsilon_d}{\sigma_g^2 } e^{-\frac{1}{2}\frac{\epsilon_d^2}{\sigma_g^2}}.
+\end{equation}
+The distance distribution for two t-distributions is computed numerically.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \section{Non-Gaussian errors}
@@ -460,7 +469,8 @@ Let's finish off by writing the following:
 2. You get 1 DOF for estimating the mean and 2-3*$\Gamma$ additional DOF for estimating the variance of the noise. Going to $3 \sigma$ gives you a larger $\chi^2$ value, and is equivalent to increased smoothing---it's more conservative.
 3. We tested this by considering the matern, so we show some figures and give the results.
 
-
+\bibliographystyle{ametsoc2014}
+\bibliography{references}
 
 %\begin{acknowledgment} 
 %Start acknowledgments here.
