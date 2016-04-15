@@ -264,8 +264,9 @@ The implication of this result is that adding tension to the penalty function is
 \section{Optimal parameters} \label{optimal_parameter}
 %%%%%%%%%%%%%%%%%%%%%%
 
-In the past 50 years since \citet{reinsch1967-nm} was published, a number of different methods have been proposed for choosing the optimal value of $\lambda_m$. 
+In the past 50 years since \citet{reinsch1967-nm} was published, a number of different methods have been proposed for choosing the optimal value of $\lambda_m$. Both \citet{reinsch1967-nm} and \citet{teanby2007-mg} argue that the tension should be adjusted so that the sample variance is roughly the expected variance, $\hat{\sigma}^2 \sim \sigma^2$, but we will argue that this is only true in very special circumstances. The method of cross-validation \citep{wahba1978-jrss-b,craven1979-nm} is essentially a form of bootstrapping, where the optimal parameter is determined by minimizing the error with data points not included in the fit.
 
+Looks at Cantoni et al for a brief overview of DOF argument. But, also look at page 63 of Wahba (referenced by Cantoni) for her discussion of this.
 
 For example, Teanby (200x) and Reinch (1967)  argued an appropriate choice for parameter $\lambda$ would reproduce a $\chi^2$-distribution for the model errors. That is, to say that $\sum \epsilon_i^2/\sigma_i^2 \sim \chi^2_k$, or in the limit of large $N$,  $\frac{1}{N} \sum \epsilon_i^2/\sigma_i^2 \sim 1$. However, we will show here that this is not quite correct and that a nearly optimal parameter can be chosen from physical and statistical arguments. 
 
