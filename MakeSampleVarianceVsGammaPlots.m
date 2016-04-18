@@ -14,6 +14,8 @@ result_chi2_est = zeros(size(result_stride));
 result_chi2_u_est = zeros(size(result_stride));
 result_chi2_a_est = zeros(size(result_stride));
 result_u_variance = zeros(size(result_stride));
+result_wahba_dof_x = zeros(size(result_stride));
+result_wahba_dof_y = zeros(size(result_stride));
 result_u_estimate = zeros(size(result_stride));
 result_a = zeros(size(result_stride));
 result_dt = zeros(size(result_stride));
@@ -75,16 +77,18 @@ for i=1:length(result_stride)
     result_chi2_a_est(i) = ( std( D2*((x_obs-X*m_x) + sqrt(-1)*(y_obs-X*m_y)) ) / ((sqrt(6)*position_error/dt^2)*sqrt(2)) )^2;
     result_u_variance(i) = std( U1*m_x + sqrt(-1)*U1*m_y )/sqrt(2);
     result_u_estimate(i) = sqrt((EstimateRMSVelocityFromSpectrum(t_obs,x_obs,position_error)^2 + EstimateRMSVelocityFromSpectrum(t_obs,y_obs,position_error)^2)/2);
+    result_wahba_dof_x(i) = trace(X*Cm_x*(X'))/(sigma^2);
+    result_wahba_dof_y(i) = trace(X*Cm_y*(X'))/(sigma^2);
     result_n(i) = length(t_obs);
     result_a(i) = a;
     result_dt(i) = dt;
     mean_standard_error(i) = (mean((diag(X*Cm_x*X.'))) + mean((diag(X*Cm_y*X.'))))/2;
     
-    fprintf('S=%d, T=2, stride=%d, min-a=%g, rms_error=%g, chi2-est=%g, a-variance=%g\n', S, stride, a, result_rms_error(i), result_chi2_est(i), result_u_variance(i) );
+    fprintf('S=%d, T=2, stride=%d, min-a=%g, rms_error=%g, chi2-est=%g, a-variance=%g, mean-wahba-dof: %f\n', S, stride, a, result_rms_error(i), result_chi2_est(i), result_u_variance(i), (result_wahba_dof_x(i)+result_wahba_dof_y(i))/2 );
 end
 gamma = position_error./(0.20*result_dt);
 
-save('SampleVarianceVsGammaData.mat','result_rms_error', 'result_chi2_est','result_u_variance','result_a','result_dt','mean_standard_error','gamma', 'result_n');
+save('SampleVarianceVsGammaData.mat','result_rms_error', 'result_chi2_est','result_u_variance','result_a','result_dt','mean_standard_error','gamma', 'result_n', 'result_wahba_dof_x', 'result_wahba_dof_y');
 
 gammaIndices = 1:24; gammaIndices(23) = [];
 [p,S,mu]=polyfit(1./gamma(gammaIndices),log(result_chi2_est(gammaIndices)),1);
@@ -106,6 +110,8 @@ ylog
 % This is the theoretical number of degrees of freedom that is being used.
 gammaIndices = 1:24; gammaIndices(23) = [];
 nDOF = ((position_error*position_error)./mean_standard_error);
+
+% Duh. this is the same as result_n./result_wahba_dof_x;
 
 [p,S,mu]=polyfit(log(gamma(gammaIndices)),log(nDOF(gammaIndices)-1),1);
 slope = p(1)/mu(2)
