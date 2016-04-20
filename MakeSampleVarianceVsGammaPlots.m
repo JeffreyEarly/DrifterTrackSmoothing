@@ -16,7 +16,9 @@ result_chi2_a_est = zeros(size(result_stride));
 result_u_variance = zeros(size(result_stride));
 result_wahba_dof_x = zeros(size(result_stride));
 result_wahba_dof_y = zeros(size(result_stride));
-result_u_estimate = zeros(size(result_stride));
+result_u_estimate_spectral = zeros(size(result_stride));
+result_a_estimate_spectral = zeros(size(result_stride));
+result_a_true = zeros(size(result_stride));
 result_a = zeros(size(result_stride));
 result_dt = zeros(size(result_stride));
 result_n = zeros(size(result_stride));
@@ -76,7 +78,11 @@ for i=1:length(result_stride)
     result_chi2_u_est(i) = ( std( D*((x_obs-X*m_x) + sqrt(-1)*(y_obs-X*m_y)) ) / ((sqrt(2)*position_error/dt)*sqrt(2)) )^2;
     result_chi2_a_est(i) = ( std( D2*((x_obs-X*m_x) + sqrt(-1)*(y_obs-X*m_y)) ) / ((sqrt(6)*position_error/dt^2)*sqrt(2)) )^2;
     result_u_variance(i) = std( U1*m_x + sqrt(-1)*U1*m_y )/sqrt(2);
-    result_u_estimate(i) = sqrt((EstimateRMSVelocityFromSpectrum(t_obs,x_obs,position_error)^2 + EstimateRMSVelocityFromSpectrum(t_obs,y_obs,position_error)^2)/2);
+%     result_u_estimate(i) = sqrt(mean(((D*x_obs).^2 + (D*y_obs).^2)/2));
+    result_u_estimate_spectral(i) = sqrt((EstimateRMSVelocityFromSpectrum(t_obs,x_obs,position_error)^2 + EstimateRMSVelocityFromSpectrum(t_obs,y_obs,position_error)^2)/2);
+    result_a_estimate_spectral(i) = sqrt((EstimateRMSAccelerationFromSpectrum(t_obs,x_obs,position_error)^2 + EstimateRMSAccelerationFromSpectrum(t_obs,y_obs,position_error)^2)/2);
+    result_a_true(i) = sqrt(mean( ((D2*x(indices)).^2 + (D2*y(indices)).^2)/2 ) );
+    
     result_wahba_dof_x(i) = trace(X*Cm_x*(X'))/(sigma^2);
     result_wahba_dof_y(i) = trace(X*Cm_y*(X'))/(sigma^2);
     result_n(i) = length(t_obs);
@@ -90,7 +96,8 @@ gamma = position_error./(0.20*result_dt);
 
 save('SampleVarianceVsGammaData.mat','result_rms_error', 'result_chi2_est','result_u_variance','result_a','result_dt','mean_standard_error','gamma', 'result_n', 'result_wahba_dof_x', 'result_wahba_dof_y');
 
-gammaIndices = 1:24; gammaIndices(23) = [];
+% gammaIndices = 1:24; gammaIndices(23) = [];
+gammaIndices = 1:length(gamma);
 [p,S,mu]=polyfit(1./gamma(gammaIndices),log(result_chi2_est(gammaIndices)),1);
 decay = 1/(p(1)/mu(2));
 A = exp((p(2)-p(1)*mu(1)/mu(2)));
@@ -105,10 +112,18 @@ hold on, plot(1./gamma(gammaIndices), exp(- 1./(5*gamma(gammaIndices)) ), 'r');
 plot(1./gamma(gammaIndices), - 1./(12*gamma(gammaIndices)) + 1 , 'g');
 ylog
 
+gamma = position_error./(result_u_estimate_spectral.*result_dt);
+[p,S,mu]=polyfit(gamma,nDOF-1,1);
+slope = p(1)/mu(2)
+intercept = p(2)-p(1)*mu(1)/mu(2)
+figure, plot(gamma, nDOF-1)
+hold on
+plot(gamma,slope*gamma+intercept)
+
 
 
 % This is the theoretical number of degrees of freedom that is being used.
-gammaIndices = 1:24; gammaIndices(23) = [];
+% gammaIndices = 1:24; gammaIndices(23) = [];
 nDOF = ((position_error*position_error)./mean_standard_error);
 
 % Duh. this is the same as result_n./result_wahba_dof_x;

@@ -60,15 +60,15 @@ xlog, ylog
 xlim([min(f*timescale) max(f*timescale)])
 ylim(ylimit)
 
-dt_gamma1 = position_error/sigma_u;
+dt_gamma1 = 3*position_error/sigma_u;
 f_gamma1 = timescale/dt_gamma1;
 plot([f_gamma1 f_gamma1],ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
 
-dt_gamma10 = position_error/(sigma_u*10);
+dt_gamma10 = 3*position_error/(sigma_u*10);
 f_gamma10 = timescale/dt_gamma10;
 plot([f_gamma10 f_gamma10],ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
 
-dt_gamma01 = position_error/(sigma_u*0.1);
+dt_gamma01 = 3*position_error/(sigma_u*0.1);
 f_gamma01 = timescale/dt_gamma01;
 plot([f_gamma01 f_gamma01],ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
 
@@ -105,7 +105,7 @@ fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 fig1.PaperPositionMode = 'auto';
 
-% print('-depsc2', 'figures/interpolation.eps')
+print('-depsc2', 'figures/synthetic_process_and_spectrum.eps')
 
 a_vals = 10.^(linspace(-2,1,15))';
 rms_error = zeros(size(a_vals));

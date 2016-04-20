@@ -1,9 +1,9 @@
 % Given some signal (t,x) contaminated by noise sigma, this uses the
 % spectrum to estimate u_rms.
-function u_rms = EstimateRMSVelocityFromSpectrum( t, x, sigma)
+function u_rms = EstimateRMSAccelerationFromSpectrum( t, x, sigma)
 
 % first derivative, with points at t_u
-[D,t_u] = FiniteDifferenceMatrixNoBoundary(1,t,1);
+[D,t_u] = FiniteDifferenceMatrixNoBoundary(2,t,1);
 dt = t_u(2)-t_u(1);
 T = t_u(end)-t_u(1);
 nT = length(t_u);
@@ -14,8 +14,7 @@ f = ([0:ceil(nT/2)-1 -floor(nT/2):-1]*fourierFrequencyT)';
 ubar = fft(D*x)*dt/sqrt(T);
 s_signal = ubar .* conj(ubar);
 
-s_noise = sigma*sigma*dt*(2*pi*f).*(2*pi*f);
+s_noise = sigma*sigma*dt*(2*pi*f).^4;
 
-% The factor of 10 is consitent with 80% confidence.
 u2 = sum((s_signal > 10.0*s_noise) .* s_signal)*fourierFrequencyT;
 u_rms = sqrt(u2);
