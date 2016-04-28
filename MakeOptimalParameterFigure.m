@@ -5,8 +5,13 @@ LoadFigureDefaults
 
 load('sample_data/SyntheticTrajectories.mat')
 
-result_stride = 2.^(0:8)';
-result_stride = 1;
+% Do you want to assess the error using all the points from the signal
+% (which makes sense for an interpolation based metric) or just points from
+% the observed (decimated) signal only?
+shouldUseObservedSignalOnly = 0;
+
+result_stride = 2.^(0:9)';
+% result_stride = 1;
 
 for i=1:length(result_stride)
     stride = result_stride(i);
@@ -22,7 +27,11 @@ for i=1:length(result_stride)
     
     indices = 1:stride:floor(shortenFactor*length(t));
     fprintf('Using %d points with stride %d\n', length(indices), stride);
-    indicesAll = 1:max(indices);
+    if (shouldUseObservedSignalOnly == 1)
+        indicesAll = indices;
+    else
+        indicesAll = 1:max(indices);
+    end
     x_obs = x(indices) + epsilon_x(indices);
     y_obs = y(indices) + epsilon_y(indices);
     t_obs = t(indices);
@@ -37,7 +46,7 @@ for i=1:length(result_stride)
     B = bspline(t(indicesAll),t_knot,K);
     X1 = squeeze(B(:,:,1));
     U1 = squeeze(B(:,:,T+1));
-
+    
     u_estimate_spectral(i) = sqrt((EstimateRMSVelocityFromSpectrum(t_obs,x_obs,position_error)^2 + EstimateRMSVelocityFromSpectrum(t_obs,y_obs,position_error)^2)/2);
     a_estimate_spectral(i) = sqrt((EstimateRMSAccelerationFromSpectrum(t_obs,x_obs,position_error)^2 + EstimateRMSAccelerationFromSpectrum(t_obs,y_obs,position_error)^2)/2);
     
@@ -76,4 +85,16 @@ for i=1:length(result_stride)
     dof_out_true_optimal(i) = sigma*sigma/( (mean((diag(X*Cm_x*X.'))) + mean((diag(X*Cm_y*X.'))))/2 );
     
     fprintf('S=%d, T=2, stride=%d, rms_error=%g, rms_error_blind_initial=%g, rms_error_blind_optimal=%g,\n', S, stride, rms_error_true_optimal(i), rms_error_blind_initial(i), rms_error_blind_optimal(i) );
+end
+
+if (shouldUseObservedSignalOnly == 1)
+    outputFile = 'OptimalParametersObservedOnly.mat';
+else
+    outputFile = 'OptimalParameters.mat';
+end
+
+save(outputFile, 'u_estimate_spectral', 'a_estimate_spectral', 'expectedDOF', 'a_blind_initial', 'rms_error_blind_initial', 'dof_out_blind_initial', 'a_blind_optimal', 'rms_error_blind_optimal', 'dof_out_blind_optimal', 'a_true_optimal', 'rms_error_true_optimal', 'dof_out_true_optimal', 'result_stride')
+
+for i=1:length(result_stride)
+   fprintf('%d & %#.3g m (%#.3g) &  %#.3g m (%#.3g) &  %#.3g m (%#.3g) \\\\ \n', result_stride(i), rms_error_true_optimal(i), dof_out_true_optimal(i), rms_error_blind_optimal(i), dof_out_blind_optimal(i), rms_error_blind_initial(i), dof_out_blind_initial(i) )  ;
 end

@@ -333,11 +333,12 @@ The first matrix on the right hand side of equation \ref{solution} is $N\times N
 
 In the 50 years since \citet{reinsch1967-nm} was published, a number of different methods have been proposed for choosing the optimal value of $\lambda_m$. One approach is cross-validation \citep{wahba1978-jrss-b,craven1979-nm} which is essentially a form of bootstrapping, where the optimal parameter is determined by minimizing the error with data points not included in the fit. Another approach is to determine the number of degrees of freedom expected in the sample variance of equation \ref{sample_variance}. Both \citet{reinsch1967-nm} and \citet{teanby2007-mg} argue that the tension should be adjusted so that the sample variance is roughly the expected variance, $\hat{\sigma}^2 \sim \sigma^2$, but this assumes a large number of degrees of freedom. According to \citet{wahba1990-siam} this appears to overestimate the number of degrees of freedom. Different techniques for determining the degrees of freedom have been proposed, see for example \citet{cantoni2002-biom}.
 
-We argue that the degrees of freedom, and therefore the tension, should vary based on the relative size of the measurement errors to the speed of motion. For example, if the position errors are only $1$ meter, but particle typically travels $10$ meters between measurements, then it is hardly justifiable to increase the tension so that the smoothing spline misses the observation points by $1$ meter. There is not enough statistical evidence to suggest that the true particle didn't go right through the observation point. On the other hand, if the position errors are  $1$ meter, but particle typically travels $10$ centimeters between measurements, nearby measurements are providing more information about the particle's true position during that time, so our estimate of the particles true position is closer to a mean of the nearby observations.
+We argue that the degrees of freedom, and therefore the tension, should vary based on the relative size of the measurement errors to the speed of motion. For example, if the position errors are only $1$ meter, but particle typically travels $10$ meters between measurements, then it is hardly justifiable to increase the tension so that the smoothing spline misses the observation points by $1$ meter. There is not enough statistical evidence to suggest that the true particle didn't go right through the observation point. On the other hand, if the position errors are  $1$ meter, but particle typically travels $10$ centimeters between measurements, nearby measurements provide more information about the particle's true position during that time, so our estimate of the particles true position is closer to a mean of the nearby observations.
 
 This idea can be made more rigorous by noting that one would consider change in position, $\Delta x$, statistically significant if exceeds the position errors, $\sigma_x$ by 2-3 factors. Assuming the physical process has a characteristic velocity scale, $u_{\textrm{rms}}$, we use this concept to define $\Gamma$ as
 \begin{equation}
-\Gamma_x \equiv \frac{3 \sigma_x}{u_{\textrm{rms}}\Delta t}
+\label{gamma_equation}
+\Gamma \equiv \frac{3 \sigma_x}{u_{\textrm{rms}}\Delta t}
 \end{equation}
 where $\sigma_x$ is the standard deviation of positioning noise and $\Delta t$ is the typical time between observations. In terms of degrees of freedom, this argument suggests that $d = 1 + \Gamma$.
 
@@ -351,24 +352,53 @@ d = \frac{N}{\Tr \left(\mathbf{S_\lambda} \Sigma \right) }.
 \end{equation}
 Adjusting the tension parameter such that,
 \begin{equation}
+\label{iterated_tension}
 1 + \frac{3 \sigma_x}{u_{\textrm{rms}}\Delta t} = \frac{N}{\Tr \left(\mathbf{S_\lambda} \Sigma \right) }.
 \end{equation}
 should provide nearly optimal tension.
 
+The difference between the two methods can be summarized as using the degrees of freedom to estimate the variance of the variance, versus using the degrees of freedom to estimate the variance of the mean. Estimating the variance of the mean appears to be more robust.
+
 %%%%%%%%%%%%%%%%%%%%%%
 %
-\section{Example Data}
+\section{Synthetic Data}
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
-To test these ideas we generate synthetic velocity data from a Gaussian process known as the Matern, and then contaminate the positions with Gaussian noise.
+To test these ideas we generate synthetic velocity data from a Gaussian process known as the Matern, and then contaminate the positions with Gaussian noise. The spectrum of the Matern is given by
+\begin{equation}
+S(\omega) = \frac{A^2}{(\omega^2 + \lambda^2)^\alpha}
+\end{equation}
+and therefore has finite amplitude low frequency and power-law fall off at high frequencies, two physically realistic properties. For these experiments we choose a value of $\alpha=1$ so that the high frequency spectrum is proportional to $\omega^{-2}$. The Matern is used to generate the \emph{velocity} of the signal and integrated to get the positions and the positions are then contaminated with Gaussian noise. Parameters are chosen such that $u_{\textrm{rms}}=0.20$ m/s and the noise has $\sigma=10$ meters. Figure \ref{synthetic_process_and_spectrum} shows example positions and the velocity spectra of the signal and the noise.
 
-Show plot of signal and error spectra.
+\begin{figure*}[t]
+  \centerline{\includegraphics[width=33pc,angle=0]{synthetic_process_and_spectrum}}
+  
+  \caption{The upper panel shows a small portion of the decimated signal generated from the Matern process where, using \ref{gamma_equation}, $\Gamma = 3$. The bolded points are further decimated and give $\Gamma=0.3$. The lower panel shows the uncontaminated velocity spectrum of the signal (black) and velocity spectrum of the noise (red). The observed signal is the sum of the two. }
+  \label{synthetic_process_and_spectrum}
+\end{figure*}
 
-Show a plot of optimal DOF value vs estimated DOF.
+For these experiments we choose a spline of degree $S=3$ and apply tension on the second derivative (acceleration). To estimate the tension parameter $\lambda_2$ from equation \ref{lambda} we therefore need an estimate of both $u_{\textrm{rms}}$ and $a_{\textrm{rms}}$. Computing this directly from the observed signal in the time domain is problematic because, given frequent enough sampling, the noise will dominate the estimate. Instead we estimate these values in the frequency domain summing the power in the frequency bins that more than 10 times the expected value of the noise. Because each frequency bin in a periodigram follows a $\chi^2$ distribution for two degrees of freedom, this only adds observed power that is likely to be true signal.
 
-This process is chosen because it has physically desirable characteristics including a roll off at high frequencies and finite values at low frequencies. We choose values so that $\Gamma$ varies from approximately
+\begin{table}[h]
+\begin{tabular}{c | ccc}
+stride & optimal & iterated estimate & initial estimate \\ \hline \hline
+1 & 1.92 m (34.5) &  1.92 m (34.1) &  1.97 m (42.1) \\ 
+2 & 2.29 m (20.8) &  2.35 m (17.2) &  2.56 m (29.2) \\ 
+4 & 2.79 m (11.4) &  2.91 m (8.90) &  3.75 m (20.3) \\ 
+8 & 3.85 m (7.21) &  4.12 m (5.15) &  4.37 m (10.4) \\ 
+16 & 4.71 m (4.14) &  5.07 m (2.96) &  5.40 m (5.97) \\ 
+32 & 6.22 m (2.44) &  6.42 m (1.99) &  6.59 m (3.12) \\ 
+64 & 7.88 m (1.45) &  7.89 m (1.50) &  8.00 m (1.64) \\ 
+128 & 11.4 m (1.07) &  12.1 m (1.26) &  11.4 m (1.09) \\ 
+256 & 23.0 m (1.01) &  24.0 m (1.13) &  23.0 m (1.01) \\ 
+512 & 58.1 m (1.02) &  58.3 m (1.07) &  58.2 m (1.00) \\ 
+\end{tabular}
+\caption{RMS error and effective degrees-of-freedom for a range of strides (subsampled signal). The first column shows the optimal, best-case scenario found using the uncontaminated signal. This is the lower bound on the error. The iterated estimated found by requiring that equation \ref{iterated_tension} is true. The initial estimate is found using $\lambda_2$ from equation \ref{lambda} directly. }
+\label{fit_results}
+\end{table}
 
+To test the accuracy of our method we subsample the observed signal to provide a wide range of effective degrees of freedom, with $\Gamma$ ranging from $0.05$-$30$ corresponding to strides ranging from 512 to 1. The true optimal parameter is determined by minimizing the RMS error between smoothed-interpolated signal and the true signal, as shown in table \ref{fit_results}. Because we are interested interpolation (not just smoothing) the RMS error is computed with all points in the signal, not just those observed in the subsampled signal. This has the result of producing RMS errors that are greater than the standard deviation of the noise (10 meters). The results in table \ref{fit_results} suggest that determining $\lambda$ directly from equation \ref{lambda} and matching degrees-of-freedom with equation \ref{iterated_tension} are both nearly optimal techniques.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \section{Gaussian errors}

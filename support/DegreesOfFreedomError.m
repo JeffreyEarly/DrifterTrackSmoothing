@@ -8,7 +8,7 @@ dof = sigma*sigma/SE;
 
 error = abs(dof-expectedDOF);
 
-shouldDisplay = 1;
+shouldDisplay = 0;
 if shouldDisplay == 1
     X = squeeze(B(:,:,1));
     SE = (mean((diag(X*Cm_x*X.'))) + mean((diag(X*Cm_y*X.'))))/2;
