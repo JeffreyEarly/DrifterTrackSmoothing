@@ -23,13 +23,13 @@ fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
 
 subplot(2,1,1)
-errorbar(t(range)/timescale,y(range),position_error*ones(size(t(range))),'ko', 'LineWidth', 1.5*scaleFactor, 'MarkerSize', markersize^2, 'MarkerFaceColor', 'w')
+errorbar(t(range)/timescale,y(range),position_error*ones(size(t(range))),'ko', 'LineWidth', 0.5*scaleFactor, 'MarkerSize', markersize^2, 'MarkerFaceColor', 'w')
 hold on
 xlim([min(t(range))/timescale max(t(range))/timescale]);
 ylim([1.2*min(y(range)) 1.2*max(y(range))])
 
 range = indices(1:100:end);
-errorbar(t(range)/timescale,y(range),position_error*ones(size(t(range))),'ko', 'LineWidth', 2*scaleFactor, 'MarkerSize', markersize^2, 'MarkerFaceColor', 'k')
+errorbar(t(range)/timescale,y(range),position_error*ones(size(t(range))),'ko', 'LineWidth', 1.5*scaleFactor, 'MarkerSize', markersize^2, 'MarkerFaceColor', 'k')
 
 xlabel('minutes', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 ylabel('meters', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
@@ -62,19 +62,26 @@ ylim(ylimit)
 
 dt_gamma1 = 3*position_error/sigma_u;
 f_gamma1 = timescale/dt_gamma1;
-plot([f_gamma1 f_gamma1],ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
-
+% plot([f_gamma1 f_gamma1],ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
+% 
 dt_gamma10 = 3*position_error/(sigma_u*10);
 f_gamma10 = timescale/dt_gamma10;
-plot([f_gamma10 f_gamma10],ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
-
+% plot([f_gamma10 f_gamma10],ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
+% 
 dt_gamma01 = 3*position_error/(sigma_u*0.1);
 f_gamma01 = timescale/dt_gamma01;
-plot([f_gamma01 f_gamma01],ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
+% plot([f_gamma01 f_gamma01],ylimit, 'LineWidth', 0.5*scaleFactor, 'Color', 0.4*[1.0 1.0 1.0]);
 
 xlabel('cycles per minute', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 ylabel('power (m^2/s)', 'FontSize', figure_axis_label_size, 'FontName', figure_font);
 
+print('-depsc2', 'figures/synthetic_process_and_spectrum.eps')
+
+dof1 = 1 + 3*position_error/(sigma_u*dt);
+dof10 = 1 + 3*position_error/(sigma_u*10*dt);
+dof100 = 1 + 3*position_error/(sigma_u*100*dt);
+
+return
 
 indices = 1:1:floor(length(t)/5);
 indicesAll = 1:max(indices);
@@ -105,7 +112,7 @@ fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 fig1.PaperPositionMode = 'auto';
 
-print('-depsc2', 'figures/synthetic_process_and_spectrum.eps')
+
 
 a_vals = 10.^(linspace(-2,1,15))';
 rms_error = zeros(size(a_vals));

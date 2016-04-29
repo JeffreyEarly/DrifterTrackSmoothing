@@ -1,4 +1,4 @@
-function [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t,x,y,sigma,S,T,a_in, DF)
+function [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t,x,y,sigma,S,T,lambda_x, lambda_y, DF)
 % drifter_fit_bspline    Find the maximum likelihood fit
 %
 % t         independent variable (time), length N
@@ -7,8 +7,11 @@ function [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t,x,y,s
 % S         degree of spline (e.g., 3 denotes cubic splines, piecewise continuous accelerations), scalar
 % T         degree at which tension is applied (e.g., 2 denotes acc.)
 %
-% The tension parameter p should be given as if it is 1/u^2. This function
-% will then internally scale it by N/Q;
+% The tension parameter lambda_x, lambda_y should be given as if it is (d-1)/(d*u^2). This function
+% will then internally scale it by N/Q; d is the number of degrees of
+% freedom and must be a value 1 or great (if it is 1, then you've set no
+% tension). The value u corresponds to the rms-value of the T-th
+% derivative.
 % 
 % B is a matrix containing the M B-splines, at the N locations t_i, for
 % K=S+1 derivatives. The matrix is NxMxK.
@@ -28,39 +31,9 @@ if (abs(diff(diff(t))) > 1e-6)
    return;
 end
 
-% dt = t(2)-t(1);
-% D = FiniteDifferenceMatrixNoBoundary(T,t,1);
-% u_signal = D*x;
-% v_signal = D*y;
-% observed_rms_power = sqrt( mean( u_signal.*u_signal + v_signal.*v_signal));
-% fprintf('The rms value of the %d-th derivative of the signal is %g\n',T, observed_rms_power)
-% 
-% % The extra sqrt 2 comes from combining both x and y directions
-% noise_coefficients = [2;6;20;70;252;924;3432];
-% noise_rms_power = sqrt(2) * sqrt(noise_coefficients(T))*sigma/dt^T;
-% fprintf('The rms value of the of the noise is %g\n', noise_rms_power)
-% 
-% if (noise_rms_power > observed_rms_power)
-%    disp('The total assumed noise variance is greater than the observed signal.');
-%    a = observed_rms_power;
-% else
-%    a = sqrt( observed_rms_power.*observed_rms_power - noise_rms_power.*noise_rms_power )/sqrt(2);
-%    fprintf('The deduced value of the tension is %g\n', a);
-% end
-% 
-tension = zeros(S,1);
-% tension(T) = 1/a^2;
 
-% Don't want to base this on the highest derivative, honestly
-% Gamma = noise_rms_power/a;
-% if round(Gamma/2) > 1
-%     DF = round(Gamma/2);
-%     fprintf('Reducing the total number of knot points. Setting DF=%d.\n',DF);
-% else
-%     DF = 1;
-% end
 
-if nargin < 8
+if nargin < 9
     DF = 1;
 end
 
@@ -75,34 +48,16 @@ Q = 10*N; % number of points on the quadrature grid
 tq = linspace(t(1),t(end),Q)';
 Bq = bspline(tq,t_knot,K);
 
-dbstop if warning
+tension_x = zeros(S,1);
+tension_y = zeros(S,1);
 
-if nargin < 7
-    
-    fprintf('Seaching for a maximum tension parameter to preserve total variance...\n')
-    errorFunction = @(a) TotalPositionErrorRatio(  X, Bq, sigma, x, y, a, T, N, Q );
-    optimalAcceleration = fminsearch( errorFunction, log10(a), optimset('TolX', 0.01, 'TolFun', 0.01) );
-    a = 10^(optimalAcceleration(1));
-    fprintf('Optimal acceleration tension is %g\n', a );  
-    
-    % fprintf('Seaching for a new optimal tension parameter to preserve total variance...\n')
-    % errorFunction = @(a) TotalPowerRatio(  X, Bq, sigma, x, y, a, T, D, N, Q, observed_rms_power^2, noise_rms_power^2 );
-    % optimalAcceleration = fminsearch( errorFunction, log10(a), optimset('TolX', 0.01, 'TolFun', 0.01) );
-    % fprintf('Optimal acceleration tension is %g\n', 10^(optimalAcceleration(1)) );
-    % a = 10^(optimalAcceleration(1));
-    
-    %a = 0.2;
-    % a = 0.0021;
-    % a = 0.5*4.175e-04;
-else
-    a = a_in;
-end
-
-tension(T) = 1/a^2;
-gamma = tension*N/Q;
+tension_x(T) = lambda_x;
+tension_y(T) = lambda_y;
+gamma_x = tension_x*N/Q;
+gamma_y = tension_y*N/Q;
 
 
-[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Bq, sigma, gamma, x, y );
+[m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Bq, sigma, gamma_x, gamma_y, x, y );
 
 
 end
@@ -153,7 +108,7 @@ totalError = abs(lambda-1.0);
 
 end
 
-function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Bq, sigma, gamma, x, y )
+function [m_x,m_y,Cm_x,Cm_y] = ComputeSolution( X, Bq, sigma, gamma_x, gamma_y, x, y )
 % X matrix:
 % Rows are the N observations
 % Columns are the M splines
@@ -164,10 +119,14 @@ E_x = X'*X/(sigma*sigma); % MxM
 E_y = X'*X/(sigma*sigma); % MxM
 
 for i=1:(size(Bq,3)-1)
-    if (gamma(i) ~= 0.0)
+    if (gamma_x(i) ~= 0.0)
         Xq = squeeze(Bq(:,:,i+1));
-        T = gamma(i)*(Xq'*Xq);
+        T = gamma_x(i)*(Xq'*Xq);
         E_x = E_x + T;
+    end
+    if (gamma_y(i) ~= 0.0)
+        Xq = squeeze(Bq(:,:,i+1));
+        T = gamma_y(i)*(Xq'*Xq);
         E_y = E_y + T;
     end
 end
