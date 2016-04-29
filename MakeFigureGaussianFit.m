@@ -21,8 +21,8 @@ N = length(t);
 sigma = 10;
 
 % Estimate the velocities...
-u_estimate_spectral = EstimateRMSVelocityFromSpectrum(t,x,sigma);
-v_estimate_spectral = EstimateRMSVelocityFromSpectrum(t,y,sigma);
+u_estimate_spectral = EstimateRMSVelocityFromSpectrum(t,x,sigma, 1);
+v_estimate_spectral = EstimateRMSVelocityFromSpectrum(t,y,sigma, 1);
 
 % ...and accelerations
 ax_estimate_spectral = EstimateRMSAccelerationFromSpectrum(t,x,sigma);

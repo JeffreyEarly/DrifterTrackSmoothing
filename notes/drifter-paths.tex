@@ -1262,6 +1262,12 @@ S_n(f) = \sigma^2 \frac{T}{N} (2\pi f)^{2k}
 \end{equation}
 where $N$ is the number of samples taken.
 
+The expected total variance can be shown to be,
+\begin{equation}
+\sum S_n(f) df = \frac{\pi^2}{3} \frac{\sigma^2}{dt^2} \left(1 + \frac{3}{N} + \frac{2}{N^2} \right)
+\end{equation}
+Compare this to $\frac{2 \sigma^2}{dt^2}$ for finite differencing.
+
 The signal to noise ratio is thus,
 \begin{equation}
 \frac{S_s(f)}{S_n(f)} = \frac{A^2 N}{2 \sigma^2}  \left( \frac{f_0}{f} \right)^{2k} \delta_f^{f_0}

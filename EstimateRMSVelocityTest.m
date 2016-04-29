@@ -1,3 +1,4 @@
+addpath('./support');
 load('sample_data/SyntheticTrajectories.mat')
 sigma = position_error;
 
@@ -44,6 +45,7 @@ mean((v_noise).^2)
 sum(S_v_noise)*df
 
 s_noise_estimate = sigma*sigma*dt*(2*pi*f).*(2*pi*f);
+finitesum = (pi^2/3)*(sigma*sigma/dt^2)*(1+3/N + 2/N^2)
 sum(s_noise_estimate)*df
 
 % s_noise = sigma*sigma*dt*ones(size(f));
@@ -55,13 +57,24 @@ std(D*epsilon_y(indices))^2
 mean((D*epsilon_y(indices)).^2)
 sum(s_noise_estimate)*df
 
-u2 = sum((S_u_signal > 10.0*s_noise_estimate) .* S_u_signal)*fourierFrequencyT;
-u_rms_estimate = sqrt(u2);
-u_rms_true = sqrt(mean((D*y(indices)).^2));
+cutoff = 15;
+u_rms_estimate = sqrt(sum((S_u_signal > cutoff*s_noise_estimate) .* S_u_signal)*df);
+v_rms_estimate = sqrt(sum((S_v_signal > cutoff*s_noise_estimate) .* S_v_signal)*df);
+u_rms_true = sqrt(mean((D*x(indices)).^2));
+v_rms_true = sqrt(mean((D*y(indices)).^2));
+
+u_estimate_spectral = EstimateRMSVelocityFromSpectrum(t_obs,x_obs,sigma);
+v_estimate_spectral = EstimateRMSVelocityFromSpectrum(t_obs,y_obs,sigma);
 
 fprintf('u_rms_true: %f, u_rms_estimate: %f\n', u_rms_true, u_rms_estimate);
+fprintf('v_rms_true: %f, v_rms_estimate: %f\n', v_rms_true, v_rms_estimate);
+
+f = fftshift(f);
+S_u_signal = fftshift(S_u_signal);
+S_v_signal = fftshift(S_v_signal);
+s_noise_estimate = fftshift(s_noise_estimate);
 
 figure
-plot(f,S_u_signal)
+plot(f,[S_u_signal, S_v_signal])
 hold on
-plot(f,10*s_noise_estimate), ylog
+plot(f,s_noise_estimate), ylog
