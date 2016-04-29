@@ -20,29 +20,48 @@ t_obs = t(indices);
 [D,t_u] = FiniteDifferenceMatrixNoBoundary(1,t_obs,1);
 dt = t_u(2)-t_u(1);
 T = t_u(end)-t_u(1);
-nT = length(t_u);
+N = length(t_u);
 
-fourierFrequencyT = 1/T;
-f = ([0:ceil(nT/2)-1 -floor(nT/2):-1]*fourierFrequencyT)';
-df = f(2)-f(1);
+df = 1/T;
+f = ([0:ceil(N/2)-1 -floor(N/2):-1]*df)';
 
-ubar = fft(D*y_obs)/nT;
-s_signal = (nT*dt)* ubar .* conj(ubar);
+u = D*x_obs;
+v = D*y_obs;
 
-s_noise = sigma*sigma*dt*(2*pi*f).*(2*pi*f);
+ubar = fft(u)/N;
+S_u_signal = (N*dt)* ubar .* conj(ubar);
+vbar = fft(v)/N;
+S_v_signal = (N*dt)* vbar .* conj(vbar);
+
+u_noise = D*epsilon_x(indices);
+v_noise = D*epsilon_y(indices);
+ubar = fft(u_noise)/N;
+S_u_noise = (N*dt)* ubar .* conj(ubar);
+ubar = fft(v_noise)/N;
+S_v_noise = (N*dt)* ubar .* conj(ubar);
+
+mean((v_noise).^2)
+sum(S_v_noise)*df
+
+s_noise_estimate = sigma*sigma*dt*(2*pi*f).*(2*pi*f);
+sum(s_noise_estimate)*df
+
 % s_noise = sigma*sigma*dt*ones(size(f));
 
 
-sum(s_noise)*df
+sum(s_noise_estimate)*df
 
-u2 = sum((s_signal > 10.0*s_noise) .* s_signal)*fourierFrequencyT;
+std(D*epsilon_y(indices))^2
+mean((D*epsilon_y(indices)).^2)
+sum(s_noise_estimate)*df
+
+u2 = sum((S_u_signal > 10.0*s_noise_estimate) .* S_u_signal)*fourierFrequencyT;
 u_rms_estimate = sqrt(u2);
 u_rms_true = sqrt(mean((D*y(indices)).^2));
 
 fprintf('u_rms_true: %f, u_rms_estimate: %f\n', u_rms_true, u_rms_estimate);
-return;
 
 figure
-plot(f,s_signal)
+plot(f,S_u_signal)
 hold on
-plot(f,s_noise), ylog
+plot(f,10*s_noise_estimate), ylog

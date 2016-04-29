@@ -8,7 +8,7 @@ load('sample_data/SyntheticTrajectories.mat')
 % Do you want to assess the error using all the points from the signal
 % (which makes sense for an interpolation based metric) or just points from
 % the observed (decimated) signal only?
-shouldUseObservedSignalOnly = 0;
+shouldUseObservedSignalOnly = 1;
 
 result_stride = 2.^(0:9)';
 % result_stride = 1;
@@ -52,34 +52,32 @@ for i=1:length(result_stride)
     
     dt = t_obs(2)-t_obs(1);
     expectedDOF(i) = 1 + 3*sigma/(u_estimate_spectral(i)*dt);
-    
-    % First blind guess as to what the optimal parameter should be
-    a_blind_initial(i) = a_estimate_spectral(i)*sqrt(expectedDOF(i)/(expectedDOF(i)-1));
+    lambda_blind_initial(i) = (expectedDOF(i)-1)/(expectedDOF(i)*a_estimate_spectral(i)^2);
     
     % Now see how we did.
-    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t_obs,x_obs,y_obs,sigma,S,T,a_blind_initial(i), DF);
+    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t_obs,x_obs,y_obs,sigma,S,T,lambda_blind_initial(i),lambda_blind_initial(i), DF);
     X = squeeze(B(:,:,1));
     rms_error_blind_initial(i) = std( (x(indicesAll)-X1*m_x) + sqrt(-1)*(y(indicesAll)-X1*m_y) )/sqrt(2);
     dof_out_blind_initial(i) = sigma*sigma/( (mean((diag(X*Cm_x*X.'))) + mean((diag(X*Cm_y*X.'))))/2 );
     
     % Now optimize the parameter to match the expected DOF---still blind!
-    errorFunction = @(a) DegreesOfFreedomError(t_obs,x_obs,y_obs,sigma,S,T, a, DF, expectedDOF(i));
-    optimalAcceleration = fminsearch( errorFunction, log10(a_blind_initial(i)), optimset('TolX', 0.001, 'TolFun', 0.001) );
-    a_blind_optimal(i) = 10^(optimalAcceleration(1));
+    errorFunction = @(log10lambda) DegreesOfFreedomError(t_obs,x_obs,y_obs,sigma,S,T,log10lambda,DF,expectedDOF(i));
+    optimalLog10lambda = fminsearch( errorFunction, log10(lambda_blind_initial(i)), optimset('TolX', 0.001, 'TolFun', 0.001) );
+    lambda_blind_optimal(i) = 10^(optimalLog10lambda);
     
     % Again, assess see how we did.
-    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t_obs,x_obs,y_obs,sigma,S,T,a_blind_optimal(i), DF);
+    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t_obs,x_obs,y_obs,sigma,S,T,lambda_blind_optimal(i),lambda_blind_optimal(i),DF);
     X = squeeze(B(:,:,1));
     rms_error_blind_optimal(i) = std( (x(indicesAll)-X1*m_x) + sqrt(-1)*(y(indicesAll)-X1*m_y) )/sqrt(2);
     dof_out_blind_optimal(i) = sigma*sigma/( (mean((diag(X*Cm_x*X.'))) + mean((diag(X*Cm_y*X.'))))/2 );
     
     % Finally, optimize the parameter to find the true best value we could
     % have set.
-    errorFunction = @(a) TotalRMSError(t_obs,x_obs,y_obs,sigma,S,T, a, DF, X1, x(indicesAll), y(indicesAll));
-    optimalAcceleration = fminsearch( errorFunction, log10(1e-4), optimset('TolX', 0.001, 'TolFun', 0.001) );
-    a_true_optimal(i) = 10^(optimalAcceleration(1));
+    errorFunction = @(log10lambda) TotalRMSError(t_obs,x_obs,y_obs,sigma,S,T, log10lambda, DF, X1, x(indicesAll), y(indicesAll));
+    optimalLog10lambda = fminsearch( errorFunction, log10(lambda_blind_optimal(i)), optimset('TolX', 0.001, 'TolFun', 0.001) );
+    lambda_true_optimal(i) = 10^(optimalLog10lambda);
     
-    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t_obs,x_obs,y_obs,sigma,S,T,a_true_optimal(i), DF);
+    [m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t_obs,x_obs,y_obs,sigma,S,T,lambda_true_optimal(i), lambda_true_optimal(i), DF);
     X = squeeze(B(:,:,1));
     rms_error_true_optimal(i) = std( (x(indicesAll)-X1*m_x) + sqrt(-1)*(y(indicesAll)-X1*m_y) )/sqrt(2);
     dof_out_true_optimal(i) = sigma*sigma/( (mean((diag(X*Cm_x*X.'))) + mean((diag(X*Cm_y*X.'))))/2 );
@@ -93,7 +91,7 @@ else
     outputFile = 'OptimalParameters.mat';
 end
 
-save(outputFile, 'u_estimate_spectral', 'a_estimate_spectral', 'expectedDOF', 'a_blind_initial', 'rms_error_blind_initial', 'dof_out_blind_initial', 'a_blind_optimal', 'rms_error_blind_optimal', 'dof_out_blind_optimal', 'a_true_optimal', 'rms_error_true_optimal', 'dof_out_true_optimal', 'result_stride')
+save(outputFile, 'u_estimate_spectral', 'a_estimate_spectral', 'expectedDOF', 'lambda_blind_initial', 'rms_error_blind_initial', 'dof_out_blind_initial', 'lambda_blind_optimal', 'rms_error_blind_optimal', 'dof_out_blind_optimal', 'lambda_true_optimal', 'rms_error_true_optimal', 'dof_out_true_optimal', 'result_stride')
 
 for i=1:length(result_stride)
    fprintf('%d & %#.3g m (%#.3g) &  %#.3g m (%#.3g) &  %#.3g m (%#.3g) \\\\ \n', result_stride(i), rms_error_true_optimal(i), dof_out_true_optimal(i), rms_error_blind_optimal(i), dof_out_blind_optimal(i), rms_error_blind_initial(i), dof_out_blind_initial(i) )  ;
