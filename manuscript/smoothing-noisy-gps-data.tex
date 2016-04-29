@@ -343,7 +343,7 @@ where $\sigma_x$ is the standard deviation of positioning noise and $\Delta t$ i
 
 The quantity $\Gamma$ can also be interpreted as an interpolation condition. If $\Gamma<1$ then we are in the interpolation regime where the particle moves farther than the measurement noise between observations, and if $\Gamma >1$ we are in the smoothing regime where each observation is providing similar information to nearby observations.
 
-Having established a value for $d$, we can computed $\lambda_m$ of equation \ref{lambda} directly. To do this we need an estimate of $u_{\textrm{rms}}$, in order to compute $\Gamma$, and $x^{(m)}_{\textrm{rms}}$ to properly normalize the tension. This quantities can be estimate from the various spectra of the observed signal, as will be shown below.
+Having established a value for $d$, we can computed $\lambda_m$ of equation \ref{lambda} directly. To do this we need an estimate of $u_{\textrm{rms}}$, in order to compute $\Gamma$, and $x^{(m)}_{\textrm{rms}}$ to properly normalize the tension. These quantities can be estimated from the various spectra of the observed signal, as will be shown below.
 
 While that provides a good initial guess, we find that the more robust approach is to fix the degrees of freedom in the standard error estimate of the mean. In particular the variance of the mean for a Gaussian decreases with increasing degrees of freedom as $\sigma^2/d$. This quantity is, in fact, $\mathbf{S_\lambda} \Sigma$ for each observation. On average then, the number of degrees of freedom is,
 \begin{equation}
