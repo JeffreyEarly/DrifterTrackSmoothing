@@ -275,14 +275,6 @@ The implication of this result is that adding tension to the penalty function is
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
-\begin{figure*}[t]
-  \centerline{\includegraphics[width=39pc,angle=0]{gaussianfit}}
-  
-  \caption{An example of model fits assuming Gaussian errors with $\sigma=10$ meters. The black line shows a fit with high tension ($a_{\textrm{rms}}=2 \cdot 10^{-5}$ m$^2$/s), while the gray line shows a fit with  low tension ($a_{\textrm{rms}}=2 \cdot 10^{-4}$ m$^2$/s).}
-  \label{gaussianfit}
-\end{figure*}
-
-
 The B-splines are generated using the algorithm described in \citet{deboor1978-book} with knot points determined by equations \ref{even-knots} and \ref{odd-knots}. The matrix $\mathbf{X}$ with components $X\indices{^i_m}$ denotes the $m$-th B-spline at time $t_i$. The first, second and third derivatives of the B-splines are denotes by $V\indices{^i_m}$, $A\indices{^i_m}$, $J\indices{^i_m}$, denoting velocity, acceleration, and jerk, respectively. In this notation the column vector $\xi^m$ represents the coefficients of the splines such that positions at time $t_i$ are given by $\hat{x}^i$ where $\hat{x}^i =  X\indices{^i_m} \xi^m$.
 
 The discretized the penalty function is
@@ -331,6 +323,13 @@ The first matrix on the right hand side of equation \ref{solution} is $N\times N
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
+\begin{figure*}[t]
+  \centerline{\includegraphics[width=33pc,angle=0]{synthetic_process_and_spectrum}}
+  
+  \caption{The upper panel shows a small portion of the decimated signal generated from the Matern process where, using \ref{gamma_equation}, $\Gamma = 3$. The bolded points are further decimated and give $\Gamma=0.3$. The lower panel shows the uncontaminated velocity spectrum of the signal (black) and velocity spectrum of the noise (red). The observed signal is the sum of the two. }
+  \label{synthetic_process_and_spectrum}
+\end{figure*}
+
 In the 50 years since \citet{reinsch1967-nm} was published, a number of different methods have been proposed for choosing the optimal value of $\lambda_m$. One approach is cross-validation \citep{wahba1978-jrss-b,craven1979-nm} which is essentially a form of bootstrapping, where the optimal parameter is determined by minimizing the error with data points not included in the fit. Another approach is to determine the number of degrees of freedom expected in the sample variance of equation \ref{sample_variance}. Both \citet{reinsch1967-nm} and \citet{teanby2007-mg} argue that the tension should be adjusted so that the sample variance is roughly the expected variance, $\hat{\sigma}^2 \sim \sigma^2$, but this assumes a large number of degrees of freedom. According to \citet{wahba1990-siam} this appears to overestimate the number of degrees of freedom. Different techniques for determining the degrees of freedom have been proposed, see for example \citet{cantoni2002-biom}.
 
 We argue that the degrees of freedom, and therefore the tension, should vary based on the relative size of the measurement errors to the speed of motion. For example, if the position errors are only $1$ meter, but particle typically travels $10$ meters between measurements, then it is hardly justifiable to increase the tension so that the smoothing spline misses the observation points by $1$ meter. There is not enough statistical evidence to suggest that the true particle didn't go right through the observation point. On the other hand, if the position errors are  $1$ meter, but particle typically travels $10$ centimeters between measurements, nearby measurements provide more information about the particle's true position during that time, so our estimate of the particles true position is closer to a mean of the nearby observations.
@@ -341,6 +340,13 @@ This idea can be made more rigorous by noting that one would consider change in 
 \Gamma \equiv \frac{3 \sigma_x}{u_{\textrm{rms}}\Delta t}
 \end{equation}
 where $\sigma_x$ is the standard deviation of positioning noise and $\Delta t$ is the typical time between observations. In terms of degrees of freedom, this argument suggests that $d = 1 + \Gamma$.
+
+\begin{figure*}[t]
+  \centerline{\includegraphics[width=39pc,angle=0]{gaussianfit}}
+  
+  \caption{An example of model fits to the drifter data assuming Gaussian errors. The thick black line shows a fit with $\sigma=10$ meters, while the gray line shows a fit with $\sigma=1000$ meters}
+  \label{gaussianfit}
+\end{figure*}
 
 The quantity $\Gamma$ can also be interpreted as an interpolation condition. If $\Gamma<1$ then we are in the interpolation regime where the particle moves farther than the measurement noise between observations, and if $\Gamma >1$ we are in the smoothing regime where each observation is providing similar information to nearby observations.
 
@@ -371,12 +377,7 @@ S(\omega) = \frac{A^2}{(\omega^2 + \lambda^2)^\alpha}
 \end{equation}
 and therefore has finite amplitude low frequency and power-law fall off at high frequencies, two physically realistic properties. For these experiments we choose a value of $\alpha=1$ so that the high frequency spectrum is proportional to $\omega^{-2}$. The Matern is used to generate the \emph{velocity} of the signal and integrated to get the positions and the positions are then contaminated with Gaussian noise. Parameters are chosen such that $u_{\textrm{rms}}=0.20$ m/s and the noise has $\sigma=10$ meters. Figure \ref{synthetic_process_and_spectrum} shows example positions and the velocity spectra of the signal and the noise.
 
-\begin{figure*}[t]
-  \centerline{\includegraphics[width=33pc,angle=0]{synthetic_process_and_spectrum}}
-  
-  \caption{The upper panel shows a small portion of the decimated signal generated from the Matern process where, using \ref{gamma_equation}, $\Gamma = 3$. The bolded points are further decimated and give $\Gamma=0.3$. The lower panel shows the uncontaminated velocity spectrum of the signal (black) and velocity spectrum of the noise (red). The observed signal is the sum of the two. }
-  \label{synthetic_process_and_spectrum}
-\end{figure*}
+
 
 For these experiments we choose a spline of degree $S=3$ and apply tension on the second derivative (acceleration). To estimate the tension parameter $\lambda_2$ from equation \ref{lambda} we therefore need an estimate of both $u_{\textrm{rms}}$ and $a_{\textrm{rms}}$. Computing this directly from the observed signal in the time domain is problematic because, given frequent enough sampling, the noise will dominate the estimate. Instead we estimate these values in the frequency domain summing the power in the frequency bins that more than 10 times the expected value of the noise. Because each frequency bin in a periodigram follows a $\chi^2$ distribution for two degrees of freedom, this only adds observed power that is likely to be true signal.
 
@@ -398,25 +399,17 @@ stride & optimal & iterated estimate & initial estimate \\ \hline \hline
 \label{fit_results}
 \end{table}
 
+
+
+
 To test the accuracy of our method we subsample the observed signal to provide a wide range of effective degrees of freedom, with $\Gamma$ ranging from $0.05$-$30$ corresponding to strides ranging from 512 to 1. The true optimal parameter is determined by minimizing the RMS error between smoothed-interpolated signal and the true signal, as shown in table \ref{fit_results}. Because we are interested interpolation (not just smoothing) the RMS error is computed with all points in the signal, not just those observed in the subsampled signal. This has the result of producing RMS errors that are greater than the standard deviation of the noise (10 meters). The results in table \ref{fit_results} suggest that determining $\lambda$ directly from equation \ref{lambda} and matching degrees-of-freedom with equation \ref{iterated_tension} are both nearly optimal techniques.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \section{Gaussian errors}
 %%%%%%%%%%%%%%%%%%%%%%
 
-Figure \ref{gaussianfit} shows the results of fitting to the observations assuming the errors are Gaussian. The error $\sigma$ is taken to be $10$ meters, as found in the analysis of GPS errors. Of course, there is really only one adjustable parameter so this choice is  irrelevant as we choose to fix $\sigma$ and adjust $a_{\textrm{rms}}$.  A reasonable estimate for a physically realistic acceleration can be found by noting that the largest signal is inertial, so if we take with $u \approx 0.1$ m/s this implies  that $a \approx u f_0$, or $a \approx 8 \cdot 10^{-6}$ m$^2$/s. Figure \ref{gaussianfit} shows two fits, one with relatively low tension (high $a_{\textrm{rms}}=2 \cdot 10^{-5}$ m$^2$/s) and one with relatively high tension (low $a_{\textrm{rms}}=2 \cdot 10^{-6}$ m$^2$/s).
-\begin{figure*}[t]
-  \centerline{\includegraphics[width=39pc,angle=0]{tdistributionfit}}
-  
-  \caption{An example of model fits assuming errors following a t-distribution.}
-  \label{tdistributionfit}
-\end{figure*}
 
-Increasing tension (by decreasing $a_{\textrm{rms}}$) reduces the variance in the resulting acceleration PDF because the model fits with large accelerations are considered unlikely. The has the effect of `pulling' the model fit further away from the observation points that would have otherwise resulted in larger accelerations. This also means that if the tension is increased too much, several successive points will be missed and there will now be correlation in errors. This is evident in figure \ref{gaussianfit} where the black line (high tension) fit stays to one side of the data for several successive points. On the other hand, decreasing the tension will improves the error correlation metric. The gray line (low tension) fit in figure \ref{gaussianfit} shows far more zero crossings. However, the low tension case also results in physical outliers---regions where the model fit makes large excursion that are clearly unphysical.
-
-This autocorrelation sequence for the errors are shown in figure \ref{gaussianacf}. The high tension (black line) case shows a strong \emph{negative} correlation in the errors at lag 1, the opposite of what would be expected simply by looking at the correlation in the sign of the errors. This is because the autocorrelation sequence is weighted by variance and is therefore dominated by the effect of the outliers which do show a negative correlation with neighboring points. The low tension cause follows the same logic for lag 1, but shows a positive correlation at lag 2 where the spline `overshoots' the observed data.
-
-The problem with using a Gaussian PDF for the errors is that there are no outliers. Values more than 4 or 5 $\sigma$ from the mean are effectively impossible. The solution is then to use some other distribution which will treat data points beyond a certain distance as outliers.
+Figure \ref{gaussianfit} shows a 25 hour window of observed GPS positions for one of the drifters. The bold line in figure \ref{gaussianfit} shows the results of fitting to the observations assuming the errors are Gaussian with $\sigma$ taken to be $10$ meters, while the thin line shows the tension increased by a factor of $10^4$. This increase is equivalent to assuming $1000$ meter standard deviations on the errors---not plausible for ordinary GPS errors. 
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
@@ -424,7 +417,7 @@ The problem with using a Gaussian PDF for the errors is that there are no outlie
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
-We characterize the the GPS errors by considering data from a motionless GPS receiver allowed to run for 12 hours. The specific GPS receiver used for this test was not the same as the one used for the drifters but should produce errors similar enough for this analysis. The errors documented in the FAA GPS accuracy report (cite) are less comparable because they use superior antennas.
+We characterize the the GPS errors by considering data from a motionless GPS receiver allowed to run for 12 hours. The specific GPS receiver used for this test was not the same as the one used for the drifters but should produce errors similar enough for this analysis. The errors documented in the FAA GPS accuracy report \citep{faa2016-report} are less comparable because they use superior antennas.
 
 The position recorded by the motionless GPS are assumed to have isotropic errors with mean zero, which means that the positions themselves are the errors. The probability distribution function (PDF) of the combined $x$ and $y$ position errors are shown in figure \ref{motionless_error}.
 
@@ -454,7 +447,7 @@ The \emph{position} error distributions also imply a combined \emph{distance} er
 \label{rayleigh_pdf}
 p_r(\epsilon_d|\sigma_g) = \frac{\epsilon_d}{\sigma_g^2 } e^{-\frac{1}{2}\frac{\epsilon_d^2}{\sigma_g^2}}.
 \end{equation}
-The distance distribution for two t-distributions is computed numerically.
+The distance distribution for two t-distributions is computed numerically and is shown in the bottom panel of figure \ref{motionless_error}.
 
 %%%%%%%%%%%%%%%%%%%%%%
 \section{Non-Gaussian errors}
@@ -498,6 +491,13 @@ To remove the outliers we use the values of $\nu$ and $\sigma_t$ found in sectio
   \label{tfit_error}
 \end{figure}
 
+
+\begin{figure*}[t]
+  \centerline{\includegraphics[width=39pc,angle=0]{tdistributionfit}}
+  
+  \caption{An example of model fits assuming errors following a t-distribution.}
+  \label{tdistributionfit}
+\end{figure*}
 %%%%%%%%%%%%%%%%%%%%%%
 \section{Tension Parameter}
 %%%%%%%%%%%%%%%%%%%%%%

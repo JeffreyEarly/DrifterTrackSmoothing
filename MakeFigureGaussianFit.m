@@ -1,6 +1,7 @@
 % AMS figure widths, given in picas, converted to points (1 pica=12 points)
 scaleFactor = 1;
 LoadFigureDefaults
+addpath('./support');
 
 drifters = load('sample_data/rho1_drifters_projected_ungridded.mat');
 
@@ -21,8 +22,8 @@ N = length(t);
 sigma = 10;
 
 % Estimate the velocities...
-u_estimate_spectral = EstimateRMSVelocityFromSpectrum(t,x,sigma, 1);
-v_estimate_spectral = EstimateRMSVelocityFromSpectrum(t,y,sigma, 1);
+u_estimate_spectral = EstimateRMSVelocityFromSpectrum(t,x,sigma, 0);
+v_estimate_spectral = EstimateRMSVelocityFromSpectrum(t,y,sigma, 0);
 
 % ...and accelerations
 ax_estimate_spectral = EstimateRMSAccelerationFromSpectrum(t,x,sigma);
@@ -44,7 +45,7 @@ Xq = squeeze(Bq(:,:,1));
 x_fit_big = Xq*m_x;
 y_fit_big = Xq*m_y;
 
-[m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t,x,y,sigma,S,T,1e7*lambda_x,1e7*lambda_y,DF);
+[m_x,m_y,Cm_x,Cm_y,B,Bq,tq] = smooth_interpolate_gaussian_noise(t,x,y,sigma,S,T,1e4*lambda_x,1e4*lambda_y,DF);
 
 Xq = squeeze(Bq(:,:,1));
 x_fit_small = Xq*m_x;
@@ -104,7 +105,7 @@ fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
 plot(tq/3600,s*x_fit_small, 'LineWidth', 0.5*scaleFactor, 'Color',0.4*[1.0 1.0 1.0]), hold on
-plot(tq/3600,s*x_fit_big, 'LineWidth', 0.5*scaleFactor, 'Color',0.0*[1.0 1.0 1.0])
+plot(tq/3600,s*x_fit_big, 'LineWidth', 1.0*scaleFactor, 'Color',0.0*[1.0 1.0 1.0])
 scatter(drifters.t{choiceDrifter}/3600,s*drifters.x{choiceDrifter},(2.5*scaleFactor)^2,'filled', 'MarkerEdgeColor', 'k', 'MarkerFaceColor', 'k')
 xlabel('t (hours)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
 ylabel('x (km)', 'FontSize', figure_axis_label_size, 'FontName', figure_font)
@@ -119,9 +120,11 @@ fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 fig1.PaperPositionMode = 'auto';
 
+print('-depsc2', 'figures/gaussianfit.eps')
+
 return
 
-% print('-depsc2', 'figures/gaussianfit.eps')
+% 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %

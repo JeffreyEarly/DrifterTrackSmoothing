@@ -2,6 +2,15 @@
 % spectrum to estimate u_rms.
 function u_rms = EstimateRMSAccelerationFromSpectrum( t, x, sigma)
 
+if length(unique(diff(t))) > 1
+   fprintf('interpolating...\n');
+   dt = round(median(diff(t)));
+   N = ceil((t(end)-t(1))/dt);
+   t2 = dt*((0:(N-1))') + t(1);
+   x = interp1(t,x,t2);
+   t = t2;
+end
+
 % first derivative, with points at t_u
 [D,t_u] = FiniteDifferenceMatrixNoBoundary(2,t,1);
 dt = t_u(2)-t_u(1);

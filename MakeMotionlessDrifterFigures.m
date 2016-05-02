@@ -3,7 +3,8 @@ scaleFactor = 1;
 LoadFigureDefaults
 addpath('support')
 
-load('sample_data/motionless_garmin_epix.mat')
+ load('sample_data/motionless_garmin_epix.mat')
+%load('sample_data/motionless_garmin_edge_705.mat')
 
 % The GPS was motionless, so its position is the errors, but we should
 % remove the mean.
@@ -188,6 +189,27 @@ fig1.PaperPositionMode = 'auto';
 % print('-depsc2', 'figures/motionless_distance_error.eps')
 
 return
+
+stride = 10;
+x_out = x(1:stride:end);
+y_out = y(1:stride:end);
+
+maxT = 1*3600;
+dt = (0:stride:maxT)';
+n = (0:(length(dt)-1))';
+ACx = Autocorrelation(x_out, length(dt)-1);
+ACy = Autocorrelation(y_out, length(dt)-1);
+
+AC_95Confidence = (-1 + 1.645*sqrt(length(x_out)-n-1))./(length(x_out)-n);
+SE =  sqrt((1 + 2*cumsum(ACx.^2))/length(x_out));
+SE(1) = []; % first point is zero lag
+
+figure
+plot(dt,[ACx, ACy])
+hold on
+plot(dt, AC_95Confidence);
+plot(dt(3:end), 2*SE(1:(end-1)), 'LineWidth', 1.5 )
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Error CDF plot
