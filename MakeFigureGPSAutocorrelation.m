@@ -3,9 +3,14 @@ scaleFactor = 1;
 LoadFigureDefaults
 addpath('support')
 
+% Striding the data is a good way to check that our confidence intervals
+% are robust.
 stride = 1;
 maxT = 1.5*3600;
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Start by using the epix data...
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 load('sample_data/motionless_garmin_epix.mat')
 x=x-mean(x);
 y=y-mean(y);
@@ -20,7 +25,10 @@ n = (0:(length(dt)-1))';
 
 AC = ACx + ACy;
 DOF = DOFx + DOFy;
- 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ...then using the edge data...
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 load('sample_data/motionless_garmin_edge_705.mat')
 
 x=x-mean(x);
@@ -34,6 +42,9 @@ n = (0:(length(dt)-1))';
 [ACx, DOFx] = Autocorrelation(x_out, length(dt)-1);
 [ACy, DOFy] = Autocorrelation(y_out, length(dt)-1);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% ...and finally merge them together.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 AC = AC + ACx + ACy;
 DOF = DOF + DOFx + DOFy;
 
@@ -69,4 +80,53 @@ ylabel('autocorrelation', 'FontSize', figure_axis_label_size, 'FontName', figure
 xlim([0 s*maxT])
 ylim([-0.2 1.0])
 
+
 print('-depsc2', 'figures/gps_autocorrelation.eps')
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% Cross correlation figures
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+load('sample_data/motionless_garmin_epix.mat')
+x=x-mean(x);
+y=y-mean(y);
+
+x_out = x(1:stride:end);
+y_out = y(1:stride:end);
+
+dt = (0:stride:maxT)';
+n = (0:(length(dt)-1))';
+
+[C_epix, DOF_epix] = Crosscorrelation(x_out,y_out,length(dt)-1);
+
+load('sample_data/motionless_garmin_edge_705.mat')
+x=x-mean(x);
+y=y-mean(y);
+
+x_out = x(1:stride:end);
+y_out = y(1:stride:end);
+
+dt = (0:stride:maxT)';
+n = (0:(length(dt)-1))';
+
+[C_edge, DOF_edge] = Crosscorrelation(x_out,y_out,length(dt)-1);
+
+C = (C_epix+C_edge)/2;
+DOF = DOF_epix+DOF_edge;
+
+SE_indep = dt(2:end);
+SE =  sqrt((1 + 2*cumsum(C.^2))./DOF);
+SE(1) = sqrt(1/DOF(1)); % first point is lag 1
+SE(end) = []; % there is no end point
+
+figure
+s = 1/60;
+
+plot(s*dt,C, 'LineWidth',1*scaleFactor,'Color',0.0*[1.0 1.0 1.0])
+hold on
+plot(s*SE_indep, [2*SE,-2*SE], 'LineWidth', 1.5, 'Color',0.4*[1.0 1.0 1.0] )
+xlabel('lag (minutes)')
+ylabel('cross correlation')

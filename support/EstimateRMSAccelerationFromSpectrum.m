@@ -1,6 +1,6 @@
 % Given some signal (t,x) contaminated by noise sigma, this uses the
 % spectrum to estimate u_rms.
-function u_rms = EstimateRMSAccelerationFromSpectrum( t, x, sigma)
+function [u_std, a_mean] = EstimateRMSAccelerationFromSpectrum( t, x, sigma)
 
 if length(unique(diff(t))) > 1
    fprintf('interpolating...\n');
@@ -10,6 +10,14 @@ if length(unique(diff(t))) > 1
    x = interp1(t,x,t2);
    t = t2;
 end
+
+[p,~,mu]=polyfit(t,x,2);
+% slope = p(1)/mu(2);
+% intercept = p(2)-p(1)*mu(1)/mu(2);
+a_mean = 2*p(1)/mu(2)^2;
+
+% now remove the quadratic trend
+x = x-polyval(p,t,[],mu);
 
 % first derivative, with points at t_u
 [D,t_u] = FiniteDifferenceMatrixNoBoundary(2,t,1);
@@ -26,4 +34,4 @@ s_signal = ubar .* conj(ubar);
 s_noise = sigma*sigma*dt*(2*pi*f).^4;
 
 u2 = sum((s_signal > 10.0*s_noise) .* s_signal)*fourierFrequencyT;
-u_rms = sqrt(u2);
+u_std = sqrt(u2);

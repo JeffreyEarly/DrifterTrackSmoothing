@@ -352,7 +352,7 @@ The quantity $\Gamma$ can also be interpreted as an interpolation condition. If 
 
 Having established a value for $d$, we can computed $\lambda_m$ of equation \ref{lambda} directly. To do this we need an estimate of $u_{\textrm{rms}}$, in order to compute $\Gamma$, and $x^{(m)}_{\textrm{rms}}$ to properly normalize the tension. These quantities can be estimated from the various spectra of the observed signal, as will be shown below.
 
-While that provides a good initial guess, we find that the more robust approach is to fix the degrees of freedom in the standard error estimate of the mean. In particular the variance of the mean for a Gaussian decreases with increasing degrees of freedom as $\sigma^2/d$. This quantity is, in fact, $\mathbf{S_\lambda} \Sigma$ for each observation. On average then, the number of degrees of freedom is,
+While that provides a good initial guess, we find that the more robust approach is to fix the degrees of freedom in the standard error estimate of the mean. In particular the variance of the mean for a Gaussian decreases with increasing degrees of freedom as $\sigma^2/d$. As a vector quantity for each observation this is just $\mathbf{S_\lambda} \Sigma$. On average then, the number of degrees of freedom is,
 \begin{equation}
 d = \frac{N}{\Tr \left(\mathbf{S_\lambda} \Sigma \right) }.
 \end{equation}
@@ -409,11 +409,11 @@ To test the accuracy of our method we subsample the observed signal to provide a
 %%%%%%%%%%%%%%%%%%%%%%
 
 
-Figure \ref{gaussianfit} shows a 25 hour window of observed GPS positions for one of the drifters. The bold line in figure \ref{gaussianfit} shows the results of fitting to the observations assuming the errors are Gaussian with $\sigma$ taken to be $10$ meters, while the thin line shows the tension increased by a factor of $10^4$. This increase is equivalent to assuming $1000$ meter standard deviations on the errors---not plausible for ordinary GPS errors. 
+Figure \ref{gaussianfit} shows a 25 hour window of observed GPS positions for one of the drifters. The bold line in figure \ref{gaussianfit} shows the results of fitting to the observations assuming the errors are Gaussian with $\sigma$ taken to be $10$ meters, while the thin line shows the tension increased by a factor of $10^4$. This increase is equivalent to assuming $1000$ meter standard deviations on the errors---not plausible for ordinary GPS errors, as shown below, and some points must be treated as outliers. 
 
 %%%%%%%%%%%%%%%%%%%%%%
 %
-\subsection{GPS Error PDF}
+\subsection{GPS error distribution}
 %
 %%%%%%%%%%%%%%%%%%%%%%
 
@@ -421,14 +421,14 @@ We characterize the the GPS errors by considering data from a motionless GPS rec
 
 The position recorded by the motionless GPS are assumed to have isotropic errors with mean zero, which means that the positions themselves are the errors. The probability distribution function (PDF) of the combined $x$ and $y$ position errors are shown in figure \ref{motionless_error}.
 
-The error distribution is first fit to a Gaussian probability distribution function (PDF),
+The error distribution is first fit to a Gaussian PDF,
 \begin{equation}
 \label{gaussian_pdf}
 p_g(\epsilon|\sigma_g) = \frac{e^{-\frac{1}{2}\frac{\epsilon^2}{\sigma_g^2}} }{\sigma_g \sqrt{ 2 \pi}}.
 \end{equation}
 The best fit is produced by compute the standard deviation of the sample (Adam, citation?), which is found to be $\sigma_g \approx 10$ meters and shown as the gray line in figure \ref{motionless_error}. However, it is clear the error distribution shows much longer tails than the Gaussian PDF.
 
-The Student t-distribution is a generalization of the Gaussian that produces longer tails where 
+The Student t-distribution is a generalization of the Gaussian that produces longer tails and is defined as 
 \begin{equation}
 \label{student_pdf}
 p_t\left(\epsilon |\nu,\sigma_t^2\right) = \frac{\Gamma\left( \frac{\nu + 1}{2} \right)}{\sigma_t \sqrt{\nu \pi} \Gamma\left(\frac{\nu}{2}\right)} \left( 1 + \frac{\epsilon^2}{\sigma_t^2 \nu} \right)^{-\frac{\nu+1}{2}}
@@ -449,8 +449,18 @@ p_r(\epsilon_d|\sigma_g) = \frac{\epsilon_d}{\sigma_g^2 } e^{-\frac{1}{2}\frac{\
 \end{equation}
 The distance distribution for two t-distributions is computed numerically and is shown in the bottom panel of figure \ref{motionless_error}.
 
+\begin{figure}
+  \centerline{\includegraphics[width=19pc,angle=0]{gps_autocorrelation}}
+  \caption{The autocorrelation function of the GPS positioning error with 95\% confidence intervals shown in gray.}
+  \label{gps_autocorrelation}
+\end{figure}
+
+Figure \ref{gps_autocorrelation} shows the autocorrelation function of the GPS position errors. The smallest sampling interval of the GPS drifters in question is 30 minutes and therefore it is safe to assume the error are uncorrelated for our purposes.
+
 %%%%%%%%%%%%%%%%%%%%%%
-\section{Non-Gaussian errors}
+%
+\subsection{Numerical implementation}
+%
 %%%%%%%%%%%%%%%%%%%%%%
 
 In practice it is challenging to use the Student t-distribution directly because it does not result in a linear solution for the coefficients like equation \ref{solution}. One method around this issue to use a search algorithm to directly look for the maximum values. Alternatively, one can use the iteratively reweighted least squares (IRLS) method to find the maximum likelihood.
@@ -476,20 +486,22 @@ w_t(\epsilon_i) = \sigma_t^2 \frac{\nu  + \frac{\epsilon_i^2}{\sigma_t^2}}{\nu+1
 
 From equation \ref{t-weight} it is clear that if $\epsilon_i < \sigma_t$ then it will be reweighted to a smaller value, essentially making the observation point more strongly weighted. On the other hand, if $\epsilon_i > \sigma_t$, then its relatively weighting will decrease, and it will be treated more as an outlier.
 
+In a practical sense, the $\Sigma^{-1}$ of equation \ref{smoothing-operator} is replaced with diagonal matrix $W$ populated with the reweighted values for each observation such that,
+\begin{equation}
+\label{general-smoothing-operator}
+\mathbf{S_\lambda} \equiv \mathbf{X} \left[ \mathbf{X}^{\textrm{T}} W \mathbf{X} + \lambda_1 \mathbf{V}^{\textrm{T}} \mathbf{V} \right]^{-1} \mathbf{X}^{\textrm{T}} W.
+\end{equation}
+This operator is again used to compute the standard error from the variances,  $\mathbf{S_\lambda} \Sigma$, where the variance is assumed to be $\sigma_t^2 \frac{\nu}{\nu-2}$ for each observation.
+
 %%%%%%%%%%%%%%%%%%%%%%
 \section{Removing Outliers}
 %%%%%%%%%%%%%%%%%%%%%%
 
-The first step is to remove the outliers---points that do not appear to be of the known error distribution for the GPS receiver. These points are obviously bad just looking at the data, they are jumps hundreds of meters and even several kilometers away. Errors of this size are consistent with the noise analysis of the preceding section, so the goal here is to first eliminate point associated with this uncharacterized noise. Interestingly, in the nine drifters we are analyzing here, one drifter shows absolutely no obvious outliers, suggesting the issue may be related to how the antenna is configured.
+The first step is to remove the outliers---points that do not appear to be of the known error distribution for the GPS receiver. These points are obviously bad just looking at the data in figure \ref{gaussianfit}---individual data points jump hundreds of meters and even several kilometers away from its neighbors. Errors of this size are inconsistent with the noise analysis of the preceding section, so the goal here is to first eliminate point associated with this uncharacterized noise. Interestingly, in the nine drifters we are analyzing here, one drifter shows absolutely no obvious outliers, suggesting the issue may be related to how the antenna is configured.
 
 To remove the outliers we use the values of $\nu$ and $\sigma_t$ found in section XX and adjust the tension of the spline until we find the optimal value of the KS test, but only within the 99.99\% region. This means that we do not include points that are more than 95 meters away from the model fit in order to avoid fitting to the outliers that do not conform to the model of the motionless GPS. Once the tension value is optimized, we then discard the data points outside the 99.99\% of the t-distribution. Optimizing the KS test and forcing the errors to match the distribution of the motionless GPS will result in a spline that is over smoothed. That's okay for these purposes.
 
-\begin{figure}
-  \centerline{\includegraphics[width=19pc,angle=0]{tfit_error}}
-  \centerline{\includegraphics[width=19pc,angle=0]{tfit_distance_error}} 
-  \caption{The top panel shows the position error distribution of the motionless GPS. The black line is the best fit t-distribution and the gray line is the best fit Gaussian distribution. The bottom panel shows the distance error distribution with the corresponding expected distributions from the Gaussian and t-distribution. The vertical line in the bottom panel shows the 95\% error of the t-distribution at about 29 meters.}
-  \label{tfit_error}
-\end{figure}
+
 
 
 \begin{figure*}[t]
