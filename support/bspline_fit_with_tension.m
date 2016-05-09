@@ -1,4 +1,4 @@
-function [m_x,Cm_x,B,Bq,tq,Wx] = bspline_fit_with_tension(t,x,sigma,t_knot,S,T,lambda,weight_function)
+function [m_x,Cm_x,B,Bq,tq,Wx] = bspline_fit_with_tension(t,x,sigma,t_knot,S,T,lambda,weight_function, mu)
 % drifter_fit_bspline    Find the maximum likelihood fit
 %
 % t         independent variable (time), length N
@@ -9,6 +9,7 @@ function [m_x,Cm_x,B,Bq,tq,Wx] = bspline_fit_with_tension(t,x,sigma,t_knot,S,T,l
 % T         degree at which tension is applied (e.g., 2 denotes acc.)
 % lambda    the tension parameter
 % weight_function   used for iteratively reweighted least-squares
+% mu        mean velocity/acceleration/etc associated w/ tension.
 %
 % The tension parameter lambda should be given as if it is (d-1)/(d*u^2).
 % This function will then internally scale it by N/Q; d is the number of
@@ -35,6 +36,10 @@ if (length(sigma) == 1)
    sigma = ones(size(x))*sigma; 
 end
 
+if nargin < 9
+    mu = 0;
+end
+
 K = S+1;
 B = bspline(t,t_knot,K);
 X = squeeze(B(:,:,1));
@@ -51,7 +56,7 @@ gamma = tension*N/Q;
 
 Wx = diag(1./(sigma.^2));
 
-[m_x,Cm_x] = ComputeSolution( X, Bq, Wx, gamma, x );
+[m_x,Cm_x] = ComputeSolution( X, Bq, Wx, gamma, x, mu );
 
 error_x_previous = sigma;
 rel_error = 1.0;
@@ -61,7 +66,7 @@ while (rel_error > 0.01)
     
     Wx = diag(1./(dx2));
     
-    [m_x,Cm_x] = ComputeSolution( X, Bq, Wx, gamma, x );
+    [m_x,Cm_x] = ComputeSolution( X, Bq, Wx, gamma, x, mu );
     
     rel_error = max( (dx2-error_x_previous)./dx2 );
     error_x_previous=dx2;
@@ -76,7 +81,7 @@ end
 end
 
 
-function [m_x,Cm_x] = ComputeSolution( X, Bq, Wx, gamma, x )
+function [m_x,Cm_x] = ComputeSolution( X, Bq, Wx, gamma, x, mu )
 % X matrix:
 % Rows are the N observations
 % Columns are the M splines
@@ -87,7 +92,7 @@ E_x = X'*Wx*X; % MxM
 
 for i=1:(size(Bq,3)-1)
     if (gamma(i) ~= 0.0)
-        Xq = squeeze(Bq(:,:,i+1));
+        Xq = squeeze(Bq(:,:,i+1)) - mu;
         T = gamma(i)*(Xq'*Xq);
         E_x = E_x + T;
     end

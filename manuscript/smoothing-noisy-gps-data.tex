@@ -269,6 +269,12 @@ Apart from the discretization of the integral, equation \ref{smoothing-spline-ve
 
 The implication of this result is that adding tension to the penalty function is equivalent to assuming that one of the higher order derivatives in the model (e.g., velocity) is Gaussian. This is therefore making an assumption about the underlying \emph{physical process} of the model. This is in contrast to the first term which is entirely a statement about measurement noise.
 
+A second implication is that the tension spline can be easily modified to accommodate a mean value in tension so that,
+\begin{equation}
+\phi =  \frac{d}{d-1} \frac{1}{N} \sum^N _{i=1}\left( \frac{x_i - x(t_i)}{\sigma_i} \right)^2 + \frac{1}{Q} \sum^{Q}_{q=1}  \left(  \frac{u(t_q)-\mu_u}{\sigma_u} \right)^2
+\end{equation}
+where $\mu_u$ is the mean of the velocity PDF.
+
 %%%%%%%%%%%%%%%%%%%%%%
 %
 \section{Numerical Implementation}
@@ -287,7 +293,7 @@ The discretized the penalty function is
 or
 \begin{equation}
 \phi = \left[ \mathbf{x} - \mathbf{X} \mathbf{\xi} \right]^{\textrm{T}} \Sigma^{-1} \left[ \mathbf{x} - \mathbf{X} \mathbf{\xi}\right]
-+ \lambda_1 \left[\mathbf{V}\mathbf{\xi} \right]^{\textrm{T}} \left[ \mathbf{V}\mathbf{\xi} \right]
++ \lambda_1 \left[\mathbf{V}\mathbf{\xi} - \mu \right]^{\textrm{T}} \left[ \mathbf{V}\mathbf{\xi} - \mu \right]
 \end{equation}
 where $\Sigma$ denotes the covariance matrix describing the measurement errors.
 
