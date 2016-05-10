@@ -1,6 +1,6 @@
 % Given some signal (t,x) contaminated by noise sigma, this uses the
 % spectrum to estimate u_rms.
-function [u_std, u_mean] = EstimateRMSVelocityFromSpectrum( t, x, sigma, shouldPlotSpectra)
+function [u_rms, u_std, u_mean] = EstimateRMSVelocityFromSpectrum( t, x, sigma, shouldPlotSpectra)
 
 if length(unique(diff(t))) > 1
    fprintf('interpolating...\n');
@@ -37,6 +37,7 @@ cutoff = 10;
 % The factor of 10 is consitent with 80% confidence.
 u2 = sum((s_signal > cutoff*s_noise) .* s_signal)*df;
 u_std = sqrt(u2);
+u_rms = sqrt( u2 + u_mean^2 );
 
 if nargin > 3 && shouldPlotSpectra == 1
     f = fftshift(f);

@@ -90,15 +90,23 @@ function [m_x,Cm_x] = ComputeSolution( X, Bq, Wx, gamma, x, mu )
 
 E_x = X'*Wx*X; % MxM
 
+TensionIndex = 0;
 for i=1:(size(Bq,3)-1)
     if (gamma(i) ~= 0.0)
-        Xq = squeeze(Bq(:,:,i+1)) - mu;
+        Xq = squeeze(Bq(:,:,i+1)); % NxM
         T = gamma(i)*(Xq'*Xq);
         E_x = E_x + T;
+        TensionIndex = i;
     end
 end
 
-m_x = E_x\(X'*Wx*x);
+B = X'*Wx*x;
+if mu ~= 0.0 && TensionIndex ~= 0
+    Vq = squeeze(Bq(:,:,TensionIndex+1)); % NxM
+    B = B + gamma*mu*transpose(sum( Vq,1));
+end
+
+m_x = E_x\B;
 Cm_x = inv(E_x);
 
 end

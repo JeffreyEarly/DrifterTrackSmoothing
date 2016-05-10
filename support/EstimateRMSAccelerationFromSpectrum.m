@@ -1,6 +1,6 @@
 % Given some signal (t,x) contaminated by noise sigma, this uses the
 % spectrum to estimate u_rms.
-function [u_std, a_mean] = EstimateRMSAccelerationFromSpectrum( t, x, sigma)
+function [a_rms, a_std, a_mean] = EstimateRMSAccelerationFromSpectrum( t, x, sigma)
 
 if length(unique(diff(t))) > 1
    fprintf('interpolating...\n');
@@ -34,4 +34,5 @@ s_signal = ubar .* conj(ubar);
 s_noise = sigma*sigma*dt*(2*pi*f).^4;
 
 u2 = sum((s_signal > 10.0*s_noise) .* s_signal)*fourierFrequencyT;
-u_std = sqrt(u2);
+a_std = sqrt(u2);
+a_rms = sqrt( u2 + a_mean^2 );

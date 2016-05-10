@@ -309,6 +309,13 @@ or
 \begin{equation}
 \mathbf{\xi} = \left[ \mathbf{X}^{\textrm{T}} \Sigma^{-1} \mathbf{X} + \lambda_1 \mathbf{V}^{\textrm{T}} \mathbf{V} \right]^{-1} \mathbf{X}^{\textrm{T}} \Sigma^{-1} \mathbf{x}
 \end{equation}
+or
+\begin{equation}
+\begin{split}
+\mathbf{\xi} = \left[ \mathbf{X}^{\textrm{T}} \Sigma^{-1} \mathbf{X} + \lambda_1 \mathbf{V}^{\textrm{T}} \mathbf{V} \right]^{-1}  \\
+\cdot \left[ \mathbf{X}^{\textrm{T}} \Sigma^{-1} \mathbf{x} +  \mu \lambda_1 \mathbf{V}^{\textrm{T}} \mathbf{\iota} \right]
+\end{split}
+\end{equation}
 This means that,
 \begin{equation}
 \mathbf{\hat{x}} = \mathbf{S_\lambda} \mathbf{x}
@@ -457,7 +464,7 @@ The distance distribution for two t-distributions is computed numerically and is
 
 \begin{figure}
   \centerline{\includegraphics[width=19pc,angle=0]{gps_autocorrelation}}
-  \caption{The autocorrelation function of the GPS positioning error with 95\% confidence intervals shown in gray.}
+  \caption{The autocorrelation function of the GPS positioning error with 99\% confidence intervals shown in gray. The correlation at drifter sampling period of 30 minutes is indistinguishable from zero.}
   \label{gps_autocorrelation}
 \end{figure}
 
