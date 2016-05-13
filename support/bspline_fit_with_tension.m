@@ -103,7 +103,7 @@ end
 B = X'*Wx*x;
 if mu ~= 0.0 && TensionIndex ~= 0
     Vq = squeeze(Bq(:,:,TensionIndex+1)); % NxM
-    B = B + gamma*mu*transpose(sum( Vq,1));
+    B = B + gamma(TensionIndex)*mu*transpose(sum( Vq,1));
 end
 
 m_x = E_x\B;

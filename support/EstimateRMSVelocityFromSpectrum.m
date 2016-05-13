@@ -3,7 +3,7 @@
 function [u_rms, u_std, u_mean] = EstimateRMSVelocityFromSpectrum( t, x, sigma, shouldPlotSpectra)
 
 if length(unique(diff(t))) > 1
-   fprintf('interpolating...\n');
+%    fprintf('interpolating...\n');
    dt = round(median(diff(t)));
    N = ceil((t(end)-t(1))/dt);
    t2 = dt*((0:(N-1))') + t(1);

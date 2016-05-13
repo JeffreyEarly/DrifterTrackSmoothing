@@ -491,7 +491,7 @@ This means that you can set
 \sigma_g^2 =   \sigma_t^2 \frac{\nu}{\nu+1} \left( 1 + \frac{\epsilon_i^2}{\nu \sigma_t^2} \right)
 \label{sigma_reweighted}
 \end{equation}
-to get a matching distribution. Of course, that's only true if $\epsilon_i$ is already known, which initially it is not. So the method becomes iterative in that you start with $\epsilon_i$ determined from the Gaussian fit, then determine a new $\epsilon_i$ after reweighting $\sigma_g$. This method iterates until $\sigma_g$ stops changing. We can rewrite equation \ref{sigma_reweighted} as a function of $\epsilon_i$,
+to get a matching distribution. Of course, that's only true if $\epsilon_i$ is already known, which initially it is not. So the method becomes iterative---you start with $\epsilon_i$ determined from the Gaussian fit, then determine a new $\epsilon_i$ after reweighting $\sigma_g$. This method iterates until $\sigma_g$ stops changing. We can rewrite equation \ref{sigma_reweighted} as a function of $\epsilon_i$,
 \begin{equation}
 \label{t-weight}
 w_t(\epsilon_i) = \sigma_t^2 \frac{\nu  + \frac{\epsilon_i^2}{\sigma_t^2}}{\nu+1}.
@@ -514,34 +514,29 @@ The first step is to remove the outliers---points that do not appear to be of th
 
 To remove the outliers we use the values of $\nu$ and $\sigma_t$ found in section XX and adjust the tension of the spline until we find the optimal value of the KS test, but only within the 99.99\% region. This means that we do not include points that are more than 95 meters away from the model fit in order to avoid fitting to the outliers that do not conform to the model of the motionless GPS. Once the tension value is optimized, we then discard the data points outside the 99.99\% of the t-distribution. Optimizing the KS test and forcing the errors to match the distribution of the motionless GPS will result in a spline that is over smoothed. That's okay for these purposes.
 
-
-
-
 \begin{figure*}[t]
   \centerline{\includegraphics[width=39pc,angle=0]{tdistributionfit}}
   
   \caption{An example of model fits assuming errors following a t-distribution.}
   \label{tdistributionfit}
 \end{figure*}
+
+
+
 %%%%%%%%%%%%%%%%%%%%%%
-\section{Tension Parameter}
+\section{Conclusions}
 %%%%%%%%%%%%%%%%%%%%%%
 
-If we adjust the final tension parameter to so that the resulting error distribution matches the error distribution of the motionless GPS, this will result in an overly smoothed signal. We argue that the tension should vary based on the relative size of the measurement errors to the speed of motion. For example, if the position errors are only $1$ meter, but particle typically travels $10$ meters between measurements, then it is hardly justifiable to increase the tension so that the smoothing spline misses the observation points by $1$ meter. There is not enough statistical evidence to suggest that the true particle didn't go right through the observation point. On the other hand, if the position errors are  $1$ meter, but particle typically travels $10$ centimeters between measurements, nearby measurements are providing more information about the particle's true position during that time, so our estimate of the particles true position is closer to a mean of the nearby observations.
+- we avoided autocorrelation, although it's very addressable.
+- method has strong limitations: stationarity assumptions in particular.
 
-This idea can be made more rigorous by noting that there is a qualitative shift from smoothing to interpolating when the change in position, $\Delta x$, exceeds the position errors, $\sigma_x$. Assuming the physical process has a characteristic velocity scale, $u_{\textrm{rms}}$, we use this concept to define an interpolation condition $\Gamma$ as
-\begin{equation}
-\Gamma_x \equiv \frac{\sigma_x}{u_{\textrm{rms}}\Delta t}
-\end{equation}
-where $\sigma_x$ is the standard deviation of positioning noise, $u_{\textrm{rms}}$ is the typical particle velocity and $\Delta t$ is the typical time between observations. If $\Gamma<1$ then we are in the interpolation regime where the particle moves farther than the measurement noise between observations, and if $\Gamma >1$ we are in the smoothing regime where each observation is providing similar information to nearby observations. Loosely speaking, if $\Gamma=10$, then there are approximately 10 degrees of freedom that can be used to estimate the true position of the particle, assuming uncorrelated errors.
+%%%%%%%%%%%%%%%%%%%%%%
+\section{Estimating the variance of the signal}
+%%%%%%%%%%%%%%%%%%%%%%
 
-$\Gamma_x$ can be generalized to higher order derivatives so that,
-\begin{equation}
-\Gamma_{x^{(n-1)}} = \frac{  \sigma_{x^{(n-1)}} }{x^{(n)}_{\textrm{rms}} \Delta t }
-\end{equation}
-where $\sigma_{x^{(n-1)}}$ is the measurement noise of the of $(n-1)$-th derivative of the position error and $x^{(n)}_{\textrm{rms}}$ is the characteristic velocity, acceleration, jerk, etc. The interpretation is similar for each $n$. For example, at $n=2$, the interpolation condition occurs when changes in particle velocity exceed the velocity measurement noise.
+For this method to work, one must estimate the root-mean-square velocity, $u_{\textrm{rms}$, of the signal in order to determine the effective degrees of freedom, as well as variance of tensioned derivative, $a_{\textrm{std}^2$, for example. 
 
-This condition has a direct interpretation in terms of the total power of the physical process and the noise. Assume that the physical process has true value $x(t_i)$ at time $t_i$ and is stationary, but we observe value $x_i$ given by $x_i = x(t_i) + \epsilon_i$ where $\epsilon_i$ given by uncorrelated Gaussian noise with variance $\sigma_x$. Then the total power of the measured signal will be
+Assume that the physical process has true value $x(t_i)$ at time $t_i$ and is stationary, but we observe value $x_i$ given by $x_i = x(t_i) + \epsilon_i$ where $\epsilon_i$ given by uncorrelated Gaussian noise with variance $\sigma_x$. Then the total power of the measured signal will be
 \begin{equation}
  \frac{1}{N} \sum x_i^2 = \frac{1}{N} \sum \epsilon_i^2 + \frac{1}{N} \sum x(t_i)^2
 \end{equation}
