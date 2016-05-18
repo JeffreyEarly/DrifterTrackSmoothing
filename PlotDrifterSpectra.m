@@ -2,7 +2,7 @@ addpath('./support');
 
 
 % Choose which drifters to analyze.
-load('sample_data/smoothedGriddedRho1Drifters.mat');
+load('sample_data/smoothedGriddedRho2Drifters.mat');
 % load('griddedRho1Drifters.mat');
 
 % AMS figure widths, given in picas, converted to points (1 pica=12 points)
