@@ -2,6 +2,7 @@
 
 % c = []; d=[]; f=[]; g=[];
 
+addpath('../support')
 
 
 % Create a simple signal
@@ -24,7 +25,7 @@ x_true = path(t);
 v_true = speed(t);
 a_true = acceleration(t);
 
-sigma = 4; % meters
+sigma = 200; % meters
 
 % Create some Gaussian noise
 epsilon = sigma*randn(size(x_true));
@@ -120,7 +121,7 @@ w = @(z)(sigma*sigma);
 % 
 % t_knot = [t(1); mean( [t(v_indices(left(2:(end-1)))), t(v_indices(right(2:(end-1))))],2 ); t(end)];
 
-z_threshold = 3;
+z_threshold = 4;
 
 Sigma = sigma*ones(size(t));
 S = 0;
@@ -145,7 +146,10 @@ mean_x_error0 = sqrt(mean((path(tq0) - x_fit0).^2));
 
 S = 1;
 
-[m_x1,m_y1,Cm_x1,Cm_y1,B1,Bq1,tq1] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot1,w);
+% [m_x1,m_y1,Cm_x1,Cm_y1,B1,Bq1,tq1] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot1,w);
+[m_x1,Cm_x1,B1] = bspline_fit_no_tension(t,x,ones(size(x))*sigma,S,t_knot1,w);
+tq1 = linspace(t(1),t(end),10*length(x))';
+Bq1 = bspline(tq1,t_knot1,S+1);
 
 tm1 = (t_knot1(1:end-1) + t_knot1(2:end))/2;
 Bm1 = bspline(tm1,t_knot1,S+1);
@@ -161,7 +165,10 @@ mean_v_error1 = sqrt(mean((speed(tq1) - v_fit1).^2));
 [t_knot2, group2] = FindStatisticallySignificantChangesInAccelFromGroupUsingRecu(group1,t,x,Sigma,z_threshold,w);
 
 S = 2;
-[m_x2,m_y2,Cm_x2,Cm_y2,B2,Bq2,tq2] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot2,w);
+% [m_x2,m_y2,Cm_x2,Cm_y2,B2,Bq2,tq2] = drifter_fit_bspline_no_tension(t,x,x,ones(size(x))*sigma,ones(size(x))*sigma,S,t_knot2,w);
+[m_x2,Cm_x2,B2] = bspline_fit_no_tension(t,x,ones(size(x))*sigma,S,t_knot2,w);
+tq2 = linspace(t(1),t(end),10*length(x))';
+Bq2 = bspline(tq2,t_knot2,S+1);
 
 x_fit2 = squeeze(Bq2(:,:,1))*m_x2;
 x_error2 = x - squeeze(B2(:,:,1))*m_x2;

@@ -68,5 +68,9 @@ while (min_z_score < z_threshold)
     [min_z_score,m_index] = min(z_score);
 end
 
+z_score = group.value./sqrt(group.error);
+max_z_score = max(z_score);
+fprintf('S0 Max z-score is %f\n', max_z_score);
+
 t_knot = [t(1);  (t(group.left(2:end))+t(group.right(1:(end-1))))/2; t(end)];
 
