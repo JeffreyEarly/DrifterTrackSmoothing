@@ -1201,6 +1201,16 @@ The other thing, is that the the two samples might covary in some way. So we nee
 \sqrt{g^{i+1}.s^2 + g^i.s^2 - 2 \textrm{cov}(g^{i+1},g^i)}
 \end{equation}
 
+\subsection{Algorithm termination}
+
+We need to look to see if the value (of position, velocity, acceleration, etc.) is significantly different than zero. If it is, then we continue, if it's not, then we have a way for the algorithm to terminate.
+
+However, I think we also may want to apply this earlier on.
+
+Example: let's say you find all the positions and group them all together. Some of these groups will be different than zero, some of them will not. It seems like on should `force' the ones that are not different from zero, to actually be zero. Then sweep through the z-score matching again to see if things further reduce.
+
+Now you go to the the velocity stage where you divided the knot points. 
+
 \section{Tension weighting}
 
 The expected PDF will not a $\chi^2$ distribution.

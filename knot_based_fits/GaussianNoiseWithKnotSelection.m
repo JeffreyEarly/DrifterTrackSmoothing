@@ -7,11 +7,13 @@ addpath('../support')
 
 rng(3)
 
-% Create a simple signal
+%%%%%%%%%%%%%%%%%%%%%%%%%%
+% quadratic
+%%%%%%%%%%%%%%%%%%%%%%%%%%
 dt_v = 1;
 t=(0:dt_v:100)'; % seconds
-a_true = 0.1;
-u_true = 0; % meters/second
+a_true = 0;
+u_true = 1; % meters/second
 
 path = @(t) a_true*(t.*t) + u_true.*t;
 speed = @(t) 2*a_true.*t + u_true*ones(size(t));
@@ -19,12 +21,12 @@ speed = @(t) 2*a_true.*t + u_true*ones(size(t));
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 % sech^2
 %%%%%%%%%%%%%%%%%%%%%%%%%%
-u_true = 500;
-u_width = 10;
-t_0 = 50;
-path = @(t) u_true*sech((t-t_0)/u_width).^2;
-speed = @(t) -2*(u_true/u_width).*tanh((t-t_0)/u_width).*sech((t-t_0)/u_width).^2;
-acceleration = @(t) (u_true/u_width^2)*(4 * (tanh((t-t_0)/u_width)).^2 .* (sech((t-t_0)/u_width)).^2 - 2*(sech((t-t_0)/u_width)).^4);
+% u_true = 500;
+% u_width = 10;
+% t_0 = 50;
+% path = @(t) u_true*sech((t-t_0)/u_width).^2;
+% speed = @(t) -2*(u_true/u_width).*tanh((t-t_0)/u_width).*sech((t-t_0)/u_width).^2;
+% acceleration = @(t) (u_true/u_width^2)*(4 * (tanh((t-t_0)/u_width)).^2 .* (sech((t-t_0)/u_width)).^2 - 2*(sech((t-t_0)/u_width)).^4);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 % Just noise
@@ -133,7 +135,7 @@ w = @(z)(sigma*sigma);
 % 
 % t_knot = [t(1); mean( [t(v_indices(left(2:(end-1)))), t(v_indices(right(2:(end-1))))],2 ); t(end)];
 
-z_threshold = 6;
+z_threshold = 3;
 
 Sigma = sigma*ones(size(t));
 S = 0;
