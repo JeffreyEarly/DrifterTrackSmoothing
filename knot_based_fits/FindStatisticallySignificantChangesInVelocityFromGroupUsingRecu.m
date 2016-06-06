@@ -77,7 +77,7 @@ end
 
 t_knot = FindKnotsFromVelocityGroup(group1,t);
 
-z_score = group1.value./sqrt(diag(group1.sigma2));
+% z_score = group1.value./sqrt(diag(group1.sigma2));
 max_z_score = max(z_score);
 fprintf('S1 Max z-score is %f\n', max_z_score);
 
