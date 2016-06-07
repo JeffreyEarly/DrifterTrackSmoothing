@@ -17,7 +17,7 @@ u_true = 1; % meters/second
 
 path = @(t) a_true*(t.*t) + u_true.*t;
 speed = @(t) 2*a_true.*t + u_true*ones(size(t));
-acceleration = @(t) 2*a_true*ones(size(t))
+acceleration = @(t) 2*a_true*ones(size(t));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 % sech^2
@@ -40,7 +40,7 @@ x_true = path(t);
 v_true = speed(t);
 a_true = acceleration(t);
 
-sigma = 50; % meters
+sigma = 25; % meters
 
 % Create some Gaussian noise
 epsilon = sigma*randn(size(x_true));
@@ -136,7 +136,7 @@ w = @(z)(sigma*sigma);
 % 
 % t_knot = [t(1); mean( [t(v_indices(left(2:(end-1)))), t(v_indices(right(2:(end-1))))],2 ); t(end)];
 
-z_threshold = 3;
+z_threshold = 3.6;
 
 Sigma = sigma*ones(size(t));
 S = 0;
@@ -159,6 +159,8 @@ mean_x_error0 = sqrt(mean((path(tq0) - x_fit0).^2));
 mean_v_error0 = sqrt(mean((speed(tq0)).^2));
 mean_a_error0 = sqrt(mean((acceleration(tq0)).^2));
 
+Q_error0 = (mean_x_error0 / sqrt(mean((path(tq0)).^2)) - 1);
+
 [t_knot1, group1] = FindStatisticallySignificantChangesInVelocityFromGroupUsingRecu(group0,t,x,Sigma,z_threshold,w);
 
 S = 1;
@@ -180,6 +182,8 @@ v_fit1 = squeeze(Bq1(:,:,2))*m_x1;
 mean_v_error1 = sqrt(mean((speed(tq1) - v_fit1).^2));
 mean_a_error1 = sqrt(mean((acceleration(tq0)).^2));
 
+Q_error1 = (mean_x_error1 / sqrt(mean((path(tq1)).^2)) - 1) + (mean_v_error1 / sqrt(mean((speed(tq1)).^2)) - 1);
+
 [t_knot2, group2] = FindStatisticallySignificantChangesInAccelFromGroupUsingRecu(group1,t,x,Sigma,z_threshold,w);
 
 S = 2;
@@ -194,8 +198,9 @@ mean_x_error2 = sqrt(mean((path(tq2) - x_fit2).^2));
 v_fit2 = squeeze(Bq2(:,:,2))*m_x2;
 mean_v_error2 = sqrt(mean((speed(tq2) - v_fit2).^2));
 a_fit2 = squeeze(Bq2(:,:,3))*m_x2;
-mean_a_error2 = sqrt(mean((speed(tq2) - a_fit2).^2));
+mean_a_error2 = sqrt(mean((acceleration(tq2) - a_fit2).^2));
 
+Q_error2 = (mean_x_error2 / sqrt(mean((path(tq2)).^2)) - 1) + (mean_v_error2 / sqrt(mean((speed(tq2)).^2)) - 1) +(mean_a_error2 / sqrt(mean((acceleration(tq2)).^2)) - 1);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %
@@ -210,21 +215,21 @@ plot(t,x_true,'k','LineWidth',1), hold on
 plot(tq0,x_fit0,'b','LineWidth',1.5)
 scatter(t,x,6^2,'filled')
 vlines(t_knot0, 'g--')
-title(sprintf('position rms error=%.2f meters, velocity rms error=%.2f m/s, accel rms error=%.2f m/s^2',mean_x_error0, mean_v_error0, mean_a_error0))
+title(sprintf('Q-error: %.1f, position rms error=%.2f meters, velocity rms error=%.2f m/s, accel rms error=%.2f m/s^2', Q_error0,mean_x_error0, mean_v_error0, mean_a_error0))
 
 subplot(3,1,2)
 plot(t,x_true,'k','LineWidth',1), hold on
 plot(tq1,x_fit1,'b','LineWidth',1.5)
 scatter(t,x,6^2,'filled')
 vlines(t_knot1, 'g--')
-title(sprintf('position rms error=%.2f meters, velocity rms error=%.2f m/s, accel rms error=%.2f m/s^2',mean_x_error1, mean_v_error1, mean_a_error1))
+title(sprintf('Q-error: %.1f, position rms error=%.2f meters, velocity rms error=%.2f m/s, accel rms error=%.2f m/s^2', Q_error1,mean_x_error1, mean_v_error1, mean_a_error1))
 
 subplot(3,1,3)
 plot(t,x_true,'k','LineWidth',1), hold on
 plot(tq2,x_fit2,'b','LineWidth',1.5)
 scatter(t,x,6^2,'filled')
 vlines(t_knot2, 'g--')
-title(sprintf('position rms error=%.2f meters, velocity rms error=%.2f m/s, accel rms error=%.2f m/s^2',mean_x_error2, mean_v_error2, mean_a_error2))
+title(sprintf('Q-error: %.1f, position rms error=%.2f meters, velocity rms error=%.2f m/s, accel rms error=%.2f m/s^2', Q_error2,mean_x_error2, mean_v_error2, mean_a_error2))
 
 
 figure

@@ -1207,9 +1207,15 @@ We need to look to see if the value (of position, velocity, acceleration, etc.) 
 
 However, I think we also may want to apply this earlier on.
 
-Example: let's say you find all the positions and group them all together. Some of these groups will be different than zero, some of them will not. It seems like on should `force' the ones that are not different from zero, to actually be zero. Then sweep through the z-score matching again to see if things further reduce.
+Example: let's say you find all the positions and group them all together. Some of these groups will be different than zero, some of them will not. It seems like one should `force' the ones that are not different from zero, to actually be zero. Then sweep through the z-score matching again to see if things further reduce.
 
-Now you go to the the velocity stage where you divided the knot points. 
+Now you go to the the velocity stage where you divided the knot points. Do the usual z-score matching. Is there is a region indistinguishable from zero? Then force it to zero by constraint. This has no bearing on the standard error---that is determined from the knot points alone, if we discard the additional constraint changes to the error which only reduces error. So THEN we loop through again, see if we can combine regions (after all, this could have moved two means closer together, although it won't have changed the standard errors). In regions where the velocity was set to zero, you then need to ask if the position should be set to zero! Maybe an additional constraint will be necessary.
+
+BUT, just because the mean position in some region is indistinguishable from zero, doesn't mean it's velocity won't be... right?
+
+Why force to zero? This allows the algorithm to be adaptive to what the data is doing---expressing ignorance where appropriate. Different regions will have different orders of fit.
+
+Doing this with Lagrange constraints makes the most sense---we already have the formula's and error analysis from Teanby---and conceptually I think this is correct as well. It's easy to see how we constrain the highest derivative. Pick a single point in the group as the spot to apply the constraint. Teanby writes `adding constraints always reduces the errors in the parameters' --- does this seem right? Maybe we don't want to include the additional error correction---after all, we're not saying we know additional information when we set the derivative to zero, we're saying that we can't be certain that it's different from zero.
 
 \subsection{Error analysis}
 

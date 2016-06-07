@@ -1,6 +1,7 @@
 % AMS figure widths, given in picas, converted to points (1 pica=12 points)
 scaleFactor = 1;
 LoadFigureDefaults
+addpath('./support')
 
 t = 2*pi*2.5*(0:10)'/10;
 t = 2*pi*2.5*[0;1;3;4;5;8;10]/10;
@@ -34,10 +35,10 @@ fig1.PaperUnits = 'points';
 fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
-for K=1:maxK
+for K=4:maxK
     S = K-1;
     [t_knot] = NaturalKnotsForSpline( t, K );
-    [m_x,Cm_x,B] = bspline_fit_no_tension(t,x,dx,S,t_knot,w);
+    [m_x,Cm_x,B] = bspline_fit_no_tension_constrain(t,x,dx,S,t_knot,w);
     Bq = bspline(tq,t_knot,S+1);
     
     for D=1:maxK
