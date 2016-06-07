@@ -17,6 +17,7 @@ u_true = 1; % meters/second
 
 path = @(t) a_true*(t.*t) + u_true.*t;
 speed = @(t) 2*a_true.*t + u_true*ones(size(t));
+acceleration = @(t) 2*a_true*ones(size(t))
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 % sech^2

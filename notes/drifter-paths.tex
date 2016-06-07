@@ -1211,6 +1211,18 @@ Example: let's say you find all the positions and group them all together. Some 
 
 Now you go to the the velocity stage where you divided the knot points. 
 
+\subsection{Error analysis}
+
+How do we determine if we have a best fit? Simply computing the rms error of the position isn't sufficient, because we also want a way to characterize how good the fit is at higher derivatives as well. So, we want to take into account the rms error of the velocity and acceleration, for example. A fit that performs better at those derivatives is useful.
+
+One useful quantity is the error assuming the value is zero. So, that is to say $\alpha^{(1)} = \sqrt{\frac{1}{Q}\sum (x^{\textrm{true}} )^2}$ is the error you'd get by assuming the position is always zero. The quantity $\alpha^{(n)}$ indicates the rms value of the $n$-th derivative of the true position. The rms error that I actually get with my fit is $\beta^{(1)} = \sqrt{\frac{1}{Q}\sum (x^{\textrm{true}}- x^{\textrm{fit}} )^2}$. This is a useful quantity because $\beta/\alpha$ gives me 0 if I've done a perfect fit, $1$ if I've done as good as assuming the null hypothesis and greater than 1, if I'm doing worse than assuming zero.
+
+Define an error metric,
+\begin{equation}
+Q_\textrm{error} = \frac{1}{n} \sum \left( \frac{\beta^{(n)}}{\alpha^{(n)}} -1 \right)
+\end{equation}
+that sums to zero if you postulate the particle didn't move. If your fit does \emph{worse} than simply postulating no motion, you will get a positive value, if you do better, you will get a negative value. You are penalized for fitting worse than the null hypothesis. This means that you're better off expressing your ignorance about higher derivatives (and therefore setting them to zero) rather than making bad, ill-informed guesses.
+
 \section{Tension weighting}
 
 The expected PDF will not a $\chi^2$ distribution.
