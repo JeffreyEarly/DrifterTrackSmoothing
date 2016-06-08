@@ -67,6 +67,14 @@ end
 t_knot = KnotsFromGroup(group,t);
 
 constraints = struct('t',[],'K',[]);
+[null_score, t_val] = ComputeNullScore(S,group,t,x,Sigma, w);
+for i=1:length(null_score)
+   if  null_score(i) < z_threshold
+       constraints.t(end+1) = t_val(i);
+       constraints.K(end+1) = S+1;
+   end
+end
+
 if S == maxS
     return;
 else
@@ -75,6 +83,24 @@ else
     return;
 end
 
+end
+
+function [null_score, t_error] = ComputeNullScore(S,group,t,x,Sigma, w)
+t_knot = KnotsFromGroup(group,t);
+
+[m_x,Cm_x,~] = bspline_fit_no_tension_constrain(t,x,Sigma,S,t_knot,w);
+
+t_error = (t_knot(1:end-1) + t_knot(2:end))/2;
+B_error = bspline(t_error,t_knot,S+1);
+group.value = squeeze(B_error(:,:,S+1))*m_x;
+group.sigma2 = squeeze(B_error(:,:,S+1))*Cm_x*squeeze(B_error(:,:,S+1)).';
+
+tolerance = zeros(size(group.value));
+for i=1:length(tolerance)
+    tolerance(i) = sqrt(group.sigma2(i,i));
+end
+
+null_score = abs(group.value./tolerance);
 end
 
 function z_score = ComputeZScore(S,group,t,x,Sigma, w)

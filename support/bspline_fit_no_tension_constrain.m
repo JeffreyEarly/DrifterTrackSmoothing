@@ -29,8 +29,8 @@ if nargin > 6
     NC = length(constraints.t); % number of constraints
     F = zeros(NC,M);
     for i=1:NC
-        Bc = bspline(constraints.t,t_knot,S+1);
-        F(i,:) = squeeze(Bc(:,:,constraints.K));
+        Bc = bspline(constraints.t(i),t_knot,S+1);
+        F(i,:) = squeeze(Bc(:,:,constraints.K(i)));
     end
 else
     F = [];
