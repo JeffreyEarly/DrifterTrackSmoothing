@@ -1,8 +1,8 @@
-function [t_knot, S, constraints] = FindStatisticallySignificantKnotRegions(t,x,Sigma,z_threshold,w)
+function [t_knot, S, constraints] = FindStatisticallySignificantKnotRegions(t,x,Sigma,z_threshold,w,maxS)
 
 knot_indices = (1:length(t))';
 group = struct('left',knot_indices,'right',knot_indices,'value',[],'sigma2',[]);
-[t_knot, S, constraints] = GroupRecursion(0,group,t,x,Sigma,z_threshold, w);
+[t_knot, S, constraints] = GroupRecursion(0,group,t,x,Sigma,z_threshold, w, maxS);
 
 end
 
@@ -27,7 +27,7 @@ for iVelocityGroup = 1:length(group1.left)
         iAccelerationGroup = iAccelerationGroup + 1; % ...and create a transition group.
         group2.left(iAccelerationGroup) = group1.left(iVelocityGroup+1)-1; 
         group2.right(iAccelerationGroup) = group1.right(iVelocityGroup)+1; % can reach end, but not exceed
-    elseif group1.right(iVelocityGroup)+1 > length(t)
+    elseif group1.right(iVelocityGroup)+1 > group1.right(end)
         continue;
     else
         iAccelerationGroup = iAccelerationGroup + 1;
@@ -49,7 +49,7 @@ t_knot(1) = t(1);
     t_knot(end) = t(end);
 end
 
-function [t_knot, S, constraints] = GroupRecursion(S,group,t,x,Sigma,z_threshold, w)
+function [t_knot, S, constraints] = GroupRecursion(S,group,t,x,Sigma,z_threshold, w, maxS)
 
 z_score = ComputeZScore(S,group,t,x,Sigma, w);
 [min_z_score,m_index] = min(z_score);
@@ -64,14 +64,14 @@ while (min_z_score < z_threshold)
     [min_z_score,m_index] = min(z_score);
 end
 
-t_knot = FindKnotsFromVelocityGroup(group,t);
+t_knot = KnotsFromGroup(group,t);
 
 constraints = struct('t',[],'K',[]);
-if S > 1
+if S == maxS
     return;
 else
     group2 = CreateInitialGroupingForNextDerivative(S+1, group);
-    [t_knot, S, constraints] = GroupRecursion(S+1,group2,t,x,Sigma,z_threshold, w);
+    [t_knot, S, constraints] = GroupRecursion(S+1,group2,t,x,Sigma,z_threshold, w, maxS);
     return;
 end
 
@@ -83,7 +83,7 @@ t_knot = KnotsFromGroup(group,t);
 [m_x,Cm_x,~] = bspline_fit_no_tension_constrain(t,x,Sigma,S,t_knot,w);
 
 t_error = (t_knot(1:end-1) + t_knot(2:end))/2;
-B_error = bspline(t_error,t_knot2,S+1);
+B_error = bspline(t_error,t_knot,S+1);
 group.value = squeeze(B_error(:,:,S+1))*m_x;
 group.sigma2 = squeeze(B_error(:,:,S+1))*Cm_x*squeeze(B_error(:,:,S+1)).';
 

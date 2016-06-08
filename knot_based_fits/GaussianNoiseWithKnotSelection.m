@@ -22,12 +22,12 @@ acceleration = @(t) 2*a_true*ones(size(t));
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 % sech^2
 %%%%%%%%%%%%%%%%%%%%%%%%%%
-% u_true = 500;
-% u_width = 10;
-% t_0 = 50;
-% path = @(t) u_true*sech((t-t_0)/u_width).^2;
-% speed = @(t) -2*(u_true/u_width).*tanh((t-t_0)/u_width).*sech((t-t_0)/u_width).^2;
-% acceleration = @(t) (u_true/u_width^2)*(4 * (tanh((t-t_0)/u_width)).^2 .* (sech((t-t_0)/u_width)).^2 - 2*(sech((t-t_0)/u_width)).^4);
+u_true = 500;
+u_width = 10;
+t_0 = 50;
+path = @(t) u_true*sech((t-t_0)/u_width).^2;
+speed = @(t) -2*(u_true/u_width).*tanh((t-t_0)/u_width).*sech((t-t_0)/u_width).^2;
+acceleration = @(t) (u_true/u_width^2)*(4 * (tanh((t-t_0)/u_width)).^2 .* (sech((t-t_0)/u_width)).^2 - 2*(sech((t-t_0)/u_width)).^4);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 % Just noise
