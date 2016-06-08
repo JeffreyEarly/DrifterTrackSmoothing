@@ -35,10 +35,14 @@ fig1.PaperUnits = 'points';
 fig1.PaperPosition = FigureSize;
 fig1.PaperSize = [FigureSize(3) FigureSize(4)];
 
+constraints = struct('t',[],'K',[]);
+constraints.t(1) = 5;
+constraints.K(1) = 4;
+
 for K=4:maxK
     S = K-1;
     [t_knot] = NaturalKnotsForSpline( t, K );
-    [m_x,Cm_x,B] = bspline_fit_no_tension_constrain(t,x,dx,S,t_knot,w);
+    [m_x,Cm_x,B] = bspline_fit_no_tension_constrain(t,x,dx,S,t_knot,w,constraints);
     Bq = bspline(tq,t_knot,S+1);
     
     for D=1:maxK

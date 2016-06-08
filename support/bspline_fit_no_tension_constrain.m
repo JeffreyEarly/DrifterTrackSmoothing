@@ -30,17 +30,16 @@ if nargin > 6
     F = zeros(NC,M);
     for i=1:NC
         Bc = bspline(constraints.t,t_knot,S+1);
-        F(i,:) = squeeze(Bc(:,:,constraint.K);
+        F(i,:) = squeeze(Bc(:,:,constraints.K));
     end
+else
+    F = [];
 end
-
-Bc = bspline(t(end-1) + (t(end)-t(end-1))/2,t_knot,S+1);
-J = squeeze(Bc(:,:,S+1));
 
 Wx = diag(1./(dx.^2));
 
 dbstop if warning
-[m_x,Cm_x] = ComputeSolution( X, Wx, x, J );
+[m_x,Cm_x] = ComputeSolution( X, Wx, x, F );
 
 error_x_previous = dx;
 rel_error = 1.0;
@@ -50,7 +49,7 @@ while (rel_error > 0.01)
     
     Wx = diag(1./(dx2));
     
-    [m_x,Cm_x] = ComputeSolution( X, Wx, x, J );
+    [m_x,Cm_x] = ComputeSolution( X, Wx, x, F );
     
     rel_error = max( (dx2-error_x_previous)./dx2 );
     error_x_previous=dx2;
@@ -65,24 +64,31 @@ end
 end
 
 
-function [m_x, Cm_x] = ComputeSolution( X, Wx, x, J )
-% X matrix:
-% Rows are the N observations
-% Columns are the M splines
+function [m_x, Cm_x] = ComputeSolution( X, Wx, x, F )
+% N: num observations
+% M: num splines
+% NC: num constraints
+%
+% X is N x M
 % Wx is NxN
 % x is Nx1
+% F is NCxM
+
+NC = size(F,1);
 
 % So, E_x * m_x = (X'*Wx*x)
 % I'm going to add a new row
 
 % set up inverse matrices
 E_x = X'*Wx*X; % MxM
-E_x = cat(1,E_x,J);
+E_x = cat(1,E_x,F); % (M+NC)xM
+E_x = cat(2,E_x,cat(1,F',zeros(NC)));
 
 F_x = X'*Wx*x;
-F_x = cat(1,F_x,0);
+F_x = cat(1,F_x,zeros(NC,1));
 
 m_x = E_x\F_x;
+m_x = m_x(1:size(X,2));
 
 Cm_x = inv(X'*Wx*X);
 end

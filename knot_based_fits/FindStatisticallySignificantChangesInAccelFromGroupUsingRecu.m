@@ -43,7 +43,7 @@ group2.right = group2.right(1:iAccelerationGroup)';
 t_knot2 = t_knot2';
 
 S = 2;
-[m_x,Cm_x,B] = bspline_fit_no_tension(t,x,Sigma,S,t_knot2,w);
+[m_x,Cm_x,B] = bspline_fit_no_tension_constrain(t,x,Sigma,S,t_knot2,w);
 
 t_error = (t_knot2(1:end-1) + t_knot2(2:end))/2;
 B_error = bspline(t_error,t_knot2,S+1);
@@ -66,7 +66,7 @@ while (min_z_score < z_threshold)
     
     t_knot = FindKnotsFromVelocityGroup(group2,t);
     
-    [m_x,Cm_x,B] = bspline_fit_no_tension(t,x,Sigma,S,t_knot,w);
+    [m_x,Cm_x,B] = bspline_fit_no_tension_constrain(t,x,Sigma,S,t_knot,w);
     
     t_error = (t_knot(1:end-1) + t_knot(2:end))/2;
     B_error = bspline(t_error,t_knot,S+1);
