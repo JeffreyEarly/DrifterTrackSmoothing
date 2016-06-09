@@ -1222,6 +1222,10 @@ Generalized the algorithm to be recursive, which may have fixed a bug or two, be
 
 However, adding constraints doesn't quite seem to do what I thought it should. The problem is that I'm not propagating constraint information up the recursion. Intuitively, we need to be deciding whether or not two groups should be merged, OR whether one or the other should be set to zero. Somehow this idea needs to be integrated into the problem on the ground level. Basic hypothesis testing this is, said Yoda.
 
+Maybe compute a z-score for merging and a z-score for zeroing. The lowest is what we do.
+
+Need to NOT include the z-score for zeroing from regions we've already zeroed. THEN we need to remove the constraints of merged groups. The way to do this is to 'flag' groups as being zeroed... include this in the struct.
+
 \subsection{Error analysis}
 
 How do we determine if we have a best fit? Simply computing the rms error of the position isn't sufficient, because we also want a way to characterize how good the fit is at higher derivatives as well. So, we want to take into account the rms error of the velocity and acceleration, for example. A fit that performs better at those derivatives is useful.
