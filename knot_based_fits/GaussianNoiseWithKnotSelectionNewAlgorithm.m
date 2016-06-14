@@ -5,7 +5,7 @@
 addpath('../support')
 
 
-rng(2)
+rng(3)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 % quadratic
@@ -15,19 +15,19 @@ t=(0:dt_v:100)'; % seconds
 a_true = 0;
 u_true = 10; % meters/second
 
-path = @(t) a_true*(t.*t) + u_true.*t;
-speed = @(t) 2*a_true.*t + u_true*ones(size(t));
-acceleration = @(t) 2*a_true*ones(size(t));
+% path = @(t) a_true*(t.*t) + u_true.*t;
+% speed = @(t) 2*a_true.*t + u_true*ones(size(t));
+% acceleration = @(t) 2*a_true*ones(size(t));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 % sech^2
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 u_true = 500;
 u_width = 10;
-% t_0 = 50;
-% path = @(t) u_true*sech((t-t_0)/u_width).^2;
-% speed = @(t) -2*(u_true/u_width).*tanh((t-t_0)/u_width).*sech((t-t_0)/u_width).^2;
-% acceleration = @(t) (u_true/u_width^2)*(4 * (tanh((t-t_0)/u_width)).^2 .* (sech((t-t_0)/u_width)).^2 - 2*(sech((t-t_0)/u_width)).^4);
+t_0 = 50;
+path = @(t) u_true*sech((t-t_0)/u_width).^2;
+speed = @(t) -2*(u_true/u_width).*tanh((t-t_0)/u_width).*sech((t-t_0)/u_width).^2;
+acceleration = @(t) (u_true/u_width^2)*(4 * (tanh((t-t_0)/u_width)).^2 .* (sech((t-t_0)/u_width)).^2 - 2*(sech((t-t_0)/u_width)).^4);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 % Just noise
@@ -54,7 +54,7 @@ p = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
 w = @(z)(sigma*sigma);
 
 
-z_threshold =3.2;
+z_threshold = 7;
 
 Sigma = sigma*ones(size(t));
 S = 0;
@@ -63,7 +63,7 @@ S = 0;
 
 tq0 = linspace(t(1),t(end),10*N)';
 Bq0 = bspline(tq0,t_knot0,S+1);
-tm0 = (t(group0.left)+t(group0.right))/2;
+tm0 = (t_knot0(1:end-1) + t_knot0(2:end))/2;
 Bm0 = bspline(tm0,t_knot0,S+1);
 val = squeeze(Bm0(:,:,1))*m_x0;
 Ex = squeeze(Bm0(:,:,1))*Cm_x0*squeeze(Bm0(:,:,1)).';
@@ -79,28 +79,28 @@ mean_a_error0 = sqrt(mean((acceleration(tq0)).^2));
 
 Q_error0 = (mean_x_error0 / sqrt(mean((path(tq0)).^2)) - 1);
 
-fprintf('This is how much the error decreases as data points are added.\n')
-S = 3;
-K = S+1;
-% What are the returned errors
-t_knot1 = NaturalKnotsForSpline(t,K);
-loops = 5;
-v = zeros(10,loops);
-for i=1:loops
-[m_x1,Cm_x1,B1] = bspline_fit_no_tension_constrain(t,x,ones(size(x))*sigma,S,t_knot1,w);
-tm1 = (t_knot1(1:end-1) + t_knot1(2:end))/2;
-Bm1 = bspline(tm1,t_knot1,S+1);
-val = squeeze(Bm1(:,:,K))*m_x1;
-Ex = squeeze(Bm1(:,:,K))*Cm_x1*squeeze(Bm1(:,:,K)).';
-tmp = diag(Ex);
-% tmp(1:10)/(sigma*sigma)
-v(:,i) = sigma*sigma./tmp(1:10);
-t_knot1(8) = [];
-end
-1/v(7,1)
-v/v(7,1)
-
-return
+% fprintf('This is how much the error decreases as data points are added.\n')
+% S = 2;
+% K = S+1;
+% % What are the returned errors
+% t_knot1 = NaturalKnotsForSpline(t,K);
+% loops = 5;
+% v = zeros(10,loops);
+% for i=1:loops
+% [m_x1,Cm_x1,B1] = bspline_fit_no_tension_constrain(t,x,ones(size(x))*sigma,S,t_knot1,w);
+% tm1 = (t_knot1(1:end-1) + t_knot1(2:end))/2;
+% Bm1 = bspline(tm1,t_knot1,S+1);
+% val = squeeze(Bm1(:,:,K))*m_x1;
+% Ex = squeeze(Bm1(:,:,K))*Cm_x1*squeeze(Bm1(:,:,K)).';
+% tmp = diag(Ex);
+% % tmp(1:10)/(sigma*sigma)
+% v(:,i) = sigma*sigma./tmp(1:10);
+%  t_knot1(8) = [];
+% end
+% 1/v(7,1)
+% v/v(7,1)
+% 
+% return
 
 S = 1;
 [t_knot1, S, constraints] = FindStatisticallySignificantKnotRegions(t,x,Sigma,z_threshold,w, S);
@@ -122,7 +122,6 @@ mean_v_error1 = sqrt(mean((speed(tq1) - v_fit1).^2));
 mean_a_error1 = sqrt(mean((acceleration(tq0)).^2));
 
 Q_error1 = (mean_x_error1 / sqrt(mean((path(tq1)).^2)) - 1) + (mean_v_error1 / sqrt(mean((speed(tq1)).^2)) - 1);
-
 
 S = 2;
 [t_knot2, S, constraints] = FindStatisticallySignificantKnotRegions(t,x,Sigma,z_threshold,w, S);

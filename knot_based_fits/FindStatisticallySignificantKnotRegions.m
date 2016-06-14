@@ -2,7 +2,7 @@ function [t_knot, S, constraints] = FindStatisticallySignificantKnotRegions(t,x,
 
 knot_indices = (1:length(t))';
 group = struct('left',knot_indices,'right',knot_indices,'value',[],'sigma2',[],'isNull',zeros(size(knot_indices)));
-[t_knot, S, constraints] = GroupRecursion(0,group,t,x,Sigma,z_threshold, w, maxS);
+[t_knot, S, constraints] = GroupRecursionPostNull(0,group,t,x,Sigma,z_threshold, w, maxS);
 
 end
 
@@ -95,6 +95,43 @@ if S == maxS
 else
     group2 = CreateInitialGroupingForNextDerivative(S+1, group);
     [t_knot, S, constraints] = GroupRecursion(S+1,group2,t,x,Sigma,z_threshold, w, maxS);
+    return;
+end
+
+end
+
+function [t_knot, S, constraints] = GroupRecursionPostNull(S,group,t,x,Sigma,z_threshold, w, maxS)
+
+t_knot = KnotsFromGroup(group,t);
+constraints = struct('t',[],'K',[]);
+[merge_score, null_score, group] = ComputeZScore(S,group,t,x,Sigma,w,t_knot,constraints);
+[min_z_score,m_index] = min(merge_score);
+[min_null_score, m_null_index] = min(null_score);
+
+while ( (~isempty(merge_score) && min_z_score < z_threshold) || (~isempty(null_score) && min_null_score < z_threshold))
+    if (min_z_score < z_threshold) % Always merge groups first.
+        group.right(m_index) = group.right(m_index+1);
+        group.isNull(m_index) = 0;
+        group.left(m_index+1) = [];
+        group.right(m_index+1) = [];
+        group.isNull(m_index+1) = [];
+    elseif (min_null_score < z_threshold) 
+        group.isNull(m_null_index) = 1;
+    end
+    
+    t_knot = KnotsFromGroup(group,t);
+    constraints = ConstraintsFromGroup(group,t_knot,S);
+    [merge_score, null_score, group] = ComputeZScore(S,group,t,x,Sigma,w,t_knot,constraints);
+    [min_z_score,m_index] = min(merge_score);
+    [min_null_score, m_null_index] = min(null_score);
+end
+
+
+if S == maxS
+    return;
+else
+    group2 = CreateInitialGroupingForNextDerivative(S+1, group);
+    [t_knot, S, constraints] = GroupRecursionPostNull(S+1,group2,t,x,Sigma,z_threshold, w, maxS);
     return;
 end
 
