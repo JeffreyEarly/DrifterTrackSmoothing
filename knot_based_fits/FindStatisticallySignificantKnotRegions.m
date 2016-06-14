@@ -1,7 +1,7 @@
 function [t_knot, S, constraints] = FindStatisticallySignificantKnotRegions(t,x,Sigma,z_threshold,w,maxS)
 
 knot_indices = (1:length(t))';
-group = struct('left',knot_indices,'right',knot_indices,'value',[],'sigma2',[]);
+group = struct('left',knot_indices,'right',knot_indices,'value',[],'sigma2',[],'isNull',zeros(size(knot_indices)));
 [t_knot, S, constraints] = GroupRecursion(0,group,t,x,Sigma,z_threshold, w, maxS);
 
 end
@@ -10,7 +10,7 @@ end
 % groupings for velocity, and group2 corresponds to the groupings for
 % acceleration, but it is general and applies to all derivatives.
 function group2 = CreateInitialGroupingForNextDerivative(S, group1)
-group2 = struct('left',[],'right',[],'value',[],'sigma2',[]);
+group2 = struct('left',[],'right',[],'value',[],'sigma2',[],'isNull',[]);
 
 iAccelerationGroup = 0;
 for iVelocityGroup = 1:length(group1.left)
@@ -37,47 +37,58 @@ for iVelocityGroup = 1:length(group1.left)
 
 end
 
+group2.isNull = zeros(size(group2.left));
+
 end
 
 % This should be general
 function [t_knot] = KnotsFromGroup(group,t)
 t_knot = zeros(length(group.left)+1,1);
 t_knot(1) = t(1);
-    for i=2:length(group.left)
-        t_knot(i)= (t(group.left(i)) + t(group.right(i-1)))/2;
+for i=2:length(group.left)
+    t_knot(i)= (t(group.left(i)) + t(group.right(i-1)))/2;
+end
+t_knot(end) = t(end);
+end
+
+function constraints = ConstraintsFromGroup(group,t_knot,S)
+constraints = struct('t',[],'K',[]);
+
+for i=1:length(group.isNull)
+    if group.isNull(i) == 1
+        constraints.t(end+1) = (t_knot(i) + t_knot(i+1))/2;
+        constraints.K(end+1) = S+1; 
     end
-    t_knot(end) = t(end);
+end
+
 end
 
 function [t_knot, S, constraints] = GroupRecursion(S,group,t,x,Sigma,z_threshold, w, maxS)
 
+t_knot = KnotsFromGroup(group,t);
 constraints = struct('t',[],'K',[]);
-
-z_score = ComputeZScore(S,group,t,x,Sigma, w,constraints);
-[min_z_score,m_index] = min(z_score);
-
-[null_score, t_val] = ComputeNullScore(S,group,t,x,Sigma, w,constraints);
+[merge_score, null_score, group] = ComputeZScore(S,group,t,x,Sigma,w,t_knot,constraints);
+[min_z_score,m_index] = min(merge_score);
 [min_null_score, m_null_index] = min(null_score);
 
-while (min_z_score < z_threshold || min_null_score < z_threshold)
+while ( (~isempty(merge_score) && min_z_score < z_threshold) || (~isempty(null_score) && min_null_score < z_threshold))
     if (min_z_score < min_null_score) 
         % Merge groups that are not significantly different
         group.right(m_index) = group.right(m_index+1);
+        group.isNull(m_index) = 0;
         group.left(m_index+1) = [];
         group.right(m_index+1) = [];
+        group.isNull(m_index+1) = [];
     else
-        constraints.t(end+1) = t_val(m_null_index);
-        constraints.K(end+1) = S+1;
+        group.isNull(m_null_index) = 1;
     end
     
-    z_score = ComputeZScore(S,group,t,x,Sigma, w,constraints);
-    [min_z_score,m_index] = min(z_score);
-    
-    [null_score, t_val] = ComputeNullScore(S,group,t,x,Sigma, w,constraints);
+    t_knot = KnotsFromGroup(group,t);
+    constraints = ConstraintsFromGroup(group,t_knot,S);
+    [merge_score, null_score, group] = ComputeZScore(S,group,t,x,Sigma,w,t_knot,constraints);
+    [min_z_score,m_index] = min(merge_score);
     [min_null_score, m_null_index] = min(null_score);
 end
-
-t_knot = KnotsFromGroup(group,t);
 
 if S == maxS
     return;
@@ -89,26 +100,7 @@ end
 
 end
 
-function [null_score, t_error] = ComputeNullScore(S,group,t,x,Sigma, w,constraints)
-t_knot = KnotsFromGroup(group,t);
-
-[m_x,Cm_x,~] = bspline_fit_no_tension_constrain(t,x,Sigma,S,t_knot,w,constraints);
-
-t_error = (t_knot(1:end-1) + t_knot(2:end))/2;
-B_error = bspline(t_error,t_knot,S+1);
-group.value = squeeze(B_error(:,:,S+1))*m_x;
-group.sigma2 = squeeze(B_error(:,:,S+1))*Cm_x*squeeze(B_error(:,:,S+1)).';
-
-tolerance = zeros(size(group.value));
-for i=1:length(tolerance)
-    tolerance(i) = sqrt(group.sigma2(i,i));
-end
-
-null_score = abs(group.value./tolerance);
-end
-
-function z_score = ComputeZScore(S,group,t,x,Sigma, w,constraints)
-t_knot = KnotsFromGroup(group,t);
+function [merge_score, null_score, group] = ComputeZScore(S,group,t,x,Sigma,w,t_knot,constraints)
 
 [m_x,Cm_x,~] = bspline_fit_no_tension_constrain(t,x,Sigma,S,t_knot,w,constraints);
 
@@ -118,10 +110,19 @@ group.value = squeeze(B_error(:,:,S+1))*m_x;
 group.sigma2 = squeeze(B_error(:,:,S+1))*Cm_x*squeeze(B_error(:,:,S+1)).';
 
 da = diff(group.value);
-tolerance = zeros(size(da));
-for i=1:length(tolerance)
-    tolerance(i) = sqrt(group.sigma2(i,i) + group.sigma2(i+1,i+1) - 2*group.sigma2(i,i+1));
+merge_tolerance = zeros(size(da));
+for i=1:length(merge_tolerance)
+    merge_tolerance(i) = sqrt(group.sigma2(i,i) + group.sigma2(i+1,i+1) - 2*group.sigma2(i,i+1));
+end
+merge_score = abs(da./merge_tolerance);
+
+null_score = zeros(size(group.value));
+for i=1:length(null_score)
+    if group.isNull(i) == 1
+        null_score(i) = Inf;
+    else
+        null_score(i) = abs(group.value(i)/sqrt(group.sigma2(i,i)));
+    end
 end
 
-z_score = abs(da./tolerance);
 end

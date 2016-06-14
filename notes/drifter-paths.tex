@@ -1226,6 +1226,18 @@ Maybe compute a z-score for merging and a z-score for zeroing. The lowest is wha
 
 Need to NOT include the z-score for zeroing from regions we've already zeroed. THEN we need to remove the constraints of merged groups. The way to do this is to 'flag' groups as being zeroed... include this in the struct.
 
+\subsection{Standard error}
+
+Here are some notes looking at the standard error.
+
+At $S=0$, group together more points gives a variance of $\sigma^2/N$ where $N$ is the number of points grouped. So that makes sense.
+
+At $S=1$, adding one additional point decreased by $2\sigma^2/f(N)$ where $f(N) = \{ 1, 4, 10, 20, 35\}$.
+
+At $S=2$, adding one additional point decreased by $18.74 \sigma^2/f(N)$ where $f(N) = \{ 1.0,8.24,34.61,103.65, 252.69\}$, approximately. These ones aren't round.
+
+So for S=0, this makes perfect sense. But this is WAY over inflated otherwise. This is dropping the error much too quickly.
+
 \subsection{Error analysis}
 
 How do we determine if we have a best fit? Simply computing the rms error of the position isn't sufficient, because we also want a way to characterize how good the fit is at higher derivatives as well. So, we want to take into account the rms error of the velocity and acceleration, for example. A fit that performs better at those derivatives is useful.
@@ -1237,6 +1249,12 @@ Define an error metric,
 Q_\textrm{error} = \frac{1}{n} \sum \left( \frac{\beta^{(n)}}{\alpha^{(n)}} -1 \right)
 \end{equation}
 that sums to zero if you postulate the particle didn't move. If your fit does \emph{worse} than simply postulating no motion, you will get a positive value, if you do better, you will get a negative value. You are penalized for fitting worse than the null hypothesis. This means that you're better off expressing your ignorance about higher derivatives (and therefore setting them to zero) rather than making bad, ill-informed guesses.
+
+\section{Relationship with finite difference matrix}
+
+A second order finite difference matrix has the same coefficients as the values of the second derivative of a 2nd order spline, 1, -2, 1.
+
+Remember my computation of the variances deduced from a finite difference matrix? Those are just $D \cdot \Sigma \cdot D^{\textrm{T}}$
 
 \section{Tension weighting}
 
