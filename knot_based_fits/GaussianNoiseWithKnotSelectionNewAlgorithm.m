@@ -12,8 +12,8 @@ rng(3)
 %%%%%%%%%%%%%%%%%%%%%%%%%%
 dt_v = 1;
 t=(0:dt_v:100)'; % seconds
-a_true = 0;
-u_true = 10; % meters/second
+a_true = .1;
+u_true = 0; % meters/second
 
 % path = @(t) a_true*(t.*t) + u_true.*t;
 % speed = @(t) 2*a_true.*t + u_true*ones(size(t));
@@ -40,7 +40,7 @@ x_true = path(t);
 v_true = speed(t);
 a_true = acceleration(t);
 
-sigma = 25; % meters
+sigma = 50; % meters
 
 % Create some Gaussian noise
 epsilon = sigma*randn(size(x_true));
@@ -54,7 +54,7 @@ p = @(z) exp(-(z.*z)/(2*sigma*sigma))/(sigma*sqrt(2*pi));
 w = @(z)(sigma*sigma);
 
 
-z_threshold = 7;
+z_threshold = 2.4;
 
 Sigma = sigma*ones(size(t));
 S = 0;
@@ -72,6 +72,7 @@ Ex = squeeze(Bm0(:,:,1))*Cm_x0*squeeze(Bm0(:,:,1)).';
 % B = group0.error;
 
 x_fit0 = squeeze(Bq0(:,:,1))*m_x0;
+x_fit0_error = sqrt(diag(squeeze(Bq0(:,:,1))*Cm_x0*squeeze(Bq0(:,:,1)).'));
 x_error0 = x - squeeze(B0(:,:,1))*m_x0;
 mean_x_error0 = sqrt(mean((path(tq0) - x_fit0).^2));
 mean_v_error0 = sqrt(mean((speed(tq0)).^2));
@@ -115,9 +116,11 @@ val = squeeze(Bm1(:,:,2))*m_x1;
 Ex = squeeze(Bm1(:,:,2))*Cm_x1*squeeze(Bm1(:,:,2)).';
 
 x_fit1 = squeeze(Bq1(:,:,1))*m_x1;
+x_fit1_error = sqrt(diag(squeeze(Bq1(:,:,1))*Cm_x1*squeeze(Bq1(:,:,1)).'));
 x_error1 = x - squeeze(B1(:,:,1))*m_x1;
 mean_x_error1 = sqrt(mean((path(tq1) - x_fit1).^2));
 v_fit1 = squeeze(Bq1(:,:,2))*m_x1;
+v_fit1_error = sqrt(diag(squeeze(Bq1(:,:,2))*Cm_x1*squeeze(Bq1(:,:,2)).'));
 mean_v_error1 = sqrt(mean((speed(tq1) - v_fit1).^2));
 mean_a_error1 = sqrt(mean((acceleration(tq0)).^2));
 
@@ -129,12 +132,16 @@ S = 2;
 tq2 = linspace(t(1),t(end),10*length(x))';
 Bq2 = bspline(tq2,t_knot2,S+1);
 
+
 x_fit2 = squeeze(Bq2(:,:,1))*m_x2;
+x_fit2_error = sqrt(diag(squeeze(Bq2(:,:,1))*Cm_x2*squeeze(Bq2(:,:,1)).'));
 x_error2 = x - squeeze(B2(:,:,1))*m_x2;
 mean_x_error2 = sqrt(mean((path(tq2) - x_fit2).^2));
 v_fit2 = squeeze(Bq2(:,:,2))*m_x2;
+v_fit2_error = sqrt(diag(squeeze(Bq2(:,:,2))*Cm_x2*squeeze(Bq2(:,:,2)).'));
 mean_v_error2 = sqrt(mean((speed(tq2) - v_fit2).^2));
 a_fit2 = squeeze(Bq2(:,:,3))*m_x2;
+a_fit2_error = sqrt(diag(squeeze(Bq2(:,:,3))*Cm_x2*squeeze(Bq2(:,:,3)).'));
 mean_a_error2 = sqrt(mean((acceleration(tq2) - a_fit2).^2));
 
 Q_error2 = (mean_x_error2 / sqrt(mean((path(tq2)).^2)) - 1) + (mean_v_error2 / sqrt(mean((speed(tq2)).^2)) - 1) +(mean_a_error2 / sqrt(mean((acceleration(tq2)).^2)) - 1);
@@ -148,26 +155,28 @@ Q_error2 = (mean_x_error2 / sqrt(mean((path(tq2)).^2)) - 1) + (mean_v_error2 / s
 figure
 
 subplot(3,1,1)
-plot(t,x_true,'k','LineWidth',1), hold on
+PlotErrorRegion( tq0, x_fit0, z_threshold*x_fit0_error), hold on
+plot(t,x_true,'k','LineWidth',1)
 plot(tq0,x_fit0,'b','LineWidth',1.5)
 scatter(t,x,6^2,'filled')
 vlines(t_knot0, 'g--')
 title(sprintf('Q-error: %.1f, position rms error=%.2f meters, velocity rms error=%.2f m/s, accel rms error=%.2f m/s^2', Q_error0,mean_x_error0, mean_v_error0, mean_a_error0))
 
 subplot(3,1,2)
-plot(t,x_true,'k','LineWidth',1), hold on
+PlotErrorRegion( tq1, x_fit1, z_threshold*x_fit1_error), hold on
+plot(t,x_true,'k','LineWidth',1)
 plot(tq1,x_fit1,'b','LineWidth',1.5)
 scatter(t,x,6^2,'filled')
 vlines(t_knot1, 'g--')
 title(sprintf('Q-error: %.1f, position rms error=%.2f meters, velocity rms error=%.2f m/s, accel rms error=%.2f m/s^2', Q_error1,mean_x_error1, mean_v_error1, mean_a_error1))
 
 subplot(3,1,3)
-plot(t,x_true,'k','LineWidth',1), hold on
+PlotErrorRegion( tq2, x_fit2, z_threshold*x_fit2_error), hold on
+plot(t,x_true,'k','LineWidth',1)
 plot(tq2,x_fit2,'b','LineWidth',1.5)
 scatter(t,x,6^2,'filled')
 vlines(t_knot2, 'g--')
 title(sprintf('Q-error: %.1f, position rms error=%.2f meters, velocity rms error=%.2f m/s, accel rms error=%.2f m/s^2', Q_error2,mean_x_error2, mean_v_error2, mean_a_error2))
-
 
 figure
 subplot(1,3,1)
@@ -193,13 +202,15 @@ title(sprintf('std=%f',std(x_error2)))
 figure
 
 subplot(2,1,1)
+PlotErrorRegion( tq1, v_fit1, z_threshold*v_fit1_error), hold on
 plot(t,v_true,'k','LineWidth',1), hold on
 plot( tq1, v_fit1,'b','LineWidth',1.5)
 scatter(t_v1,Diff1*x,6^2,'filled')
 vlines(t_knot1, 'g--')
 
 subplot(2,1,2)
-plot(t,v_true,'k','LineWidth',1), hold on
+PlotErrorRegion( tq2, v_fit2, z_threshold*v_fit2_error), hold on
+plot(t,v_true,'k','LineWidth',1)
 plot( tq2, v_fit2,'b','LineWidth',1.5)
 scatter(t_v1,Diff1*x,6^2,'filled')
 vlines(t_knot2, 'g--')
@@ -214,8 +225,8 @@ vlines(t_knot2, 'g--')
 
 figure
 
-a_fit2 = squeeze(Bq2(:,:,3))*m_x2;
-plot(t,a_true,'k','LineWidth',1), hold on,
+PlotErrorRegion( tq2, a_fit2, z_threshold*a_fit2_error), hold on
+plot(t,a_true,'k','LineWidth',1)
 plot( tq2, a_fit2,'b','LineWidth',1.5)
 scatter(t_a,Diff2*x)
 vlines(t_knot2, 'g--')
