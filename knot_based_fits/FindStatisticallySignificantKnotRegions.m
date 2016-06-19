@@ -25,6 +25,8 @@ for iVelocityGroup = 1:length(group1.left)
         end
         
 %         iAccelerationGroup = iAccelerationGroup + 1; % ...and create a transition group.
+% This works because at S=0, there are 0 overlapping points, 1 @ S=1, 2 @
+% S=2, etc. So this will grab 2 points at S=1, 3 @ S=2, etc. Perfect.
 %         group2.left(iAccelerationGroup) = group1.left(iVelocityGroup+1)-1; 
 %         group2.right(iAccelerationGroup) = group1.right(iVelocityGroup)+1; % can reach end, but not exceed
     elseif group1.right(iVelocityGroup)+1 > group1.right(end)
