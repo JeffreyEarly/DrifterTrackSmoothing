@@ -1258,6 +1258,32 @@ A second order finite difference matrix has the same coefficients as the values 
 
 Remember my computation of the variances deduced from a finite difference matrix? Those are just $D \cdot \Sigma \cdot D^{\textrm{T}}$
 
+
+\section{Mixed order splines}
+
+Here we create a basis of splines that are not of uniform order $K$. The idea is to have some splines with lower order zero derivatives.
+
+The $m$-th B-spline of order $K=1$ is defined as,
+\begin{equation}
+X^1_m(t) \equiv \begin{cases}
+1      & \text{if $ \tau_m \leq t < \tau_{m+1}$}, \\
+0     & \text{otherwise}.
+\end{cases}
+\end{equation}
+Normally higher order B-splines are defined by recursion,
+\begin{equation}
+X^K_m(t) \equiv \frac{t - t_m}{t_{m+K-1} - t_m} X^{K-1}_m(t) + \frac{t_{m+K}-t}{t_{m+K} - t_{m+1}} X^{K-1}_{m+1}(t).
+\end{equation}
+
+We will keep this same recursion, but modify the initial value as follows. Given a collection of groups, each with a max order, $k_i$,
+\begin{equation}
+X^{K}_m(t) \equiv \begin{cases}
+1      & \text{if $ \tau_m \leq t < \tau_{m+1}$ and $K =  K_{\textrm{max}} - k_i + 1$}\\
+0     & \text{otherwise}.
+\end{cases}
+\end{equation}
+The recursion is the used when $K >  K_{\textrm{max}} - k_i + 1$
+
 \section{Tension weighting}
 
 The expected PDF will not a $\chi^2$ distribution.
